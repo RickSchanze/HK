@@ -1,0 +1,8 @@
+{
+    "name": "hkengine",
+    "version": "1.0.0",
+    "description": "HKEngine Game Engine",
+    "dependencies": [
+        "spdlog"
+    ]
+}

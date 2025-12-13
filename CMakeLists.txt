@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-
+set(CMAKE_TOOLCHAIN_FILE "C:/Users/Admin/Software/vcpkg/scripts/buildsystems/vcpkg.cmake")
 project(HKEngine 
     VERSION 1.0.0
     DESCRIPTION "HKEngine Game Engine"
@@ -37,6 +37,18 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+
+# 平台检测和宏定义
+if(WIN32)
+    add_compile_definitions(HK_WINDOWS)
+    message(STATUS "平台: Windows (HK_WINDOWS)")
+elseif(APPLE)
+    add_compile_definitions(HK_MACOS)
+    message(STATUS "平台: macOS (HK_MACOS)")
+elseif(UNIX)
+    add_compile_definitions(HK_LINUX)
+    message(STATUS "平台: Linux (HK_LINUX)")
+endif()
 
 # Debug构建时定义HK_DEBUG宏
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -79,4 +91,7 @@ endif()
 
 # 安装规则（可选）
 # install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+find_package(spdlog CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog)
 
