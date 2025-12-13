@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -23,6 +24,10 @@ public:
     bool IsValid() const noexcept
     {
         return ID != 0;
+    }
+    size_t GetHashCode() const noexcept
+    {
+        return std::hash<IDType>{}(ID);
     }
 
     bool operator==(const FName& Other) const noexcept

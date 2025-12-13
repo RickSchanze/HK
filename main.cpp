@@ -21,6 +21,16 @@
 #include "Core/String/String.h"
 #include "Core/String/StringView.h"
 
+// Event includes
+#include "Core/Event/Delegate.h"
+#include "Core/Event/Event.h"
+
+// Test function for Event
+void StaticHandler(int x)
+{
+    std::cout << "Static handler: " << x << std::endl;
+}
+
 int main()
 {
 #ifdef HK_WINDOWS
@@ -258,6 +268,210 @@ int main()
             std::cout << n << " ";
         }
         std::cout << std::endl;
+    }
+
+    // Test TDelegate
+    {
+        spdlog::info("测试 TDelegate");
+
+        // Test Delegate<void> - 无参数无返回值
+        {
+            TDelegate<void> VoidDelegate;
+            int CallCount = 0;
+            VoidDelegate.Bind([&CallCount]() { CallCount++; });
+            VoidDelegate.Invoke();
+            std::cout << "Delegate<void> call count: " << CallCount << std::endl;
+            VoidDelegate.Clear();
+        }
+
+        // Test Delegate<int, int> - 有返回值有参数
+        {
+            TDelegate<int, int> IntDelegate;
+            IntDelegate.Bind([](int x) { return x * 2; });
+            int Result = IntDelegate.Invoke(5);
+            std::cout << "Delegate<int, int> result: " << Result << std::endl;
+        }
+
+        // Test Bind with function pointer
+        {
+            auto StaticFunc = [](int x) -> int { return x + 10; };
+            TDelegate<int, int> FuncPtrDelegate;
+            FuncPtrDelegate.Bind(StaticFunc);
+            std::cout << "Delegate with function pointer: " << FuncPtrDelegate.Invoke(20) << std::endl;
+        }
+
+        // Test Bind with member function
+        {
+            struct TestClass
+            {
+                int Value = 100;
+                int Multiply(int x)
+                {
+                    return Value * x;
+                }
+                int Add(int x) const
+                {
+                    return Value + x;
+                }
+            };
+            TestClass Obj;
+            TDelegate<int, int> MemberDelegate;
+            MemberDelegate.Bind(&Obj, &TestClass::Multiply);
+            std::cout << "Delegate with member function: " << MemberDelegate.Invoke(3) << std::endl;
+
+            TDelegate<int, int> ConstMemberDelegate;
+            ConstMemberDelegate.Bind(&Obj, &TestClass::Add);
+            std::cout << "Delegate with const member function: " << ConstMemberDelegate.Invoke(50) << std::endl;
+        }
+
+        // Test operator()
+        {
+            TDelegate<int, int> OpDelegate;
+            OpDelegate.Bind([](int x) { return x * x; });
+            std::cout << "Delegate operator(): " << OpDelegate(7) << std::endl;
+        }
+    }
+
+    // Test TEvent
+    {
+        spdlog::info("测试 TEvent");
+
+        // Test Event<void> - 无参数
+        {
+            TEvent<> VoidEvent;
+            int CallCount1 = 0, CallCount2 = 0;
+            auto Handle1 = VoidEvent.AddBind([&CallCount1]() { CallCount1++; });
+            auto Handle2 = VoidEvent.AddBind([&CallCount2]() { CallCount2 += 2; });
+            VoidEvent.Invoke();
+            std::cout << "Event<void> call count1: " << CallCount1 << ", count2: " << CallCount2 << std::endl;
+
+            VoidEvent.RemoveBind(Handle1);
+            VoidEvent.Invoke();
+            std::cout << "After remove handle1 - count1: " << CallCount1 << ", count2: " << CallCount2 << std::endl;
+
+            VoidEvent.Clear();
+            std::cout << "Event bind count after clear: " << VoidEvent.GetBindCount() << std::endl;
+        }
+
+        // Test Event<int, int> - 有参数
+        {
+            TEvent<int, int> IntEvent;
+            int Sum = 0;
+            auto Handle1 = IntEvent.AddBind([&Sum](int a, int b) { Sum += a + b; });
+            auto Handle2 = IntEvent.AddBind([&Sum](int a, int b) { Sum += a * b; });
+            IntEvent.Invoke(3, 4);
+            std::cout << "Event<int, int> sum: " << Sum << std::endl;
+        }
+
+        // Test AddBind with function pointer
+        {
+            TEvent<int> FuncEvent;
+            auto Handle = FuncEvent.AddBind(StaticHandler);
+            FuncEvent.Invoke(42);
+        }
+
+        // Test AddBind with member function
+        {
+            struct EventHandler
+            {
+                int Counter = 0;
+                void Handle(int x)
+                {
+                    Counter += x;
+                }
+                void HandleConst(int x) const
+                {
+                    std::cout << "Const handler: " << x << std::endl;
+                }
+            };
+            EventHandler Handler;
+            TEvent<int> MemberEvent;
+            auto Handle1 = MemberEvent.AddBind(&Handler, &EventHandler::Handle);
+            auto Handle2 = MemberEvent.AddBind(&Handler, &EventHandler::HandleConst);
+            MemberEvent.Invoke(10);
+            std::cout << "Event with member function, counter: " << Handler.Counter << std::endl;
+        }
+
+        // Test operator()
+        {
+            TEvent<int> OpEvent;
+            int Value = 0;
+            OpEvent.AddBind([&Value](int x) { Value = x; });
+            OpEvent(999);
+            std::cout << "Event operator() value: " << Value << std::endl;
+        }
+    }
+
+    // Test GetHashCode with TMap
+    {
+        spdlog::info("测试 GetHashCode 与 TMap");
+
+        // Test FName as Map key (uses GetHashCode)
+        {
+            TMap<FName, int> NameMap;
+            FName Key1("TestKey1");
+            FName Key2("TestKey2");
+            FName Key3("TestKey1"); // Same as Key1
+
+            NameMap.Add(Key1, 100);
+            NameMap.Add(Key2, 200);
+            NameMap.Add(Key3, 300); // Should overwrite Key1
+
+            std::cout << "NameMap size: " << NameMap.Size() << std::endl;
+            auto* Value1 = NameMap.Find(Key1);
+            if (Value1 != nullptr)
+            {
+                std::cout << "Key1 value: " << *Value1 << std::endl;
+            }
+            auto* Value2 = NameMap.Find(Key2);
+            if (Value2 != nullptr)
+            {
+                std::cout << "Key2 value: " << *Value2 << std::endl;
+            }
+
+            // Test GetHashCode directly
+            std::cout << "Key1 GetHashCode: " << Key1.GetHashCode() << std::endl;
+            std::cout << "Key2 GetHashCode: " << Key2.GetHashCode() << std::endl;
+            std::cout << "Key3 GetHashCode: " << Key3.GetHashCode() << std::endl;
+            std::cout << "Key1 == Key3: " << (Key1 == Key3) << std::endl;
+        }
+
+        // Test custom type with GetHashCode
+        {
+            struct CustomKey
+            {
+                int ID;
+                std::string Name;
+
+                bool operator==(const CustomKey& Other) const
+                {
+                    return ID == Other.ID && Name == Other.Name;
+                }
+
+                size_t GetHashCode() const noexcept
+                {
+                    return std::hash<int>{}(ID) ^ (std::hash<std::string>{}(Name) << 1);
+                }
+            };
+
+            TMap<CustomKey, std::string> CustomMap;
+            CustomKey Key1{1, "First"};
+            CustomKey Key2{2, "Second"};
+            CustomKey Key3{1, "First"}; // Same as Key1
+
+            CustomMap.Add(Key1, "Value1");
+            CustomMap.Add(Key2, "Value2");
+            CustomMap.Add(Key3, "Value3"); // Should overwrite Key1
+
+            std::cout << "CustomMap size: " << CustomMap.Size() << std::endl;
+            auto* Value1 = CustomMap.Find(Key1);
+            if (Value1 != nullptr)
+            {
+                std::cout << "CustomKey1 value: " << *Value1 << std::endl;
+            }
+            std::cout << "CustomKey1 GetHashCode: " << Key1.GetHashCode() << std::endl;
+            std::cout << "CustomKey2 GetHashCode: " << Key2.GetHashCode() << std::endl;
+        }
     }
 
     spdlog::info("所有测试完成！");

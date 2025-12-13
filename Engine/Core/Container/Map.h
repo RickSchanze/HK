@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <unordered_map>
 
-
 template <typename KeyType, typename ValueType>
 class TMap
 {
@@ -146,3 +145,21 @@ public:
 private:
     MapType Data;
 };
+
+template <typename T>
+concept CMapKey = requires(const T& A, const T& B) {
+    { A.GetHashCode() } -> std::same_as<size_t>;
+    { A == B } -> std::same_as<bool>;
+};
+
+namespace std
+{
+template <CMapKey T>
+struct hash<T>
+{
+    size_t operator()(const T& Key) const noexcept
+    {
+        return Key.GetHashCode();
+    }
+};
+} // namespace std
