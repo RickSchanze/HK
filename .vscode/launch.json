@@ -9,7 +9,7 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false,
-            "preLaunchTask": "Build Debug"
+            "preLaunchTask": "Build Debug (Fast - No Configure)"
         },
         {
             "name": "Debug (CodeLLDB) - 附加到进程",
