@@ -127,7 +127,7 @@ FAnyRef FTypeManager::GetValueRefImpl(const FAnyRef& InAnyRef) const
 {
     if (!InAnyRef.IsValid())
     {
-        HK_LOG_ERROR(ELogcat::Engine, "FAnyRef is invalid in GetValueRef");
+        HK_LOG_ERROR(ELogcat::Reflection, "FAnyRef is invalid in GetValueRef");
         return FAnyRef();
     }
 
@@ -136,14 +136,14 @@ FAnyRef FTypeManager::GetValueRefImpl(const FAnyRef& InAnyRef) const
 
     if (TargetType == nullptr || SourceType == nullptr)
     {
-        HK_LOG_ERROR(ELogcat::Engine, "Type is null in GetValueRef");
+        HK_LOG_ERROR(ELogcat::Reflection, "Type is null in GetValueRef");
         return FAnyRef();
     }
 
     // 类型检查
     if (TargetType != SourceType)
     {
-        HK_LOG_ERROR(ELogcat::Engine, "Type mismatch in GetValueRef: {} != {}", TargetType->Name.GetStdString(),
+        HK_LOG_ERROR(ELogcat::Reflection, "Type mismatch in GetValueRef: {} != {}", TargetType->Name.GetStdString(),
                      SourceType->Name.GetStdString());
         return FAnyRef();
     }
@@ -152,7 +152,7 @@ FAnyRef FTypeManager::GetValueRefImpl(const FAnyRef& InAnyRef) const
     T* ValuePtr = reinterpret_cast<T*>(DataPtr);
     if (ValuePtr == nullptr)
     {
-        HK_LOG_ERROR(ELogcat::Engine, "Failed to get data pointer in GetValueRef");
+        HK_LOG_ERROR(ELogcat::Reflection, "Failed to get data pointer in GetValueRef");
         return FAnyRef();
     }
 
@@ -167,7 +167,7 @@ bool FTypeManager::TryGetValueImpl(const T1& InObj, T& OutValue) const
 
     if (SourceType == nullptr || TargetType == nullptr)
     {
-        HK_LOG_ERROR(ELogcat::Engine, "Type is null in TryGetValue");
+        HK_LOG_ERROR(ELogcat::Reflection, "Type is null in TryGetValue");
         return false;
     }
 
@@ -179,8 +179,8 @@ bool FTypeManager::TryGetValueImpl(const T1& InObj, T& OutValue) const
         return true;
     }
 
-    HK_LOG_ERROR(ELogcat::Engine, "Type conversion failed in TryGetValue: {} -> {}", SourceType->Name.GetStdString(),
-                 TargetType->Name.GetStdString());
+    HK_LOG_ERROR(ELogcat::Reflection, "Type conversion failed in TryGetValue: {} -> {}",
+                 SourceType->Name.GetStdString(), TargetType->Name.GetStdString());
     return false;
 }
 

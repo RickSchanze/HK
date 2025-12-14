@@ -3,7 +3,11 @@
 #include "Core/Time/Time.h"
 #include "Core/Utility/Macros.h"
 
-#define HK_LOGCAT_LIST HK_LOGCAT_ITEM(Engine) HK_LOGCAT_ITEM(Assert)
+#define HK_LOGCAT_LIST                                                                                                 \
+    HK_LOGCAT_ITEM(Engine)                                                                                             \
+    HK_LOGCAT_ITEM(Assert)                                                                                             \
+    HK_LOGCAT_ITEM(Reflection)                                                                                         \
+    HK_LOGCAT_ITEM(Test)
 
 enum class ELogcat
 {

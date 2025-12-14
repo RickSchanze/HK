@@ -1,0 +1,69 @@
+[33mcommit 9bcc6f9a8f0bdd6e7fca4a75c6b1b4b08ae337f9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: RickSchanze <2815091564@qq.com>
+Date:   Sun Dec 14 14:37:52 2025 +0800
+
+    实现反射系统并优化调试和日志配置
+    
+    主要更改：
+    - 实现完整的反射系统（FType, FProperty, FAny, FAnyRef, TypeManager）
+      - 支持类型注册、属性注册、枚举成员注册
+      - 支持延迟注册机制（先注册注册函数，使用时再执行）
+      - 支持类型创建和销毁
+      - 实现 Cast 和 CastFast 类型转换
+      - 移除 RTTI 依赖，使用 static 局部变量进行类型标识
+    
+    - FName 优化
+      - FNameTable 使用 FString 替代 std::string
+      - 为 FString 添加哈希函数支持
+      - 添加 GetString() 方法返回 FString 引用
+    
+    - 日志系统改进
+      - Logs 文件夹现在相对于 exe 位置创建（而非项目根目录）
+      - 支持 Windows/Linux/macOS 平台
+    
+    - 调试器支持
+      - 添加 MSVC .natvis 文件（FName 可视化）
+      - 添加 LLDB Python 格式化器
+      - 添加 GDB Python 格式化器
+      - 所有调试器脚本移至 Debug 目录
+    
+    - MSVC 兼容性
+      - 修复 __VA_OPT__ 宏兼容性问题
+      - 修复标准库头文件包含问题
+      - 修复 FString 前向声明问题
+    
+    - 其他改进
+      - 更新 .gitignore 忽略 Debug 目录的 Python 缓存
+      - 更新 CMakeLists.txt 支持 natvis 文件
+      - 添加大量测试代码验证反射系统功能
+
+ .gitignore                             |   7 [32m+[m
+ CMakeLists.txt                         |  38 [32m+[m[31m-[m
+ Debug/.gdbinit                         |  11 [32m+[m
+ Debug/.lldbinit                        |   7 [32m+[m
+ Debug/HKEngine.natvis                  |  15 [32m+[m
+ Debug/gdb_formatters.py                |  65 [32m++++[m
+ Debug/lldb_formatters.py               |  93 [32m+++++[m
+ Engine/Core/Logging/Logger.cpp         |  43 [32m++[m[31m-[m
+ Engine/Core/Logging/Logger.h           |  12 [32m+[m[31m-[m
+ Engine/Core/Reflection/Any.h           | 150 [32m++++++++[m
+ Engine/Core/Reflection/AnyRef.h        |  75 [32m++++[m
+ Engine/Core/Reflection/Method.cpp      |   0
+ Engine/Core/Reflection/Method.h        |   0
+ Engine/Core/Reflection/MethodParam.cpp |   0
+ Engine/Core/Reflection/MethodParam.h   |   0
+ Engine/Core/Reflection/Property.cpp    |   8 [32m+[m
+ Engine/Core/Reflection/Property.h      | 225 [32m++++++++++++[m
+ Engine/Core/Reflection/ReflectionFwd.h |  16 [32m+[m[31m-[m
+ Engine/Core/Reflection/Type.cpp        |  84 [32m+++++[m
+ Engine/Core/Reflection/Type.h          |  95 [32m++++[m[31m-[m
+ Engine/Core/Reflection/Type.inl        | 100 [32m++++++[m
+ Engine/Core/Reflection/TypeManager.cpp |  72 [32m++++[m
+ Engine/Core/Reflection/TypeManager.h   | 288 [32m+++++++++++++++[m
+ Engine/Core/Reflection/TypeManager.inl | 208 [32m+++++++++++[m
+ Engine/Core/String/Name.cpp            |  22 [32m+[m[31m-[m
+ Engine/Core/String/Name.h              |  24 [32m+[m[31m-[m
+ Engine/Core/String/String.h            |  13 [32m+[m
+ Engine/Core/Utility/Macros.h           |  15 [32m+[m[31m-[m
+ main.cpp                               | 615 [32m+++++++++++++++++++++++++++++++++[m
+ 29 files changed, 2266 insertions(+), 35 deletions(-)

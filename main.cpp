@@ -1409,7 +1409,7 @@ int main()
 
         // 测试多个类型的延迟注册
         {
-            spdlog::info("测试多个类型的延迟注册");
+            HK_LOG_INFO(ELogcat::Test, "测试多个类型的延迟注册");
 
             struct TypeA
             {
