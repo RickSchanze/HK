@@ -25,6 +25,13 @@
 #include "Core/Event/Delegate.h"
 #include "Core/Event/Event.h"
 
+// Utility includes
+#include "Core/Utility/Expected.h"
+#include "Core/Utility/Optional.h"
+#include "Core/Utility/Ref.h"
+#include "Core/Utility/SharedPtr.h"
+#include "Core/Utility/UniquePtr.h"
+
 // Test function for Event
 void StaticHandler(int x)
 {
@@ -471,6 +478,294 @@ int main()
             }
             std::cout << "CustomKey1 GetHashCode: " << Key1.GetHashCode() << std::endl;
             std::cout << "CustomKey2 GetHashCode: " << Key2.GetHashCode() << std::endl;
+        }
+    }
+
+    // Test Utility Classes
+    {
+        spdlog::info("测试 Utility 工具类");
+
+        // Test TRef - 引用包装和多态
+        {
+            spdlog::info("测试 TRef");
+            struct Base
+            {
+                virtual ~Base() = default;
+                virtual int GetValue() const
+                {
+                    return 1;
+                }
+            };
+            struct Derived : public Base
+            {
+                int GetValue() const override
+                {
+                    return 2;
+                }
+            };
+
+            Derived DerivedObj;
+            Base& BaseRef = DerivedObj;
+            TRef<Base> Ref = MakeRef(BaseRef);
+
+            std::cout << "TRef<Base> GetValue (多态): " << Ref.Get().GetValue() << std::endl;
+            std::cout << "TRef operator*: " << (*Ref).GetValue() << std::endl;
+            std::cout << "TRef operator->: " << Ref->GetValue() << std::endl;
+
+            // 测试 const 引用
+            const Base& ConstBaseRef = DerivedObj;
+            TRef<const Base> ConstRef = MakeRef(ConstBaseRef);
+            std::cout << "TRef<const Base> GetValue: " << ConstRef.Get().GetValue() << std::endl;
+        }
+
+        // Test TSharedPtr - 共享指针和多态
+        {
+            spdlog::info("测试 TSharedPtr");
+            struct Base
+            {
+                virtual ~Base() = default;
+                virtual std::string GetName() const
+                {
+                    return "Base";
+                }
+            };
+            struct Derived : public Base
+            {
+                std::string GetName() const override
+                {
+                    return "Derived";
+                }
+            };
+
+            // 测试 MakeShared
+            TSharedPtr<Derived> DerivedPtr = MakeShared<Derived>();
+            std::cout << "TSharedPtr<Derived> GetName: " << DerivedPtr->GetName() << std::endl;
+
+            // 测试多态转换
+            TSharedPtr<Base> BasePtr = DerivedPtr;
+            std::cout << "TSharedPtr<Base> GetName (多态): " << BasePtr->GetName() << std::endl;
+            std::cout << "Use count: " << BasePtr.UseCount() << std::endl;
+
+            // 测试拷贝
+            TSharedPtr<Base> BasePtr2 = BasePtr;
+            std::cout << "After copy, use count: " << BasePtr.UseCount() << std::endl;
+
+            // 测试重置
+            BasePtr2.Reset();
+            std::cout << "After reset, use count: " << BasePtr.UseCount() << std::endl;
+
+            // 测试空指针
+            TSharedPtr<Base> NullPtr;
+            std::cout << "Null pointer is valid: " << (bool)NullPtr << std::endl;
+        }
+
+        // Test TUniquePtr - 唯一指针和多态
+        {
+            spdlog::info("测试 TUniquePtr");
+            struct Base
+            {
+                virtual ~Base() = default;
+                virtual int GetValue() const
+                {
+                    return 10;
+                }
+            };
+            struct Derived : public Base
+            {
+                int GetValue() const override
+                {
+                    return 20;
+                }
+            };
+
+            // 测试 MakeUnique
+            TUniquePtr<Derived> DerivedPtr = MakeUnique<Derived>();
+            std::cout << "TUniquePtr<Derived> GetValue: " << DerivedPtr->GetValue() << std::endl;
+
+            // 测试多态转换（移动）
+            TUniquePtr<Base> BasePtr = std::move(DerivedPtr);
+            std::cout << "TUniquePtr<Base> GetValue (多态): " << BasePtr->GetValue() << std::endl;
+            std::cout << "DerivedPtr after move is valid: " << (bool)DerivedPtr << std::endl;
+
+            // 测试释放
+            Base* ReleasedPtr = BasePtr.Release();
+            std::cout << "Released raw pointer GetValue: " << ReleasedPtr->GetValue() << std::endl;
+            delete ReleasedPtr;
+
+            // 测试自定义删除器
+            struct CustomDeleter
+            {
+                void operator()(Base* Ptr)
+                {
+                    std::cout << "Custom deleter called" << std::endl;
+                    delete Ptr;
+                }
+            };
+            TUniquePtr<Base> TempPtr = MakeUnique<Base>();
+            Base* CustomRawPtr = TempPtr.Release();
+            TUniquePtr<Base, CustomDeleter> CustomPtr(CustomRawPtr, CustomDeleter{});
+        }
+
+        // Test TOptional
+        {
+            spdlog::info("测试 TOptional");
+            TOptional<int> OptInt;
+            std::cout << "Empty optional IsSet: " << OptInt.IsSet() << std::endl;
+
+            OptInt = 42;
+            std::cout << "Optional with value: " << OptInt.GetValue() << std::endl;
+            std::cout << "Optional operator*: " << *OptInt << std::endl;
+            std::cout << "Optional operator->: " << OptInt.operator->() << std::endl;
+
+            // 测试 MakeOptional
+            auto OptStr = MakeOptional(std::string("Hello"));
+            std::cout << "MakeOptional string: " << OptStr.GetValue() << std::endl;
+
+            // 测试 ValueOr
+            TOptional<int> EmptyOpt;
+            std::cout << "Empty optional ValueOr(100): " << EmptyOpt.ValueOr(100) << std::endl;
+
+            // 测试 Emplace
+            TOptional<std::string> EmplaceOpt;
+            EmplaceOpt.Emplace("Emplaced");
+            std::cout << "Emplaced value: " << EmplaceOpt.GetValue() << std::endl;
+        }
+
+        // Test TExpected
+        {
+            spdlog::info("测试 TExpected");
+            enum class ErrorCode
+            {
+                None,
+                InvalidInput,
+                OutOfRange
+            };
+
+            // 测试成功值
+            TExpected<int, ErrorCode> Success = MakeExpected<int, ErrorCode>(42);
+            std::cout << "Expected success HasValue: " << Success.HasValue() << std::endl;
+            std::cout << "Expected success value: " << Success.Value() << std::endl;
+            std::cout << "Expected success operator*: " << *Success << std::endl;
+
+            // 测试错误值
+            TExpected<int, ErrorCode> Error = MakeExpectedError<int, ErrorCode>(ErrorCode::InvalidInput);
+            std::cout << "Expected error HasError: " << Error.HasError() << std::endl;
+            std::cout << "Expected error IsOk: " << Error.IsOk() << std::endl;
+
+            // 测试 ValueOr
+            std::cout << "Error ValueOr(100): " << Error.ValueOr(100) << std::endl;
+
+            // 测试 ValueOrElse
+            auto Result = Error.ValueOrElse(
+                [](ErrorCode Code) -> int
+                {
+                    std::cout << "Error code: " << (int)Code << std::endl;
+                    return 200;
+                });
+            std::cout << "ValueOrElse result: " << Result << std::endl;
+
+            // 测试字符串错误类型
+            TExpected<std::string, std::string> StringError =
+                MakeExpectedError<std::string, std::string>("Error message");
+            std::cout << "String error: " << StringError.Error() << std::endl;
+        }
+
+        // Test TRef with Event and Delegate (测试引用必须用 Ref 包裹)
+        {
+            spdlog::info("测试 TRef 与 Event/Delegate 的集成");
+            // 测试 Delegate 接受 const 引用
+            TDelegate<void, const int&> ConstRefDelegate;
+            ConstRefDelegate.Bind([](const int& Value)
+                                  { std::cout << "Delegate const ref value: " << Value << std::endl; });
+            int Value = 100;
+            ConstRefDelegate.Invoke(Value);
+
+            // 测试 Event 接受 TRef
+            TEvent<TRef<int>> RefEvent;
+            RefEvent.AddBind(
+                [](TRef<int> Ref)
+                {
+                    Ref.Get() = 999;
+                    std::cout << "Event modified ref value: " << Ref.Get() << std::endl;
+                });
+            int ModifiableValue = 0;
+            RefEvent.Invoke(MakeRef(ModifiableValue));
+            std::cout << "Original value after event: " << ModifiableValue << std::endl;
+
+            // 测试多态与 TRef
+            struct Base
+            {
+                virtual ~Base() = default;
+                virtual void DoSomething() const
+                {
+                    std::cout << "Base::DoSomething" << std::endl;
+                }
+            };
+            struct Derived : public Base
+            {
+                void DoSomething() const override
+                {
+                    std::cout << "Derived::DoSomething" << std::endl;
+                }
+            };
+
+            Derived DerivedObj;
+            const Base& ConstBaseRef = DerivedObj;
+            TEvent<TRef<const Base>> PolyEvent;
+            PolyEvent.AddBind([](TRef<const Base> Ref) { Ref->DoSomething(); });
+            TRef<const Base> BaseRefWrapper = MakeRef(ConstBaseRef);
+            PolyEvent.Invoke(BaseRefWrapper);
+        }
+
+        // Test 多态组合场景
+        {
+            spdlog::info("测试多态组合场景");
+            struct Animal
+            {
+                virtual ~Animal() = default;
+                virtual std::string MakeSound() const = 0;
+            };
+            struct Dog : public Animal
+            {
+                std::string MakeSound() const override
+                {
+                    return "Woof!";
+                }
+            };
+            struct Cat : public Animal
+            {
+                std::string MakeSound() const override
+                {
+                    return "Meow!";
+                }
+            };
+
+            // 使用 TSharedPtr 存储多态对象
+            TSharedPtr<Animal> DogPtr = MakeShared<Dog>();
+            TSharedPtr<Animal> CatPtr = MakeShared<Cat>();
+
+            std::cout << "Dog sound: " << DogPtr->MakeSound() << std::endl;
+            std::cout << "Cat sound: " << CatPtr->MakeSound() << std::endl;
+
+            // 使用 TUniquePtr 存储多态对象（通过 Release 和 Reset 转换）
+            TUniquePtr<Animal> UniqueDogRaw = MakeUnique<Cat>();
+            TUniquePtr<Animal> UniqueDog;
+            UniqueDog.Reset(UniqueDogRaw.Release());
+
+            TUniquePtr<Cat> UniqueCatRaw = MakeUnique<Cat>();
+            TUniquePtr<Animal> UniqueCat;
+            UniqueCat.Reset(UniqueCatRaw.Release());
+
+            std::cout << "Unique Dog sound: " << UniqueDog->MakeSound() << std::endl;
+            std::cout << "Unique Cat sound: " << UniqueCat->MakeSound() << std::endl;
+
+            // 使用 TOptional 存储多态指针
+            TSharedPtr<Animal> AnimalPtr = MakeShared<Dog>();
+            TOptional<TSharedPtr<Animal>> OptionalAnimal = MakeOptional(AnimalPtr);
+            if (OptionalAnimal.IsSet())
+            {
+                std::cout << "Optional Animal sound: " << (*OptionalAnimal)->MakeSound() << std::endl;
+            }
         }
     }
 

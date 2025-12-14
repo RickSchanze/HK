@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Core/Utility/Ref.h"
+#include "Core/Utility/TypeTraits.h"
 #include <functional>
-#include <type_traits>
 
 template <typename ReturnType, typename... Args>
 class TDelegate
 {
+    static_assert(!HasNonConstReference<Args...>::value,
+                  "TDelegate does not accept non-const references. Use const references or TRef<T> for references.");
+
 public:
     using FunctionType = std::function<ReturnType(Args...)>;
 

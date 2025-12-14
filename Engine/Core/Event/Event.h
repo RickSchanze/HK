@@ -1,11 +1,16 @@
 #pragma once
 
 #include "Core/Container/Array.h"
+#include "Core/Utility/Ref.h"
+#include "Core/Utility/TypeTraits.h"
 #include <functional>
 
 template <typename... Args>
 class TEvent
 {
+    static_assert(!HasNonConstReference<Args...>::value,
+                  "TEvent does not accept non-const references. Use const references or TRef<T> for references.");
+
 public:
     using Handle = size_t;
     using FunctionType = std::function<void(Args...)>;
