@@ -6,7 +6,7 @@ FName::FName(const char* InStr)
 {
     if (InStr != nullptr)
     {
-        ID = GetOrCreateID(std::string(InStr));
+        ID = GetOrCreateID(FString(InStr));
     }
     else
     {
@@ -16,15 +16,20 @@ FName::FName(const char* InStr)
 
 FName::FName(const std::string& InStr)
 {
+    ID = GetOrCreateID(FString(InStr));
+}
+
+FName::FName(const FString& InStr)
+{
     ID = GetOrCreateID(InStr);
 }
 
 FName::FName(const FStringView& InView)
 {
-    ID = GetOrCreateID(std::string(InView.Data(), InView.Size()));
+    ID = GetOrCreateID(FString(InView.Data(), InView.Size()));
 }
 
-const std::string& FName::GetStdString() const
+const FString& FName::GetString() const
 {
     HK_ASSERT_RAW(IsValid());
     auto& Table = GetNameTableInstance();
@@ -34,13 +39,18 @@ const std::string& FName::GetStdString() const
     return It->second;
 }
 
+const std::string& FName::GetStdString() const
+{
+    return GetString().GetStdString();
+}
+
 FName::FNameTable& FName::GetNameTableInstance()
 {
     static FNameTable Table;
     return Table;
 }
 
-FName::FIDType FName::GetOrCreateID(const std::string& InStr)
+FName::FIDType FName::GetOrCreateID(const FString& InStr)
 {
     auto& Table = GetNameTableInstance();
     std::lock_guard<std::mutex> Lock(Table.Mutex);
@@ -73,7 +83,7 @@ size_t FName::GetNameTableSize()
     return Table.StringToID.size();
 }
 
-const std::unordered_map<FName::FIDType, std::string>& FName::GetNameTable()
+const std::unordered_map<FName::FIDType, FString>& FName::GetNameTable()
 {
     auto& Table = GetNameTableInstance();
     return Table.IDToString;
@@ -81,5 +91,5 @@ const std::unordered_map<FName::FIDType, std::string>& FName::GetNameTable()
 
 FName::operator FString() const
 {
-    return FString(GetStdString());
+    return GetString();
 }

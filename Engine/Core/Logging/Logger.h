@@ -100,11 +100,11 @@ private:
 extern FLogger GLogger;
 
 // 日志宏
-#define HK_LOG_FATAL(InLogcat, Fmt, ...) GLogger.Fatal(InLogcat, Fmt __VA_OPT__(, ) __VA_ARGS__)
-#define HK_LOG_ERROR(InLogcat, Fmt, ...) GLogger.Error(InLogcat, Fmt __VA_OPT__(, ) __VA_ARGS__)
-#define HK_LOG_WARN(InLogcat, Fmt, ...) GLogger.Warn(InLogcat, Fmt __VA_OPT__(, ) __VA_ARGS__)
-#define HK_LOG_INFO(InLogcat, Fmt, ...) GLogger.Info(InLogcat, Fmt __VA_OPT__(, ) __VA_ARGS__)
-#define HK_LOG_DEBUG(InLogcat, Fmt, ...) GLogger.Debug(InLogcat, Fmt __VA_OPT__(, ) __VA_ARGS__)
+#define HK_LOG_FATAL(InLogcat, Fmt, ...) GLogger.Fatal(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))
+#define HK_LOG_ERROR(InLogcat, Fmt, ...) GLogger.Error(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))
+#define HK_LOG_WARN(InLogcat, Fmt, ...) GLogger.Warn(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))
+#define HK_LOG_INFO(InLogcat, Fmt, ...) GLogger.Info(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))
+#define HK_LOG_DEBUG(InLogcat, Fmt, ...) GLogger.Debug(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))
 
 // Assert宏（在Debug模式下使用Logger）
 #ifdef HK_DEBUG
@@ -123,7 +123,7 @@ extern FLogger GLogger;
     {                                                                                                                  \
         if (!(Condition))                                                                                              \
         {                                                                                                              \
-            GLogger.Fatal(ELogcat::Assert, "Assertion failed: {} - " Fmt, #Condition __VA_OPT__(, ) __VA_ARGS__);      \
+            GLogger.Fatal(ELogcat::Assert, "Assertion failed: {} - " Fmt, #Condition HK_VA_OPT_COMMA(__VA_ARGS__));    \
             std::abort();                                                                                              \
         }                                                                                                              \
     } while (0)

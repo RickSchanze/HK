@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <!-- FName Visualizer: Shows ID and String -->
+  <Type Name="FName">
+    <DisplayString Condition="ID==0">FName(Invalid, ID=0)</DisplayString>
+    <DisplayString Condition="ID!=0">FName(ID={ID}, String="{GetString().GetStdString(),na}")</DisplayString>
+    <Expand>
+      <Item Name="ID">ID</Item>
+      <Item Name="String" Condition="ID!=0">GetString().GetStdString()</Item>
+      <Item Name="IsValid">IsValid()</Item>
+      <Item Name="HashCode">GetHashCode()</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>
+

@@ -4,6 +4,10 @@ out/
 bin/
 lib/
 
+# Debug 目录（但保留调试器脚本）
+Debug/*.pyc
+Debug/__pycache__/
+
 # CMake
 CMakeCache.txt
 CMakeFiles/
@@ -38,4 +42,7 @@ Thumbs.db
 
 # 日志
 *.log
+cmake-build-debug]
+.idea
+Logs/
 

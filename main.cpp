@@ -36,6 +36,11 @@
 // Logging includes
 #include "Core/Logging/Logger.h"
 
+// Reflection includes
+#include "Core/Reflection/Any.h"
+#include "Core/Reflection/AnyRef.h"
+#include "Core/Reflection/TypeManager.h"
+
 // Time includes
 #include "Core/Time/Time.h"
 
@@ -861,6 +866,616 @@ int main()
         HK_ASSERT_MSG(Condition, "This should not fail: {}", 42);
 
         std::cout << "Assert tests passed (or skipped in Release mode)" << std::endl;
+    }
+
+    // Test Reflection System
+    {
+        std::cout << "\n=== Reflection System Test ===" << std::endl;
+
+        // 初始化基础类型
+        FTypeManager::Get().InitializeAllTypes();
+
+        // 测试TypeOf和基础类型注册
+        {
+            spdlog::info("测试 TypeOf 和基础类型");
+            FType Int32Type = TypeOf<Int32>();
+            if (Int32Type != nullptr)
+            {
+                std::cout << "Int32 type name: " << Int32Type->Name.GetStdString() << std::endl;
+                std::cout << "Int32 type size: " << Int32Type->Size << std::endl;
+                std::cout << "Int32 is enum: " << Int32Type->IsEnum() << std::endl;
+            }
+
+            FType FloatType = TypeOf<Float>();
+            if (FloatType != nullptr)
+            {
+                std::cout << "Float type name: " << FloatType->Name.GetStdString() << std::endl;
+            }
+        }
+
+        // 测试Enum类型
+        {
+            spdlog::info("测试 Enum 类型");
+            enum class ETestEnum : Int32
+            {
+                Value1 = 1,
+                Value2 = 2,
+                Value3 = 3
+            };
+
+            FTypeMutable EnumType = FTypeManager::Register<ETestEnum>("ETestEnum");
+            if (EnumType != nullptr)
+            {
+                std::cout << "ETestEnum type name: " << EnumType->Name.GetStdString() << std::endl;
+                std::cout << "ETestEnum is enum: " << EnumType->IsEnum() << std::endl;
+                if (EnumType->IsEnum())
+                {
+                    FType UnderlyingType = EnumType->GetUnderlyingType();
+                    if (UnderlyingType != nullptr)
+                    {
+                        std::cout << "ETestEnum underlying type: " << UnderlyingType->Name.GetStdString() << std::endl;
+                    }
+                }
+
+                // 注册所有枚举成员
+                EnumType->RegisterEnumMember(ETestEnum::Value1, "Value1")
+                    ->RegisterEnumMember(ETestEnum::Value2, "Value2")
+                    ->RegisterEnumMember(ETestEnum::Value3, "Value3");
+
+                std::cout << "ETestEnum has " << EnumType->Properties.Size() << " enum members" << std::endl;
+                for (const auto& Prop : EnumType->Properties)
+                {
+                    if (Prop != nullptr && Prop->IsEnum() && Prop->Name.IsValid())
+                    {
+                        std::cout << "  Enum member: " << Prop->Name.GetStdString()
+                                  << ", Value: " << Prop->GetEnumValue() << std::endl;
+                        auto EnumValue = Prop->GetEnumPropertyValue<ETestEnum>();
+                        if (EnumValue.IsSet())
+                        {
+                            std::cout << "    Typed value: " << static_cast<Int32>(EnumValue.GetValue()) << std::endl;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 测试类注册和属性
+        {
+            spdlog::info("测试类注册和属性");
+            struct A
+            {
+                Int32 B;
+            };
+
+            FTypeMutable AType = FTypeManager::Register<A>("A");
+            if (AType != nullptr)
+            {
+                std::cout << "Registered type A, size: " << AType->Size << std::endl;
+                AType->RegisterProperty(&A::B, "B");
+                // 获取刚注册的属性
+                if (AType->Properties.Size() > 0)
+                {
+                    FProperty AProperty = AType->Properties[0];
+                    if (AProperty != nullptr)
+                    {
+                        std::cout << "Registered property B, offset: " << AProperty->Offset << std::endl;
+                        std::cout << "Property B is enum: " << AProperty->IsEnum() << std::endl;
+                        std::cout << "Property B owner type: " << AProperty->OwnerType->Name.GetStdString()
+                                  << std::endl;
+                    }
+                }
+            }
+            if (AType != nullptr)
+            {
+                std::cout << "Type A has " << AType->Properties.Size() << " properties" << std::endl;
+                for (const auto& Prop : AType->Properties)
+                {
+                    if (Prop != nullptr && Prop->Name.IsValid())
+                    {
+                        std::cout << "  Property: " << Prop->Name.GetStdString();
+                        if (Prop->Type != nullptr && Prop->Type->Name.IsValid())
+                        {
+                            std::cout << ", Type: " << Prop->Type->Name.GetStdString();
+                        }
+                        std::cout << std::endl;
+                    }
+                }
+            }
+        }
+
+        // 测试Cast函数
+        {
+            spdlog::info("测试 Cast 函数");
+            Int32 Int32Value = 42;
+            auto Int64Result = Cast<Int64>(Int32Value);
+            if (Int64Result.IsSet())
+            {
+                std::cout << "Cast Int32->Int64: " << Int32Value << " -> " << Int64Result.GetValue() << std::endl;
+            }
+
+            UInt32 UInt32Value = 100;
+            auto UInt64Result = Cast<UInt64>(UInt32Value);
+            if (UInt64Result.IsSet())
+            {
+                std::cout << "Cast UInt32->UInt64: " << UInt32Value << " -> " << UInt64Result.GetValue() << std::endl;
+            }
+
+            auto Int64FromUInt32 = Cast<Int64>(UInt32Value);
+            if (Int64FromUInt32.IsSet())
+            {
+                std::cout << "Cast UInt32->Int64: " << UInt32Value << " -> " << Int64FromUInt32.GetValue() << std::endl;
+            }
+
+            // 测试失败的转换
+            auto Int32FromUInt32 = Cast<Int32>(UInt32Value);
+            if (!Int32FromUInt32.IsSet())
+            {
+                std::cout << "Cast UInt32->Int32 failed (as expected)" << std::endl;
+            }
+
+            // 测试Bool转换
+            Bool BoolValue = true;
+            auto IntFromBool = Cast<Int32>(BoolValue);
+            if (IntFromBool.IsSet())
+            {
+                std::cout << "Cast Bool->Int32: " << BoolValue << " -> " << IntFromBool.GetValue() << std::endl;
+            }
+
+            // 测试CastFast
+            Int64 Int64Value = 12345;
+            Int32 FastResult = CastFast<Int32>(Int64Value);
+            std::cout << "CastFast Int64->Int32: " << FastResult << std::endl;
+        }
+
+        // 测试FAny
+        {
+            spdlog::info("测试 FAny");
+            Int32 IntValue = 123;
+            FAny AnyValue(IntValue);
+            if (AnyValue.IsValid())
+            {
+                std::cout << "FAny is valid, type: " << AnyValue.GetType()->Name.GetStdString() << std::endl;
+                Int32* RetrievedValue = AnyValue.Get<Int32>();
+                if (RetrievedValue != nullptr)
+                {
+                    std::cout << "FAny value: " << *RetrievedValue << std::endl;
+                }
+            }
+        }
+
+        // 测试FAnyRef
+        {
+            spdlog::info("测试 FAnyRef");
+            Int32 IntValue = 456;
+            FAnyRef AnyRefValue(IntValue);
+            if (AnyRefValue.IsValid())
+            {
+                std::cout << "FAnyRef is valid, type: " << AnyRefValue.GetType()->Name.GetStdString() << std::endl;
+                Int32* RetrievedValue = AnyRefValue.Get<Int32>();
+                if (RetrievedValue != nullptr)
+                {
+                    std::cout << "FAnyRef value: " << *RetrievedValue << std::endl;
+                    *RetrievedValue = 789;
+                    std::cout << "Modified through FAnyRef, original value: " << IntValue << std::endl;
+                }
+            }
+
+            FAnyRef EmptyRef;
+            std::cout << "Empty FAnyRef is valid: " << EmptyRef.IsValid() << ", is empty: " << EmptyRef.IsEmpty()
+                      << std::endl;
+        }
+
+        // 测试GetValueRef和TryGetValue
+        {
+            spdlog::info("测试 GetValueRef 和 TryGetValue");
+            Int32 IntValue = 999;
+            FAnyRef AnyRef(IntValue);
+
+            auto RetrievedRef = FTypeManager::GetValueRef<Int32>(AnyRef);
+            if (RetrievedRef.IsValid())
+            {
+                Int32* ValuePtr = RetrievedRef.Get<Int32>();
+                if (ValuePtr != nullptr)
+                {
+                    std::cout << "GetValueRef result: " << *ValuePtr << std::endl;
+                }
+            }
+
+            Int32 OutValue = 0;
+            bool Success = FTypeManager::TryGetValue<Int32>(IntValue, OutValue);
+            if (Success)
+            {
+                std::cout << "TryGetValue success: " << OutValue << std::endl;
+            }
+
+            // 测试失败的转换
+            Float FloatValue = 3.14f;
+            Int32 IntOut = 0;
+            bool Failed = FTypeManager::TryGetValue<Int32>(FloatValue, IntOut);
+            if (!Failed)
+            {
+                std::cout << "TryGetValue Float->Int32 failed (as expected)" << std::endl;
+            }
+        }
+
+        // 测试枚举成员注册
+        {
+            spdlog::info("测试枚举成员注册");
+            enum class ETestEnum2 : Int32
+            {
+                None = 0,
+                Option1 = 10,
+                Option2 = 20,
+                Option3 = 30
+            };
+
+            FTypeMutable EnumType2 = FTypeManager::Register<ETestEnum2>("ETestEnum2");
+            if (EnumType2 != nullptr)
+            {
+                std::cout << "Registered ETestEnum2" << std::endl;
+
+                // 注册所有枚举成员
+                EnumType2->RegisterEnumMember(ETestEnum2::None, "None")
+                    ->RegisterEnumMember(ETestEnum2::Option1, "Option1")
+                    ->RegisterEnumMember(ETestEnum2::Option2, "Option2")
+                    ->RegisterEnumMember(ETestEnum2::Option3, "Option3");
+
+                std::cout << "ETestEnum2 has " << EnumType2->Properties.Size() << " enum members" << std::endl;
+                for (const auto& Prop : EnumType2->Properties)
+                {
+                    if (Prop != nullptr && Prop->IsEnum() && Prop->Name.IsValid())
+                    {
+                        std::cout << "  Enum member: " << Prop->Name.GetStdString()
+                                  << ", Value: " << Prop->GetEnumValue() << std::endl;
+                        auto EnumValue = Prop->GetEnumPropertyValue<ETestEnum2>();
+                        if (EnumValue.IsSet())
+                        {
+                            std::cout << "    Typed value: " << static_cast<Int32>(EnumValue.GetValue()) << std::endl;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 测试多个属性注册
+        {
+            spdlog::info("测试多个属性注册");
+            struct TestClass
+            {
+                Int32 IntField;
+                Float FloatField;
+                Bool BoolField;
+            };
+
+            FTypeMutable TestType = FTypeManager::Register<TestClass>("TestClass");
+            if (TestType != nullptr)
+            {
+                TestType->RegisterProperty(&TestClass::IntField, "IntField")
+                    ->RegisterProperty(&TestClass::FloatField, "FloatField")
+                    ->RegisterProperty(&TestClass::BoolField, "BoolField");
+
+                std::cout << "TestClass has " << TestType->Properties.Size() << " properties" << std::endl;
+                for (const auto& Prop : TestType->Properties)
+                {
+                    if (Prop != nullptr && Prop->Name.IsValid())
+                    {
+                        std::cout << "  Property: " << Prop->Name.GetStdString() << ", Offset: " << Prop->Offset;
+                        if (Prop->OwnerType != nullptr && Prop->OwnerType->Name.IsValid())
+                        {
+                            std::cout << ", Owner: " << Prop->OwnerType->Name.GetStdString();
+                        }
+                        std::cout << std::endl;
+                    }
+                }
+
+                // 测试GetAllProperties
+                auto AllProps = TestType->GetAllProperties();
+                std::cout << "GetAllProperties returned " << AllProps.Size() << " properties" << std::endl;
+            }
+        }
+
+        // 测试继承和GetAllProperties
+        {
+            spdlog::info("测试继承和GetAllProperties");
+            struct BaseClass
+            {
+                Int32 BaseField;
+            };
+
+            struct DerivedClass : public BaseClass
+            {
+                Float DerivedField;
+            };
+
+            FTypeMutable BaseType = FTypeManager::Register<BaseClass>("BaseClass");
+            FTypeMutable DerivedType = FTypeManager::Register<DerivedClass>("DerivedClass");
+
+            if (BaseType != nullptr && DerivedType != nullptr)
+            {
+                BaseType->RegisterProperty(&BaseClass::BaseField, "BaseField");
+                DerivedType->RegisterProperty(&DerivedClass::DerivedField, "DerivedField")->RegisterParent(BaseType);
+
+                std::cout << "BaseClass has " << BaseType->Properties.Size() << " properties" << std::endl;
+                std::cout << "DerivedClass has " << DerivedType->Properties.Size() << " properties" << std::endl;
+
+                auto AllDerivedProps = DerivedType->GetAllProperties();
+                std::cout << "DerivedClass GetAllProperties returned " << AllDerivedProps.Size() << " properties"
+                          << std::endl;
+                for (const auto& Prop : AllDerivedProps)
+                {
+                    if (Prop != nullptr && Prop->Name.IsValid())
+                    {
+                        std::cout << "  Property: " << Prop->Name.GetStdString();
+                        if (Prop->OwnerType != nullptr && Prop->OwnerType->Name.IsValid())
+                        {
+                            std::cout << ", Owner: " << Prop->OwnerType->Name.GetStdString();
+                        }
+                        std::cout << std::endl;
+                    }
+                }
+            }
+        }
+
+        // 测试实例创建和销毁
+        {
+            spdlog::info("测试实例创建和销毁");
+            struct TestStruct
+            {
+                Int32 Value;
+                TestStruct() : Value(42) {}
+            };
+
+            FTypeMutable TestType = FTypeManager::Register<TestStruct>("TestStruct");
+            if (TestType != nullptr && TestType->CanCreateInstance())
+            {
+                // 测试CreateInstance
+                void* Instance = TestType->CreateInstance();
+                if (Instance != nullptr)
+                {
+                    TestStruct* TypedInstance = static_cast<TestStruct*>(Instance);
+                    std::cout << "CreateInstance success, value: " << TypedInstance->Value << std::endl;
+                    TestType->DestroyInstance(Instance);
+                    std::cout << "DestroyInstance success" << std::endl;
+                }
+
+                // 测试CreateInstanceT
+                TestStruct* TypedInstance = TestType->CreateInstanceT<TestStruct>();
+                if (TypedInstance != nullptr)
+                {
+                    std::cout << "CreateInstanceT success, value: " << TypedInstance->Value << std::endl;
+                    delete TypedInstance;
+                }
+
+                // 测试CreateUnique
+                auto UniqueInstance = TestType->CreateUnique<TestStruct>();
+                if (UniqueInstance != nullptr)
+                {
+                    std::cout << "CreateUnique success, value: " << UniqueInstance->Value << std::endl;
+                }
+
+                // 测试CreateShared
+                auto SharedInstance = TestType->CreateShared<TestStruct>();
+                if (SharedInstance != nullptr)
+                {
+                    std::cout << "CreateShared success, value: " << SharedInstance->Value << std::endl;
+                }
+            }
+        }
+
+        // 测试Abstract和Interface类型
+        {
+            spdlog::info("测试Abstract和Interface类型");
+            struct AbstractClass
+            {
+                Int32 Value;
+            };
+
+            struct InterfaceClass
+            {
+                Int32 Value;
+            };
+
+            FTypeMutable AbstractType = FTypeManager::Register<AbstractClass>("AbstractClass");
+            FTypeMutable InterfaceType = FTypeManager::Register<InterfaceClass>("InterfaceClass");
+
+            if (AbstractType != nullptr)
+            {
+                AbstractType->RegisterAttribute(FName("Abstract"), FName("true"));
+                std::cout << "AbstractClass IsAbstract: " << AbstractType->IsAbstract() << std::endl;
+                std::cout << "AbstractClass CanCreateInstance: " << AbstractType->CanCreateInstance() << std::endl;
+            }
+
+            if (InterfaceType != nullptr)
+            {
+                InterfaceType->RegisterAttribute(FName("Interface"), FName("true"));
+                std::cout << "InterfaceClass IsInterface: " << InterfaceType->IsInterface() << std::endl;
+                std::cout << "InterfaceClass CanCreateInstance: " << InterfaceType->CanCreateInstance() << std::endl;
+            }
+        }
+
+        // 测试属性GetValue和SetValue
+        {
+            spdlog::info("测试属性GetValue和SetValue");
+            struct TestClass
+            {
+                Int32 IntValue;
+                Float FloatValue;
+            };
+
+            FTypeMutable TestType = FTypeManager::Register<TestClass>("TestClass2");
+            if (TestType != nullptr)
+            {
+                TestType->RegisterProperty(&TestClass::IntValue, "IntValue")
+                    ->RegisterProperty(&TestClass::FloatValue, "FloatValue");
+
+                TestClass TestObj;
+                TestObj.IntValue = 100;
+                TestObj.FloatValue = 3.14f;
+
+                for (const auto& Prop : TestType->Properties)
+                {
+                    if (Prop != nullptr)
+                    {
+                        if (Prop->Name.IsValid() && Prop->Name.GetStdString() == "IntValue")
+                        {
+                            auto IntVal = Prop->GetValue<Int32>(&TestObj);
+                            if (IntVal.IsSet())
+                            {
+                                std::cout << "GetValue IntValue: " << IntVal.GetValue() << std::endl;
+                            }
+
+                            // 测试SetValue
+                            Prop->SetValue<Int32>(&TestObj, 200);
+                            std::cout << "After SetValue, IntValue: " << TestObj.IntValue << std::endl;
+                        }
+                        else if (Prop->Name.IsValid() && Prop->Name.GetStdString() == "FloatValue")
+                        {
+                            auto FloatVal = Prop->GetValue<Float>(&TestObj);
+                            if (FloatVal.IsSet())
+                            {
+                                std::cout << "GetValue FloatValue: " << FloatVal.GetValue() << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 测试延迟注册（先注册注册函数，使用时再执行注册）
+        {
+            spdlog::info("测试延迟注册功能");
+
+            // 定义一个测试类型
+            struct LazyTestStruct
+            {
+                Int32 Value;
+                Float FloatValue;
+            };
+
+            // 注册函数：定义如何注册这个类型（使用 lambda）
+            auto RegisterLazyTestStruct = []()
+            {
+                std::cout << "  [延迟注册] 正在注册 LazyTestStruct..." << std::endl;
+                FTypeMutable LazyType = FTypeManager::Register<LazyTestStruct>("LazyTestStruct");
+                if (LazyType != nullptr)
+                {
+                    LazyType->RegisterProperty(&LazyTestStruct::Value, "Value")
+                        ->RegisterProperty(&LazyTestStruct::FloatValue, "FloatValue");
+                    std::cout << "  [延迟注册] LazyTestStruct 注册完成，大小: " << LazyType->Size << std::endl;
+                }
+            };
+
+            // 先注册注册函数，但不立即执行
+            FTypeManager::RegisterTypeRegisterer<LazyTestStruct>(RegisterLazyTestStruct);
+            std::cout << "已注册 LazyTestStruct 的注册函数" << std::endl;
+
+            // 此时类型应该还未注册
+            FType LazyTypeBefore = TypeOf<LazyTestStruct>();
+            if (LazyTypeBefore == nullptr)
+            {
+                std::cout << "LazyTestStruct 尚未注册（符合预期）" << std::endl;
+            }
+
+            // 使用 TypeOf 触发延迟注册
+            std::cout << "调用 TypeOf<LazyTestStruct>() 触发延迟注册..." << std::endl;
+            FType LazyTypeAfter = TypeOf<LazyTestStruct>();
+            if (LazyTypeAfter != nullptr)
+            {
+                std::cout << "LazyTestStruct 已通过延迟注册成功注册" << std::endl;
+                std::cout << "类型名: " << LazyTypeAfter->Name.GetStdString() << std::endl;
+                std::cout << "类型大小: " << LazyTypeAfter->Size << std::endl;
+                std::cout << "属性数量: " << LazyTypeAfter->Properties.Size() << std::endl;
+                for (const auto& Prop : LazyTypeAfter->Properties)
+                {
+                    if (Prop != nullptr && Prop->Name.IsValid())
+                    {
+                        std::cout << "  属性: " << Prop->Name.GetStdString() << std::endl;
+                    }
+                }
+            }
+            else
+            {
+                std::cout << "延迟注册失败" << std::endl;
+            }
+
+            // 再次调用 TypeOf，应该直接返回已注册的类型（不会再次调用注册函数）
+            std::cout << "再次调用 TypeOf<LazyTestStruct>()..." << std::endl;
+            FType LazyTypeAgain = TypeOf<LazyTestStruct>();
+            if (LazyTypeAgain != nullptr && LazyTypeAgain == LazyTypeAfter)
+            {
+                std::cout << "返回已注册的类型（未重复注册）" << std::endl;
+            }
+        }
+
+        // 测试多个类型的延迟注册
+        {
+            spdlog::info("测试多个类型的延迟注册");
+
+            struct TypeA
+            {
+                Int32 A;
+            };
+
+            struct TypeB
+            {
+                Float B;
+            };
+
+            struct TypeC
+            {
+                Bool C;
+            };
+
+            // 注册多个类型的注册函数
+            FTypeManager::RegisterTypeRegisterer<TypeA>(
+                []()
+                {
+                    std::cout << "  [延迟注册] 注册 TypeA" << std::endl;
+                    FTypeManager::Register<TypeA>("TypeA")->RegisterProperty(&TypeA::A, "A");
+                });
+
+            FTypeManager::RegisterTypeRegisterer<TypeB>(
+                []()
+                {
+                    std::cout << "  [延迟注册] 注册 TypeB" << std::endl;
+                    FTypeManager::Register<TypeB>("TypeB")->RegisterProperty(&TypeB::B, "B");
+                });
+
+            FTypeManager::RegisterTypeRegisterer<TypeC>(
+                []()
+                {
+                    std::cout << "  [延迟注册] 注册 TypeC" << std::endl;
+                    FTypeManager::Register<TypeC>("TypeC")->RegisterProperty(&TypeC::C, "C");
+                });
+
+            std::cout << "已注册 3 个类型的注册函数" << std::endl;
+
+            // 按需触发注册
+            std::cout << "触发 TypeA 的延迟注册..." << std::endl;
+            FType TypeAType = TypeOf<TypeA>();
+            if (TypeAType != nullptr)
+            {
+                std::cout << "TypeA 注册成功: " << TypeAType->Name.GetStdString() << std::endl;
+            }
+
+            std::cout << "触发 TypeB 的延迟注册..." << std::endl;
+            FType TypeBType = TypeOf<TypeB>();
+            if (TypeBType != nullptr)
+            {
+                std::cout << "TypeB 注册成功: " << TypeBType->Name.GetStdString() << std::endl;
+            }
+
+            // TypeC 不触发注册，验证它确实没有被注册
+            FType TypeCType = TypeOf<TypeC>();
+            if (TypeCType == nullptr)
+            {
+                std::cout << "TypeC 未注册（符合预期，因为未调用 TypeOf）" << std::endl;
+            }
+            else
+            {
+                std::cout << "TypeC 已注册: " << TypeCType->Name.GetStdString() << std::endl;
+            }
+        }
     }
 
     std::cout << "\n=== All Tests Complete ===" << std::endl;

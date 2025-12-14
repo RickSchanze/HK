@@ -243,3 +243,16 @@ public:
 private:
     std::string MyData;
 };
+
+// FString 的哈希函数支持（用于 unordered_map）
+namespace std
+{
+template <>
+struct hash<FString>
+{
+    size_t operator()(const FString& Str) const noexcept
+    {
+        return hash<std::string>{}(Str.GetStdString());
+    }
+};
+}

@@ -1,0 +1,7 @@
+# LLDB initialization file for HKEngine
+# Load Python formatters from Debug directory
+# Note: This file should be placed in the Debug directory or referenced from project root
+# If loading from project root, use: command script import Debug/lldb_formatters.py
+# If loading from Debug directory, use: command script import lldb_formatters.py
+command script import lldb_formatters.py
+

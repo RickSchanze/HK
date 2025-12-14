@@ -1,7 +1,20 @@
 #pragma once
 
 // 定义宏，使枚举类支持位运算
+#ifdef _MSC_VER
+#include <stdint.h>
+#else
 #include <cstdint>
+#endif
+
+// MSVC 兼容的 __VA_OPT__ 替代方案
+#ifdef _MSC_VER
+// MSVC 不支持 __VA_OPT__，使用辅助宏
+#define HK_VA_OPT_COMMA(...) , __VA_ARGS__
+#else
+// GCC/Clang 支持 __VA_OPT__
+#define HK_VA_OPT_COMMA(...) __VA_OPT__(, __VA_ARGS__)
+#endif
 #define HK_ENABLE_BITMASK_OPERATORS(Enum)                                                                              \
     inline constexpr Enum operator|(Enum lhs, Enum rhs)                                                                \
     {                                                                                                                  \
@@ -100,7 +113,7 @@ typedef bool Bool;
         if (!(Condition))                                                                                              \
         {                                                                                                              \
             std::fprintf(stderr, "[ASSERT] Assertion failed: %s - ", #Condition);                                      \
-            std::fprintf(stderr, Fmt __VA_OPT__(, ) __VA_ARGS__);                                                      \
+            std::fprintf(stderr, Fmt HK_VA_OPT_COMMA(__VA_ARGS__));                                                    \
             std::fprintf(stderr, "\n[ASSERT] File: %s, Line: %d\n", __FILE__, __LINE__);                               \
             std::abort();                                                                                              \
         }                                                                                                              \

@@ -9,13 +9,20 @@ project(HKEngine
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+if(MSVC)
+    # MSVC 使用 /std:c++latest 来支持 C++23
+    set(CMAKE_CXX_STANDARD 20)  # MSVC 对 C++23 支持有限，先使用 C++20
+    add_compile_options(/std:c++latest)
+else()
+    set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
 
-# 默认使用clang/llvm工具链
-if(NOT DEFINED CMAKE_C_COMPILER)
+# 默认使用clang/llvm工具链（仅在未指定编译器且非MSVC时）
+# 如果使用 MSVC，CMake 会自动检测，不需要手动设置
+if(NOT MSVC AND NOT DEFINED CMAKE_C_COMPILER)
     set(CMAKE_C_COMPILER "clang")
 endif()
-if(NOT DEFINED CMAKE_CXX_COMPILER)
+if(NOT MSVC AND NOT DEFINED CMAKE_CXX_COMPILER)
     set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
@@ -33,10 +40,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# 编译选项
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+# 编译选项 - 根据编译器类型设置
+if(MSVC)
+    # MSVC 编译选项
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /permissive-")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi /Od /RTC1")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /DNDEBUG")
+else()
+    # GCC/Clang 编译选项
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+endif()
 
 # 平台检测和宏定义
 if(WIN32)
@@ -84,6 +99,13 @@ if(SOURCES)
         CXX_STANDARD 23
         CXX_STANDARD_REQUIRED ON
     )
+    
+    # 添加 natvis 文件支持（MSVC 调试器可视化）
+    if(MSVC AND EXISTS "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis")
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            VS_DEBUGGER_VISUALIZERS_FILE "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis"
+        )
+    endif()
     
     # 链接库（如果需要）
     # target_link_libraries(${PROJECT_NAME} ...)
