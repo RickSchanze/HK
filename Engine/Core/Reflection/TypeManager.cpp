@@ -21,12 +21,25 @@ FType FTypeManager::FindTypeByName(const char* InName) const
 
 void FTypeManager::InitializeAllTypes()
 {
-    std::lock_guard<std::mutex> Lock(Mutex);
-    for (const auto& Pair : TypeRegistererMap)
+    // 先收集所有注册函数，在锁外调用，避免死锁
+    TArray<TypeRegistererFunc> RegistererFuncs;
     {
-        if (Pair.second != nullptr)
+        std::lock_guard<std::mutex> Lock(Mutex);
+        for (const auto& Pair : TypeRegistererMap)
         {
-            Pair.second();
+            if (Pair.second != nullptr)
+            {
+                RegistererFuncs.Add(Pair.second);
+            }
+        }
+    }
+    
+    // 在锁外调用注册函数
+    for (TypeRegistererFunc Func : RegistererFuncs)
+    {
+        if (Func != nullptr)
+        {
+            Func();
         }
     }
 }

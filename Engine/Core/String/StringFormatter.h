@@ -25,7 +25,7 @@ struct fmt::formatter<FStringView> : fmt::formatter<std::string_view>
     template <typename FormatContext>
     auto format(const FStringView& View, FormatContext& Ctx) const -> decltype(Ctx.out())
     {
-        return fmt::formatter<std::string_view>::format(View.GetView(), Ctx);
+        return fmt::formatter<std::string_view>::format(View.GetStdStringView(), Ctx);
     }
 };
 

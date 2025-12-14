@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Core/Container/Span.h"
+#include "Core/Serialization/Serialization.h"
 #include "Core/Utility/Macros.h"
+#include "cereal/types/vector.hpp"
+
 #include <algorithm>
 #include <initializer_list>
 #include <vector>
@@ -307,6 +310,13 @@ public:
     void PopBack()
     {
         MyData.pop_back();
+    }
+
+    template <typename Archive>
+        requires CHasSerialize<T, Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MyData);
     }
 
 private:

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Core/Container/Span.h"
+#include "Core/Serialization/Serialization.h"
 #include "Core/Utility/Macros.h"
+#include "cereal/types/array.hpp"
 #include <algorithm>
 #include <array>
 #include <initializer_list>
@@ -217,6 +219,13 @@ public:
     void Sort(Compare&& Comp)
     {
         std::sort(MyData.begin(), MyData.end(), Comp);
+    }
+
+    template <typename Archive>
+        requires CHasSerialize<T, Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MyData);
     }
 
 private:

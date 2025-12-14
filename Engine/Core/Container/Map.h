@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Utility/Macros.h"
+#include "cereal/types/unordered_map.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -143,6 +144,13 @@ public:
     SizeType MaxSize() const noexcept
     {
         return Data.max_size();
+    }
+
+    template <typename Archive>
+        requires(CHasSerialize<KeyType, Archive> && CHasSerialize<ValueType, Archive>)
+    void Serialize(Archive& Ar)
+    {
+        Ar(Data);
     }
 
 private:

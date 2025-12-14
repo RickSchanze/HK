@@ -4,7 +4,6 @@
 #include <string>
 #include <string_view>
 
-
 class FStringView
 {
 public:
@@ -12,11 +11,11 @@ public:
     using ConstIterator = std::string_view::const_iterator;
     using ConstReverseIterator = std::string_view::const_reverse_iterator;
 
-    FStringView() = default;
-    FStringView(const char* InStr) : View(InStr) {}
-    FStringView(const char* InStr, SizeType InSize) : View(InStr, InSize) {}
-    FStringView(const std::string& InStr) : View(InStr) {}
-    explicit FStringView(std::string_view InView) : View(InView) {}
+    constexpr FStringView() = default;
+    constexpr FStringView(const char* InStr) : View(InStr) {}
+    constexpr FStringView(const char* InStr, SizeType InSize) : View(InStr, InSize) {}
+    constexpr FStringView(const std::string& InStr) : View(InStr) {}
+    constexpr explicit FStringView(std::string_view InView) : View(InView) {}
 
     ConstIterator begin() const noexcept
     {
@@ -87,7 +86,6 @@ public:
     {
         return View.empty();
     }
-
 
     SizeType Find(char Ch, SizeType Pos = 0) const noexcept
     {
@@ -194,7 +192,7 @@ public:
         return View >= Other.View;
     }
 
-    const std::string_view& GetView() const noexcept
+    const std::string_view& GetStdStringView() const noexcept
     {
         return View;
     }

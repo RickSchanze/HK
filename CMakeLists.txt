@@ -1,5 +1,23 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_TOOLCHAIN_FILE "C:/Users/Admin/Software/vcpkg/scripts/buildsystems/vcpkg.cmake")
+
+# 在项目定义前执行代码生成脚本
+find_program(PYTHON_EXECUTABLE python python3)
+if(PYTHON_EXECUTABLE)
+    execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/HeaderTools.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        RESULT_VARIABLE GENERATION_RESULT
+    )
+    if(NOT GENERATION_RESULT EQUAL 0)
+        message(WARNING "代码生成脚本执行失败，返回码: ${GENERATION_RESULT}")
+    else()
+        message(STATUS "代码生成脚本执行成功")
+    endif()
+else()
+    message(WARNING "未找到 Python 解释器，跳过代码生成")
+endif()
+
 project(HKEngine 
     VERSION 1.0.0
     DESCRIPTION "HKEngine Game Engine"
@@ -75,6 +93,7 @@ endif()
 
 # 包含目录
 include_directories(${CMAKE_SOURCE_DIR}/Engine)
+include_directories(${CMAKE_SOURCE_DIR}/Engine/Generated)
 
 # 源文件目录
 file(GLOB_RECURSE SOURCES 
@@ -92,7 +111,10 @@ endif()
 
 # 创建可执行文件或库
 if(SOURCES)
-    add_executable(${PROJECT_NAME} ${SOURCES})
+    add_executable(${PROJECT_NAME} ${SOURCES}
+            Engine/Core/Serialization/Serialization.h
+            Engine/Core/Serialization/XMLArchive.h
+            Engine/Core/Serialization/BinaryArchive.h)
     
     # 设置目标属性
     set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -116,4 +138,7 @@ endif()
 
 find_package(spdlog CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog)
+
+find_package(cereal CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE cereal::cereal)
 

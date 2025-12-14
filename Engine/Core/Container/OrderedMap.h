@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Core/Serialization/Serialization.h"
 #include "Core/Utility/Macros.h"
+#include "cereal/types/map.hpp"
 #include <algorithm>
 #include <map>
 
@@ -143,6 +145,13 @@ public:
     SizeType MaxSize() const noexcept
     {
         return Data.max_size();
+    }
+
+    template <typename Archive>
+        requires(CHasSerialize<KeyType, Archive> && CHasSerialize<ValueType, Archive>)
+    void Serialize(Archive& Ar)
+    {
+        Ar(Data);
     }
 
 private:
