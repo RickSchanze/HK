@@ -1,456 +1,344 @@
 #ifdef HK_WINDOWS
 #include <windows.h>
 #endif
+#include "Core/Container/Array.h"
 #include "Core/Logging/Logger.h"
 #include "Core/Reflection/Property.h"
 #include "Core/Reflection/TypeManager.h"
 #include "Core/Serialization/BinaryArchive.h"
 #include "Core/Serialization/JsonArchive.h"
 #include "Core/Serialization/XMLArchive.h"
+#include "Core/String/String.h"
 #include "Math/Color.h"
 #include "Math/TestClass.h"
 #include "Math/TestStruct.h"
+#include "TaskGraph/TaskGraph.h"
 
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <thread>
 
-void TestReflection()
+void TestBasicTask()
 {
-    HK_LOG_INFO(ELogcat::Reflection, "========== 反射测试 ==========");
+    HK_LOG_INFO(ELogcat::Test, "=== 测试1: 基本任务执行 ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
 
-    // 初始化类型系统
-    FTypeManager::Get().InitializeAllTypes();
+    std::atomic<int> Counter{0};
 
-    // 测试 TestStruct
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FBaseStruct ---");
-    FType BaseStructType = FTypeManager::TypeOf<FBaseStruct>();
-    if (BaseStructType != nullptr)
+    // 创建一个简单任务
+    auto Task = TaskGraph.Create(FString("BasicTask"),
+                                 [&Counter]()
+                                 {
+                                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                     Counter = 42;
+                                     HK_LOG_INFO(ELogcat::Test, "任务执行完成，Counter = {}", Counter.load());
+                                 });
+
+    HK_LOG_INFO(ELogcat::Test, "任务已创建，状态: {}", static_cast<int>(Task->GetState()));
+    HK_LOG_INFO(ELogcat::Test, "启动任务...");
+    TaskGraph.Launch(Task);
+
+    // Game线程Tick执行任务
+    while (!Task->IsCompleted())
     {
-        HK_LOG_INFO(ELogcat::Reflection, "类型名称: {}", BaseStructType->Name.GetStdString());
-        TArray<FProperty> Props = BaseStructType->GetAllProperties();
-        HK_LOG_INFO(ELogcat::Reflection, "属性数量: {}", Props.Size());
-        for (FProperty Prop : Props)
-        {
-            HK_LOG_INFO(ELogcat::Reflection, "  - 属性: {}", Prop->Name.GetStdString());
-        }
-
-        // 创建对象并测试属性访问
-        FBaseStruct BaseStruct;
-        BaseStruct.BaseValue = 100;
-
-        for (FProperty Prop : Props)
-        {
-            if (Prop->Name.GetStdString() == "BaseValue")
-            {
-                TOptional<Int32> Value = Prop->GetValue<Int32>(&BaseStruct);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  BaseValue = {}", Value.GetValue());
-                }
-
-                // 测试设置值
-                Prop->SetValue<Int32>(&BaseStruct, 200);
-                Value = Prop->GetValue<Int32>(&BaseStruct);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  设置后 BaseValue = {}", Value.GetValue());
-                }
-            }
-        }
+        TaskGraph.Tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    // 测试 DerivedStruct
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FDerivedStruct ---");
-    FType DerivedStructType = FTypeManager::TypeOf<FDerivedStruct>();
-    if (DerivedStructType != nullptr)
-    {
-        HK_LOG_INFO(ELogcat::Reflection, "类型名称: {}", DerivedStructType->Name.GetStdString());
+    Task->Wait();
+    HK_LOG_INFO(ELogcat::Test, "任务完成，Counter = {}", Counter.load());
+    HK_ASSERT_RAW(Counter.load() == 42);
 
-        // 检查父类
-        TArray<FType> Bases = DerivedStructType->Bases;
-        HK_LOG_INFO(ELogcat::Reflection, "父类数量: {}", Bases.Size());
-        for (FType Base : Bases)
-        {
-            if (Base != nullptr)
-            {
-                HK_LOG_INFO(ELogcat::Reflection, "  - 父类: {}", Base->Name.GetStdString());
-            }
-        }
-
-        // 获取所有属性（包括父类的）
-        TArray<FProperty> AllProps = DerivedStructType->GetAllProperties();
-        HK_LOG_INFO(ELogcat::Reflection, "所有属性数量（包括父类）: {}", AllProps.Size());
-        for (FProperty Prop : AllProps)
-        {
-            HK_LOG_INFO(ELogcat::Reflection, "  - 属性: {}", Prop->Name.GetStdString());
-        }
-
-        // 创建对象并测试属性访问
-        FDerivedStruct DerivedStruct;
-        DerivedStruct.BaseValue = 10;
-        DerivedStruct.DerivedValue = 3.14f;
-
-        for (FProperty Prop : AllProps)
-        {
-            if (Prop->Name.GetStdString() == "BaseValue")
-            {
-                TOptional<Int32> Value = Prop->GetValue<Int32>(&DerivedStruct);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  BaseValue = {}", Value.GetValue());
-                }
-            }
-            else if (Prop->Name.GetStdString() == "DerivedValue")
-            {
-                TOptional<Float> Value = Prop->GetValue<Float>(&DerivedStruct);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  DerivedValue = {}", Value.GetValue());
-                }
-            }
-        }
-    }
-
-    // 测试 TestClass
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FBaseClass ---");
-    FType BaseClassType = FTypeManager::TypeOf<FBaseClass>();
-    if (BaseClassType != nullptr)
-    {
-        HK_LOG_INFO(ELogcat::Reflection, "类型名称: {}", BaseClassType->Name.GetStdString());
-        TArray<FProperty> Props = BaseClassType->GetAllProperties();
-        HK_LOG_INFO(ELogcat::Reflection, "属性数量: {}", Props.Size());
-
-        FBaseClass BaseClass;
-        BaseClass.BaseValue = 50;
-
-        for (FProperty Prop : Props)
-        {
-            if (Prop->Name.GetStdString() == "BaseValue")
-            {
-                TOptional<Int32> Value = Prop->GetValue<Int32>(&BaseClass);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  BaseValue = {}", Value.GetValue());
-                }
-            }
-        }
-    }
-
-    // 测试 DerivedClass
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FDerivedClass ---");
-    FType DerivedClassType = FTypeManager::TypeOf<FDerivedClass>();
-    if (DerivedClassType != nullptr)
-    {
-        HK_LOG_INFO(ELogcat::Reflection, "类型名称: {}", DerivedClassType->Name.GetStdString());
-
-        // 检查父类
-        TArray<FType> Bases = DerivedClassType->Bases;
-        HK_LOG_INFO(ELogcat::Reflection, "父类数量: {}", Bases.Size());
-        for (FType Base : Bases)
-        {
-            if (Base != nullptr)
-            {
-                HK_LOG_INFO(ELogcat::Reflection, "  - 父类: {}", Base->Name.GetStdString());
-            }
-        }
-
-        // 获取所有属性
-        TArray<FProperty> AllProps = DerivedClassType->GetAllProperties();
-        HK_LOG_INFO(ELogcat::Reflection, "所有属性数量（包括父类）: {}", AllProps.Size());
-
-        FDerivedClass DerivedClass;
-        DerivedClass.BaseValue = 20;
-        DerivedClass.DerivedValue = 2.718f;
-
-        for (FProperty Prop : AllProps)
-        {
-            if (Prop->Name.GetStdString() == "BaseValue")
-            {
-                TOptional<Int32> Value = Prop->GetValue<Int32>(&DerivedClass);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  BaseValue = {}", Value.GetValue());
-                }
-            }
-            else if (Prop->Name.GetStdString() == "DerivedValue")
-            {
-                TOptional<Float> Value = Prop->GetValue<Float>(&DerivedClass);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  DerivedValue = {}", Value.GetValue());
-                }
-            }
-        }
-    }
-
-    // 测试 SimpleClass
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FSimpleClass ---");
-    FType SimpleClassType = FTypeManager::TypeOf<FSimpleClass>();
-    if (SimpleClassType != nullptr)
-    {
-        HK_LOG_INFO(ELogcat::Reflection, "类型名称: {}", SimpleClassType->Name.GetStdString());
-        TArray<FProperty> Props = SimpleClassType->GetAllProperties();
-        HK_LOG_INFO(ELogcat::Reflection, "属性数量: {}", Props.Size());
-
-        FSimpleClass SimpleClass;
-        SimpleClass.Value = 999;
-
-        for (FProperty Prop : Props)
-        {
-            if (Prop->Name.GetStdString() == "Value")
-            {
-                TOptional<Int32> Value = Prop->GetValue<Int32>(&SimpleClass);
-                if (Value.IsSet())
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "  Value = {}", Value.GetValue());
-                }
-            }
-        }
-    }
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试1通过\n");
 }
 
-void TestSerialization()
+void TestTaskDependencies()
 {
-    HK_LOG_INFO(ELogcat::Reflection, "\n========== 序列化测试 ==========");
+    HK_LOG_INFO(ELogcat::Test, "=== 测试2: 任务依赖 ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
 
-    // 测试 FBaseStruct 序列化
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FBaseStruct 序列化 ---");
+    TArray<int> ExecutionOrder;
+    std::mutex OrderMutex;
+
+    // 创建任务A
+    auto TaskA = TaskGraph.Create(FString("TaskA"), EExecutorLabel::IO,
+                                  [&ExecutionOrder, &OrderMutex]()
+                                  {
+                                      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                                      std::lock_guard<std::mutex> Lock(OrderMutex);
+                                      ExecutionOrder.Add(1);
+                                      HK_LOG_INFO(ELogcat::Test, "TaskA执行完成");
+                                  });
+
+    // 创建任务B，依赖TaskA
+    auto TaskB = TaskGraph.Create(
+        FString("TaskB"), EExecutorLabel::IO,
+        [&ExecutionOrder, &OrderMutex]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::lock_guard<std::mutex> Lock(OrderMutex);
+            ExecutionOrder.Add(2);
+            HK_LOG_INFO(ELogcat::Test, "TaskB执行完成");
+        },
+        TaskA);
+
+    // 创建任务C，依赖TaskA和TaskB
+    auto TaskC = TaskGraph.Create(
+        FString("TaskC"), EExecutorLabel::IO,
+        [&ExecutionOrder, &OrderMutex]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::lock_guard<std::mutex> Lock(OrderMutex);
+            ExecutionOrder.Add(3);
+            HK_LOG_INFO(ELogcat::Test, "TaskC执行完成");
+        },
+        TaskA, TaskB);
+
+    HK_LOG_INFO(ELogcat::Test, "启动所有任务...");
+    TaskGraph.Launch(TaskA);
+    TaskGraph.Launch(TaskB);
+    TaskGraph.Launch(TaskC);
+
+    // 等待所有任务完成
+    TaskC->Wait();
+    TaskB->Wait();
+    TaskA->Wait();
+
+    HK_LOG_INFO(ELogcat::Test, "执行顺序: ");
+    for (int Order : ExecutionOrder)
     {
-        FBaseStruct BaseStruct;
-        BaseStruct.BaseValue = 123;
-
-        {
-            // 序列化到文件
-            std::ofstream ofs("test_base_struct.json");
-            if (ofs.is_open())
-            {
-                {
-                    FJsonOutputArchive OutputArchive(ofs);
-                    BaseStruct.Serialize(OutputArchive);
-                }
-                ofs.flush();
-                ofs.close();
-                HK_LOG_INFO(ELogcat::Reflection, "已序列化到 test_base_struct.json");
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_base_struct.json 进行写入");
-            }
-        }
-
-        {
-            // 从文件反序列化
-            FBaseStruct LoadedStruct;
-            std::ifstream ifs("test_base_struct.json");
-            if (ifs.is_open() && ifs.good())
-            {
-                try
-                {
-                    {
-                        FJsonInputArchive InputArchive(ifs);
-                        LoadedStruct.Serialize(InputArchive);
-                    }
-                    ifs.close();
-
-                    HK_LOG_INFO(ELogcat::Reflection, "反序列化后 BaseValue = {}", LoadedStruct.BaseValue);
-                }
-                catch (std::exception& e)
-                {
-                    HK_LOG_INFO(ELogcat::Reflection, "反序列化时发生异常: {}", e.what());
-                }
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_base_struct.json 进行读取");
-            }
-        }
+        HK_LOG_INFO(ELogcat::Test, "  {}", Order);
     }
 
-    // 测试 FDerivedStruct 序列化
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FDerivedStruct 序列化 ---");
+    // 验证执行顺序：A应该在B之前，B应该在C之前
+    HK_ASSERT_RAW(ExecutionOrder.Size() == 3);
+    HK_ASSERT_RAW(ExecutionOrder[0] == 1); // A先执行
+    HK_ASSERT_RAW(ExecutionOrder[1] == 2); // B在A之后
+    HK_ASSERT_RAW(ExecutionOrder[2] == 3); // C最后执行
+
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试2通过\n");
+}
+
+void TestEarlyDependencyCompletion()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试3: 依赖提前完成 ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
+
+    std::atomic<int> Counter{0};
+
+    // 创建任务A，立即执行
+    auto TaskA = TaskGraph.Create(FString("TaskA"), EExecutorLabel::IO,
+                                  [&Counter]()
+                                  {
+                                      Counter = 1;
+                                      HK_LOG_INFO(ELogcat::Test, "TaskA执行完成");
+                                  });
+
+    TaskGraph.Launch(TaskA);
+    TaskA->Wait(); // 等待A完成
+
+    // 创建任务B，依赖已经完成的TaskA
+    auto TaskB = TaskGraph.Create(
+        FString("TaskB"), EExecutorLabel::IO,
+        [&Counter]()
+        {
+            Counter = Counter.load() + 1;
+            HK_LOG_INFO(ELogcat::Test, "TaskB执行完成，Counter = {}", Counter.load());
+        },
+        TaskA);
+
+    HK_LOG_INFO(ELogcat::Test, "TaskA已完成，启动TaskB...");
+    TaskGraph.Launch(TaskB);
+    TaskB->Wait();
+
+    HK_ASSERT_RAW(Counter.load() == 2);
+
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试3通过\n");
+}
+
+void TestConcurrentTasks()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试4: 并发任务 ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
+
+    std::atomic<int> CompletedCount{0};
+    const int TaskCount = 10;
+
+    TArray<TSharedPtr<FTask>> Tasks;
+    for (int i = 0; i < TaskCount; ++i)
     {
-        FDerivedStruct DerivedStruct;
-        DerivedStruct.BaseValue = 456;
-        DerivedStruct.DerivedValue = 1.234f;
-
-        {
-            // 序列化到文件
-            std::ofstream ofs("test_derived_struct.json");
-            if (ofs.is_open())
-            {
-                {
-                    FJsonOutputArchive OutputArchive(ofs);
-                    DerivedStruct.Serialize(OutputArchive);
-                }
-                ofs.flush();
-                ofs.close();
-                HK_LOG_INFO(ELogcat::Reflection, "已序列化到 test_derived_struct.json");
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_derived_struct.json 进行写入");
-            }
-        }
-        {
-            // 从文件反序列化
-            FDerivedStruct LoadedStruct;
-            std::ifstream ifs("test_derived_struct.json");
-            if (ifs.is_open() && ifs.good())
-            {
-                {
-                    FJsonInputArchive InputArchive(ifs);
-                    LoadedStruct.Serialize(InputArchive);
-                }
-                ifs.close();
-
-                HK_LOG_INFO(ELogcat::Reflection, "反序列化后 BaseValue = {}, DerivedValue = {}", LoadedStruct.BaseValue,
-                            LoadedStruct.DerivedValue);
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_derived_struct.json 进行读取");
-            }
-        }
+        auto Task =
+            TaskGraph.Create(FString("ConcurrentTask_") + FString(std::to_string(i).c_str()), EExecutorLabel::IO,
+                             [&CompletedCount, i]()
+                             {
+                                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                                 CompletedCount.fetch_add(1);
+                                 HK_LOG_INFO(ELogcat::Test, "任务{}完成", i);
+                             });
+        Tasks.Add(Task);
+        TaskGraph.Launch(Task);
     }
 
-    // 测试 FBaseClass 序列化
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FBaseClass 序列化 ---");
+    // 等待所有任务完成
+    for (auto& Task : Tasks)
     {
-        FBaseClass BaseClass;
-        BaseClass.BaseValue = 789;
-
-        {
-            // 序列化到文件
-            std::ofstream ofs("test_base_class.json");
-            if (ofs.is_open())
-            {
-                {
-                    FJsonOutputArchive OutputArchive(ofs);
-                    BaseClass.Serialize(OutputArchive);
-                }
-                ofs.flush();
-                ofs.close();
-                HK_LOG_INFO(ELogcat::Reflection, "已序列化到 test_base_class.json");
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_base_class.json 进行写入");
-            }
-        }
-
-        {
-            // 从文件反序列化
-            FBaseClass LoadedClass;
-            std::ifstream ifs("test_base_class.json");
-            if (ifs.is_open() && ifs.good())
-            {
-                {
-                    FJsonInputArchive InputArchive(ifs);
-                    LoadedClass.Serialize(InputArchive);
-                }
-                ifs.close();
-
-                HK_LOG_INFO(ELogcat::Reflection, "反序列化后 BaseValue = {}", LoadedClass.BaseValue);
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_base_class.json 进行读取");
-            }
-        }
+        Task->Wait();
     }
 
-    // 测试 FDerivedClass 序列化
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FDerivedClass 序列化 ---");
+    HK_ASSERT_RAW(CompletedCount.load() == TaskCount);
+    HK_LOG_INFO(ELogcat::Test, "所有{}个并发任务完成", TaskCount);
+
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试4通过\n");
+}
+
+void TestDifferentExecutors()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试5: 不同Executor ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
+
+    std::atomic<int> GameTaskCount{0};
+    std::atomic<int> RenderTaskCount{0};
+    std::atomic<int> IOTaskCount{0};
+
+    // Game线程任务
+    auto GameTask = TaskGraph.Create(FString("GameTask"), EExecutorLabel::Game,
+                                     [&GameTaskCount]()
+                                     {
+                                         GameTaskCount = 1;
+                                         HK_LOG_INFO(ELogcat::Test, "Game任务执行完成");
+                                     });
+
+    // Render线程任务
+    auto RenderTask = TaskGraph.Create(FString("RenderTask"), EExecutorLabel::Render,
+                                       [&RenderTaskCount]()
+                                       {
+                                           RenderTaskCount = 1;
+                                           HK_LOG_INFO(ELogcat::Test, "Render任务执行完成");
+                                       });
+
+    // IO线程任务
+    auto IOTask = TaskGraph.Create(FString("IOTask"), EExecutorLabel::IO,
+                                   [&IOTaskCount]()
+                                   {
+                                       IOTaskCount = 1;
+                                       HK_LOG_INFO(ELogcat::Test, "IO任务执行完成");
+                                   });
+
+    TaskGraph.Launch(GameTask);
+    TaskGraph.Launch(RenderTask);
+    TaskGraph.Launch(IOTask);
+
+    // Game线程需要Tick
+    while (!GameTask->IsCompleted())
     {
-        FDerivedClass DerivedClass;
-        DerivedClass.BaseValue = 111;
-        DerivedClass.DerivedValue = 5.678f;
-
-        {
-            // 序列化到文件
-            std::ofstream ofs("test_derived_class.json");
-            if (ofs.is_open())
-            {
-                {
-                    FJsonOutputArchive OutputArchive(ofs);
-                    DerivedClass.Serialize(OutputArchive);
-                }
-                ofs.flush();
-                ofs.close();
-                HK_LOG_INFO(ELogcat::Reflection, "已序列化到 test_derived_class.json");
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_derived_class.json 进行写入");
-            }
-
-            // 从文件反序列化
-            FDerivedClass LoadedClass;
-            std::ifstream ifs("test_derived_class.json");
-            if (ifs.is_open() && ifs.good())
-            {
-                {
-                    FJsonInputArchive InputArchive(ifs);
-                    LoadedClass.Serialize(InputArchive);
-                }
-                ifs.close();
-
-                HK_LOG_INFO(ELogcat::Reflection, "反序列化后 BaseValue = {}, DerivedValue = {}", LoadedClass.BaseValue,
-                            LoadedClass.DerivedValue);
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_derived_class.json 进行读取");
-            }
-        }
+        TaskGraph.Tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    // 测试 FSimpleClass 序列化
-    HK_LOG_INFO(ELogcat::Reflection, "\n--- 测试 FSimpleClass 序列化 ---");
-    {
-        FSimpleClass SimpleClass;
-        SimpleClass.Value = 888;
-        FColor Color;
+    // 等待所有任务完成
+    RenderTask->Wait();
+    IOTask->Wait();
 
-        {
-            // 序列化到文件
-            std::ofstream ofs("test_simple_class.xml");
-            if (ofs.is_open())
-            {
-                {
-                    FXMLOutputArchive OutputArchive(ofs);
-                    Color.Serialize(OutputArchive);
-                }
-                ofs.flush();
-                ofs.close();
-                HK_LOG_INFO(ELogcat::Reflection, "已序列化到 test_simple_class.json");
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_simple_class.json 进行写入");
-            }
-        }
-        {
-            // 从文件反序列化
-            FColor Color1;
-            std::ifstream ifs("test_simple_class.xml");
-            if (ifs.is_open() && ifs.good())
-            {
-                {
-                    FXMLInputArchive InputArchive(ifs);
-                    Color1.Serialize(InputArchive);
-                }
-                ifs.close();
+    HK_ASSERT_RAW(GameTaskCount.load() == 1);
+    HK_ASSERT_RAW(RenderTaskCount.load() == 1);
+    HK_ASSERT_RAW(IOTaskCount.load() == 1);
 
-                HK_LOG_INFO(ELogcat::Reflection, "反序列化后 Value = {}", Color1.R);
-            }
-            else
-            {
-                HK_LOG_ERROR(ELogcat::Reflection, "无法打开文件 test_simple_class.json 进行读取");
-            }
-        }
-    }
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试5通过\n");
+}
+
+void TestCreateAndLaunch()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试6: CreateAndLaunch ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
+
+    std::atomic<int> Counter{0};
+
+    // 使用CreateAndLaunch
+    TaskGraph.Launch(FString("CreateAndLaunchTask"), EExecutorLabel::IO,
+                     [&Counter]()
+                     {
+                         Counter = 100;
+                         HK_LOG_INFO(ELogcat::Test, "CreateAndLaunch任务执行完成");
+                     });
+
+    // 等待任务完成（需要一些时间）
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    HK_ASSERT_RAW(Counter.load() == 100);
+
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试6通过\n");
+}
+
+void TestComplexDependencies()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试7: 复杂依赖关系 ===");
+    auto& TaskGraph = FTaskGraph::GetRef();
+    TaskGraph.StartUp();
+
+    TArray<int> Results;
+    std::mutex ResultsMutex;
+
+    // 创建多个任务，形成复杂的依赖图
+    auto Task1 = TaskGraph.Create(FString("Task1"), EExecutorLabel::IO,
+                                  [&Results, &ResultsMutex]()
+                                  {
+                                      std::lock_guard<std::mutex> Lock(ResultsMutex);
+                                      Results.Add(1);
+                                  });
+
+    auto Task2 = TaskGraph.Create(
+        FString("Task2"), EExecutorLabel::IO,
+        [&Results, &ResultsMutex]()
+        {
+            std::lock_guard<std::mutex> Lock(ResultsMutex);
+            Results.Add(2);
+        },
+        Task1);
+
+    auto Task3 = TaskGraph.Create(
+        FString("Task3"), EExecutorLabel::IO,
+        [&Results, &ResultsMutex]()
+        {
+            std::lock_guard<std::mutex> Lock(ResultsMutex);
+            Results.Add(3);
+        },
+        Task1);
+
+    auto Task4 = TaskGraph.Create(
+        FString("Task4"), EExecutorLabel::IO,
+        [&Results, &ResultsMutex]()
+        {
+            std::lock_guard<std::mutex> Lock(ResultsMutex);
+            Results.Add(4);
+        },
+        Task2, Task3);
+
+    TaskGraph.Launch(Task1);
+    TaskGraph.Launch(Task2);
+    TaskGraph.Launch(Task3);
+    TaskGraph.Launch(Task4);
+
+    Task4->Wait();
+
+    HK_ASSERT_RAW(Results.Size() == 4);
+    HK_ASSERT_RAW(Results[0] == 1); // Task1先执行
+    HK_ASSERT_RAW(Results[3] == 4); // Task4最后执行
+
+    TaskGraph.ShutDown();
+    HK_LOG_INFO(ELogcat::Test, "测试7通过\n");
 }
 
 int main()
@@ -461,13 +349,25 @@ int main()
     SetConsoleCP(65001);       // UTF-8 code page
 #endif
 
-    // 测试反射功能
-    TestReflection();
+    HK_LOG_INFO(ELogcat::Test, "开始TaskGraph测试...\n");
 
-    // 测试序列化功能
-    TestSerialization();
+    try
+    {
+        TestBasicTask();
+        TestTaskDependencies();
+        TestEarlyDependencyCompletion();
+        TestConcurrentTasks();
+        TestDifferentExecutors();
+        TestCreateAndLaunch();
+        TestComplexDependencies();
 
-    HK_LOG_INFO(ELogcat::Reflection, "\n========== 所有测试完成 ==========");
+        HK_LOG_INFO(ELogcat::Test, "所有测试通过！");
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_ERROR(ELogcat::Test, "测试失败: {}", e.what());
+        return 1;
+    }
 
     return 0;
 }
