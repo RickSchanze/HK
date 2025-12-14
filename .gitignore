@@ -4,9 +4,20 @@ out/
 bin/
 lib/
 
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # Debug 目录（但保留调试器脚本）
 Debug/*.pyc
 Debug/__pycache__/
+
+# 代码生成缓存
+Engine/Generated/.cache/
+Generated/.cache/
+.cache/
 
 # CMake
 CMakeCache.txt
