@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -93,11 +94,13 @@ public:
 
     ValueType& At(const KeyType& Key)
     {
+        HK_ASSERT_MSG_RAW(Data.find(Key) != Data.end(), "Key not found in map");
         return Data.at(Key);
     }
 
     const ValueType& At(const KeyType& Key) const
     {
+        HK_ASSERT_MSG_RAW(Data.find(Key) != Data.end(), "Key not found in map");
         return Data.at(Key);
     }
 

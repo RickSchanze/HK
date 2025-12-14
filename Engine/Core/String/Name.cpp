@@ -1,4 +1,5 @@
 #include "Core/String/Name.h"
+#include "Core/String/String.h"
 #include "Core/String/StringView.h"
 
 FName::FName(const char* InStr)
@@ -23,17 +24,14 @@ FName::FName(const FStringView& InView)
     ID = GetOrCreateID(std::string(InView.Data(), InView.Size()));
 }
 
-const std::string& FName::GetString() const
+const std::string& FName::GetStdString() const
 {
+    HK_ASSERT_RAW(IsValid());
     auto& Table = GetNameTableInstance();
     std::lock_guard<std::mutex> Lock(Table.Mutex);
     auto It = Table.IDToString.find(ID);
-    if (It != Table.IDToString.end())
-    {
-        return It->second;
-    }
-    static const std::string EmptyString;
-    return EmptyString;
+    HK_ASSERT_MSG_RAW(It != Table.IDToString.end(), "FName ID not found in name table");
+    return It->second;
 }
 
 FName::FNameTable& FName::GetNameTableInstance()
@@ -42,7 +40,7 @@ FName::FNameTable& FName::GetNameTableInstance()
     return Table;
 }
 
-FName::IDType FName::GetOrCreateID(const std::string& InStr)
+FName::FIDType FName::GetOrCreateID(const std::string& InStr)
 {
     auto& Table = GetNameTableInstance();
     std::lock_guard<std::mutex> Lock(Table.Mutex);
@@ -53,7 +51,7 @@ FName::IDType FName::GetOrCreateID(const std::string& InStr)
         return It->second;
     }
 
-    IDType NewID = Table.NextID++;
+    FIDType NewID = Table.NextID++;
     Table.StringToID[InStr] = NewID;
     Table.IDToString[NewID] = InStr;
     return NewID;
@@ -75,8 +73,13 @@ size_t FName::GetNameTableSize()
     return Table.StringToID.size();
 }
 
-const std::unordered_map<FName::IDType, std::string>& FName::GetNameTable()
+const std::unordered_map<FName::FIDType, std::string>& FName::GetNameTable()
 {
     auto& Table = GetNameTableInstance();
     return Table.IDToString;
+}
+
+FName::operator FString() const
+{
+    return FString(GetStdString());
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -9,25 +10,27 @@
 class FName
 {
 public:
-    using IDType = uint32_t;
+    using FIDType = UInt32;
 
     FName() : ID(0) {}
     explicit FName(const char* InStr);
     explicit FName(const std::string& InStr);
     explicit FName(const class FStringView& InView);
 
-    IDType GetID() const noexcept
+    FIDType GetID() const noexcept
     {
         return ID;
     }
-    const std::string& GetString() const;
+
+    const std::string& GetStdString() const;
+
     bool IsValid() const noexcept
     {
         return ID != 0;
     }
     size_t GetHashCode() const noexcept
     {
-        return std::hash<IDType>{}(ID);
+        return std::hash<FIDType>{}(ID);
     }
 
     bool operator==(const FName& Other) const noexcept
@@ -60,22 +63,25 @@ public:
         return ID >= Other.ID;
     }
 
+    // 隐式转换为FString
+    operator class FString() const;
+
     // 全局字符串ID表管理
     static void ClearNameTable();
     static size_t GetNameTableSize();
-    static const std::unordered_map<IDType, std::string>& GetNameTable();
+    static const std::unordered_map<FIDType, std::string>& GetNameTable();
 
 private:
-    IDType ID;
+    FIDType ID;
 
     struct FNameTable
     {
-        std::unordered_map<std::string, IDType> StringToID;
-        std::unordered_map<IDType, std::string> IDToString;
-        IDType NextID = 1;
+        std::unordered_map<std::string, FIDType> StringToID;
+        std::unordered_map<FIDType, std::string> IDToString;
+        FIDType NextID = 1;
         std::mutex Mutex;
     };
 
     static FNameTable& GetNameTableInstance();
-    static IDType GetOrCreateID(const std::string& InStr);
+    static FIDType GetOrCreateID(const std::string& InStr);
 };

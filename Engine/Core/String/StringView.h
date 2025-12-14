@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <string>
 #include <string_view>
 
@@ -52,18 +53,22 @@ public:
 
     char operator[](SizeType Index) const noexcept
     {
+        HK_ASSERT_RAW(Index < View.size());
         return View[Index];
     }
     char At(SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < View.size());
         return View.at(Index);
     }
     char Front() const noexcept
     {
+        HK_ASSERT_RAW(!View.empty());
         return View.front();
     }
     char Back() const noexcept
     {
+        HK_ASSERT_RAW(!View.empty());
         return View.back();
     }
     const char* Data() const noexcept

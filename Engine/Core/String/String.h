@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/String/StringView.h"
+#include "Core/Utility/Macros.h"
 #include <string>
 
 class FString
@@ -75,34 +76,42 @@ public:
 
     char& operator[](SizeType Index)
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData[Index];
     }
     const char& operator[](SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData[Index];
     }
     char& At(SizeType Index)
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData.at(Index);
     }
     const char& At(SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData.at(Index);
     }
     char& Front()
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.front();
     }
     const char& Front() const
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.front();
     }
     char& Back()
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.back();
     }
     const char& Back() const
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.back();
     }
     const char* Data() const noexcept

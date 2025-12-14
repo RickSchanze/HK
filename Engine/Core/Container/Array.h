@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Container/Span.h"
+#include "Core/Utility/Macros.h"
 #include <algorithm>
 #include <initializer_list>
 #include <vector>
@@ -83,34 +84,42 @@ public:
 
     Reference operator[](SizeType Index)
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData[Index];
     }
     ConstReference operator[](SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData[Index];
     }
     Reference At(SizeType Index)
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData.at(Index);
     }
     ConstReference At(SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         return MyData.at(Index);
     }
     Reference Front()
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.front();
     }
     ConstReference Front() const
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.front();
     }
     Reference Back()
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.back();
     }
     ConstReference Back() const
     {
+        HK_ASSERT_RAW(!MyData.empty());
         return MyData.back();
     }
     Pointer Data() noexcept
@@ -189,6 +198,7 @@ public:
 
     void RemoveAt(SizeType Index)
     {
+        HK_ASSERT_RAW(Index < MyData.size());
         MyData.erase(MyData.begin() + Index);
     }
 
@@ -291,6 +301,7 @@ public:
 
     void Pop()
     {
+        HK_ASSERT_RAW(!MyData.empty());
         MyData.pop_back();
     }
     void PopBack()

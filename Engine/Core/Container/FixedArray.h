@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Container/Span.h"
+#include "Core/Utility/Macros.h"
 #include <algorithm>
 #include <array>
 #include <initializer_list>
@@ -80,34 +81,42 @@ public:
 
     Reference operator[](SizeType Index)
     {
+        HK_ASSERT_RAW(Index < N);
         return MyData[Index];
     }
     ConstReference operator[](SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < N);
         return MyData[Index];
     }
     Reference At(SizeType Index)
     {
+        HK_ASSERT_RAW(Index < N);
         return MyData.at(Index);
     }
     ConstReference At(SizeType Index) const
     {
+        HK_ASSERT_RAW(Index < N);
         return MyData.at(Index);
     }
     Reference Front()
     {
+        HK_ASSERT_RAW(N > 0);
         return MyData.front();
     }
     ConstReference Front() const
     {
+        HK_ASSERT_RAW(N > 0);
         return MyData.front();
     }
     Reference Back()
     {
+        HK_ASSERT_RAW(N > 0);
         return MyData.back();
     }
     ConstReference Back() const
     {
+        HK_ASSERT_RAW(N > 0);
         return MyData.back();
     }
     Pointer Data() noexcept
@@ -175,21 +184,27 @@ public:
 
     TSpan<T> Slice(SizeType Offset, SizeType Count) noexcept
     {
+        HK_ASSERT_RAW(Offset <= N);
+        HK_ASSERT_RAW(Offset + Count <= N);
         return TSpan<T>(MyData.data() + Offset, Count);
     }
 
     TSpan<const T> Slice(SizeType Offset, SizeType Count) const noexcept
     {
+        HK_ASSERT_RAW(Offset <= N);
+        HK_ASSERT_RAW(Offset + Count <= N);
         return TSpan<const T>(MyData.data() + Offset, Count);
     }
 
     TSpan<T> Slice(SizeType Offset) noexcept
     {
+        HK_ASSERT_RAW(Offset <= N);
         return TSpan<T>(MyData.data() + Offset, N - Offset);
     }
 
     TSpan<const T> Slice(SizeType Offset) const noexcept
     {
+        HK_ASSERT_RAW(Offset <= N);
         return TSpan<const T>(MyData.data() + Offset, N - Offset);
     }
 

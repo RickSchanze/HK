@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <ranges>
+#include <thread>
 
 #ifdef HK_WINDOWS
 #include <windows.h>
@@ -31,6 +32,12 @@
 #include "Core/Utility/Ref.h"
 #include "Core/Utility/SharedPtr.h"
 #include "Core/Utility/UniquePtr.h"
+
+// Logging includes
+#include "Core/Logging/Logger.h"
+
+// Time includes
+#include "Core/Time/Time.h"
 
 // Test function for Event
 void StaticHandler(int x)
@@ -237,7 +244,7 @@ int main()
         FName Name3("AnotherName");
 
         std::cout << "Name1 ID: " << Name1.GetID() << std::endl;
-        std::cout << "Name1 String: " << Name1.GetString() << std::endl;
+        std::cout << "Name1 String: " << Name1.GetStdString() << std::endl;
         std::cout << "Name2 ID: " << Name2.GetID() << std::endl;
         std::cout << "Name3 ID: " << Name3.GetID() << std::endl;
 
@@ -349,6 +356,7 @@ int main()
             int CallCount1 = 0, CallCount2 = 0;
             auto Handle1 = VoidEvent.AddBind([&CallCount1]() { CallCount1++; });
             auto Handle2 = VoidEvent.AddBind([&CallCount2]() { CallCount2 += 2; });
+            (void)Handle2; // 用于测试，实际使用中会保存
             VoidEvent.Invoke();
             std::cout << "Event<void> call count1: " << CallCount1 << ", count2: " << CallCount2 << std::endl;
 
@@ -366,6 +374,8 @@ int main()
             int Sum = 0;
             auto Handle1 = IntEvent.AddBind([&Sum](int a, int b) { Sum += a + b; });
             auto Handle2 = IntEvent.AddBind([&Sum](int a, int b) { Sum += a * b; });
+            (void)Handle1; // 用于测试，实际使用中会保存
+            (void)Handle2; // 用于测试，实际使用中会保存
             IntEvent.Invoke(3, 4);
             std::cout << "Event<int, int> sum: " << Sum << std::endl;
         }
@@ -374,6 +384,7 @@ int main()
         {
             TEvent<int> FuncEvent;
             auto Handle = FuncEvent.AddBind(StaticHandler);
+            (void)Handle; // 用于测试，实际使用中会保存
             FuncEvent.Invoke(42);
         }
 
@@ -395,6 +406,8 @@ int main()
             TEvent<int> MemberEvent;
             auto Handle1 = MemberEvent.AddBind(&Handler, &EventHandler::Handle);
             auto Handle2 = MemberEvent.AddBind(&Handler, &EventHandler::HandleConst);
+            (void)Handle1; // 用于测试，实际使用中会保存
+            (void)Handle2; // 用于测试，实际使用中会保存
             MemberEvent.Invoke(10);
             std::cout << "Event with member function, counter: " << Handler.Counter << std::endl;
         }
@@ -770,5 +783,86 @@ int main()
     }
 
     spdlog::info("所有测试完成！");
+
+    // Test Logger
+    {
+        std::cout << "\n=== Logger Test ===" << std::endl;
+
+        // 测试各种日志级别
+        HK_LOG_DEBUG(ELogcat::Engine, "Debug message: {}", 42);
+        HK_LOG_INFO(ELogcat::Engine, "Info message: {}", "Hello");
+        HK_LOG_WARN(ELogcat::Engine, "Warning message: {}", 3.14);
+        HK_LOG_ERROR(ELogcat::Engine, "Error message: {}", true);
+        HK_LOG_FATAL(ELogcat::Engine, "Fatal message: {}", 100);
+
+        // 测试FString, FName, FStringView格式化
+        FString TestStr("TestString");
+        FName TestName("TestName");
+        FStringView TestView("TestView");
+
+        HK_LOG_INFO(ELogcat::Engine, "FString: {}, FName: {}, FStringView: {}", TestStr, TestName, TestView);
+
+        // 测试OnLog事件
+        int LogCount = 0;
+        auto Handle = GLogger.OnLog.AddBind(
+            [&LogCount](const FLogContent& Content)
+            {
+                LogCount++;
+                std::cout << "OnLog event triggered: " << Content.Message.GetStdString() << std::endl;
+            });
+
+        HK_LOG_INFO(ELogcat::Engine, "This should trigger OnLog event");
+        std::cout << "Log count: " << LogCount << std::endl;
+
+        GLogger.OnLog.RemoveBind(Handle);
+    }
+
+    // Test Time
+    {
+        std::cout << "\n=== Time Test ===" << std::endl;
+
+        // 测试Now()
+        FTimePoint Now1 = FTimePoint::Now();
+        std::cout << "Current time (seconds): " << Now1.ToSeconds() << std::endl;
+        std::cout << "Current time (milliseconds): " << Now1.ToMilliseconds() << std::endl;
+        std::cout << "Current time formatted: " << Now1.Format() << std::endl;
+        std::cout << "Current time ISO8601: " << Now1.FormatISO8601() << std::endl;
+
+        // 测试时间差
+        FTimePoint Start = FTimePoint::Now();
+        // 模拟一些工作
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        FTimePoint End = FTimePoint::Now();
+
+        FTimeDuration Duration = End - Start;
+        std::cout << "Duration (milliseconds): " << Duration.AsMilliseconds() << std::endl;
+        std::cout << "Duration AsDouble<FSeconds>: " << Duration.AsDouble<FSeconds>() << std::endl;
+        std::cout << "Duration AsFloat<FMilliseconds>: " << Duration.AsFloat<FMilliseconds>() << std::endl;
+        std::cout << "Duration AsDouble<FMinutes>: " << Duration.AsDouble<FMinutes>() << std::endl;
+        std::cout << "Duration As<float, FSeconds>: " << Duration.As<float, FSeconds>() << std::endl;
+        std::cout << "Duration As<double, FMilliseconds>: " << Duration.As<double, FMilliseconds>() << std::endl;
+
+        // 测试GetStdTimePoint
+        auto StdTimePoint = Now1.GetStdTimePoint();
+        std::cout << "GetStdTimePoint works: " << (StdTimePoint.time_since_epoch().count() > 0) << std::endl;
+
+        // 测试GetStdDuration
+        auto StdDuration = Duration.GetStdDuration();
+        std::cout << "GetStdDuration works: " << (StdDuration.count() > 0) << std::endl;
+    }
+
+    // Test Assert (only in Debug)
+    {
+        std::cout << "\n=== Assert Test ===" << std::endl;
+
+        // 这些在Release模式下不会执行
+        bool Condition = true;
+        HK_ASSERT(Condition);
+        HK_ASSERT_MSG(Condition, "This should not fail: {}", 42);
+
+        std::cout << "Assert tests passed (or skipped in Release mode)" << std::endl;
+    }
+
+    std::cout << "\n=== All Tests Complete ===" << std::endl;
     return 0;
 }

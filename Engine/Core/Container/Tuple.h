@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <tuple>
 
 template <typename... Types>
@@ -18,24 +19,28 @@ public:
     template <size_t Index>
     auto& Get() & noexcept
     {
+        HK_ASSERT_RAW(Index < Size);
         return std::get<Index>(Data);
     }
 
     template <size_t Index>
     const auto& Get() const& noexcept
     {
+        HK_ASSERT_RAW(Index < Size);
         return std::get<Index>(Data);
     }
 
     template <size_t Index>
     auto&& Get() && noexcept
     {
+        HK_ASSERT_RAW(Index < Size);
         return std::get<Index>(std::move(Data));
     }
 
     template <size_t Index>
     const auto&& Get() const&& noexcept
     {
+        HK_ASSERT_RAW(Index < Size);
         return std::get<Index>(std::move(Data));
     }
 

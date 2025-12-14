@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <variant>
-
 
 template <typename... Types>
 class TVariant
@@ -50,24 +50,30 @@ public:
     template <typename T>
     T& GetValue()
     {
+        HK_ASSERT_MSG_RAW(std::holds_alternative<T>(Data), "Variant does not hold the requested type");
         return std::get<T>(Data);
     }
 
     template <typename T>
     const T& GetValue() const
     {
+        HK_ASSERT_MSG_RAW(std::holds_alternative<T>(Data), "Variant does not hold the requested type");
         return std::get<T>(Data);
     }
 
     template <size_t Index>
     auto& GetValue()
     {
+        HK_ASSERT_RAW(Index < Size);
+        HK_ASSERT_MSG_RAW(Data.index() == Index, "Variant does not hold the requested index");
         return std::get<Index>(Data);
     }
 
     template <size_t Index>
     const auto& GetValue() const
     {
+        HK_ASSERT_RAW(Index < Size);
+        HK_ASSERT_MSG_RAW(Data.index() == Index, "Variant does not hold the requested index");
         return std::get<Index>(Data);
     }
 

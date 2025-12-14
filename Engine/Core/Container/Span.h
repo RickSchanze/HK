@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -70,14 +71,17 @@ public:
 
     constexpr Reference operator[](SizeType Index) const noexcept
     {
+        HK_ASSERT_RAW(Index < MySize);
         return MyData[Index];
     }
     constexpr Reference Front() const noexcept
     {
+        HK_ASSERT_RAW(MySize > 0);
         return *MyData;
     }
     constexpr Reference Back() const noexcept
     {
+        HK_ASSERT_RAW(MySize > 0);
         return MyData[MySize - 1];
     }
     constexpr Pointer Data() const noexcept
@@ -99,11 +103,14 @@ public:
 
     constexpr TSpan Slice(SizeType Offset, SizeType Count) const noexcept
     {
+        HK_ASSERT_RAW(Offset <= MySize);
+        HK_ASSERT_RAW(Offset + Count <= MySize);
         return TSpan(MyData + Offset, Count);
     }
 
     constexpr TSpan Slice(SizeType Offset) const noexcept
     {
+        HK_ASSERT_RAW(Offset <= MySize);
         return TSpan(MyData + Offset, MySize - Offset);
     }
 
