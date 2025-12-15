@@ -1,10 +1,10 @@
 #pragma once
 
 template <typename T>
-class Singleton
+class FSingleton
 {
 public:
-    virtual ~Singleton() = default;
+    virtual ~FSingleton() = default;
     virtual void StartUp() {}
     virtual void ShutDown() {}
 

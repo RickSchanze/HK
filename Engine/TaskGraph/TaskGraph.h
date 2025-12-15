@@ -11,7 +11,7 @@
 
 #include <memory>
 
-class FTaskGraph : public Singleton<FTaskGraph>
+class FTaskGraph : public FSingleton<FTaskGraph>
 {
 public:
     void StartUp() override;

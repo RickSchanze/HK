@@ -1,0 +1,37 @@
+#pragma once
+#include "Core/Event/Event.h"
+#include "Core/Reflection/Reflection.h"
+#include "Core/Singleton/Singleton.h"
+
+struct FRHIBufferCreateInfo;
+class FRHIBuffer;
+
+HENUM()
+enum class EGfxBackend
+{
+
+};
+
+class FRHIDevice
+{
+public:
+    virtual ~FRHIDevice() = default;
+    // 创建缓冲区，返回的值类型包含一个 Handle
+    // 可以像普通值类型一样拷贝和移动
+    // 只有通过 CreateBuffer 创建的 Buffer 才是有效的
+    virtual FRHIBuffer CreateBuffer(const FRHIBufferCreateInfo& BufferCreateInfo) = 0;
+
+    // 销毁缓冲区资源
+    // 必须通过此方法销毁，不能直接调用 Buffer.Destroy()
+    virtual void DestroyBuffer(FRHIBuffer& Buffer) = 0;
+};
+
+inline TEvent<> GOnPreRHIDeviceCreated;
+inline TEvent<FRHIDevice*> GOnPostRHIDeviceCreated;
+inline TEvent<FRHIDevice*> GOnPreRHIDeviceDestroyed;
+inline TEvent<FRHIDevice*> GOnPostRHIDeviceDestroyed;
+
+void CreateRHIDevice();
+void DestroyRHIDevice();
+
+FRHIDevice* GetRHIDevice();

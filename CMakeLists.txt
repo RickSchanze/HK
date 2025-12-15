@@ -85,7 +85,7 @@ endif()
 
 # Debug构建时定义HK_DEBUG宏
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(HK_DEBUG)
+    add_compile_definitions(HK_DEBUG=1)
     message(STATUS "构建类型: Debug (HK_DEBUG)")
 else()
     message(STATUS "构建类型: ${CMAKE_BUILD_TYPE}")
@@ -112,9 +112,10 @@ endif()
 # 创建可执行文件或库
 if(SOURCES)
     add_executable(${PROJECT_NAME} ${SOURCES}
-            Engine/Core/Serialization/Serialization.h
-            Engine/Core/Serialization/XMLArchive.h
-            Engine/Core/Serialization/BinaryArchive.h)
+            Engine/RHI/RHIBuffer.cpp
+            Engine/RHI/RHIBuffer.h
+            Engine/RHI/GfxDevice.cpp
+            Engine/RHI/GfxDevice.h)
     
     # 设置目标属性
     set_target_properties(${PROJECT_NAME} PROPERTIES
