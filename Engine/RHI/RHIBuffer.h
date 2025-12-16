@@ -40,7 +40,7 @@ struct FRHIBufferCreateInfo
 // 简单的 Buffer 值类型，只包含一个 Handle
 class FRHIBuffer
 {
-    friend class FRHIDevice;
+    friend class FGfxDevice;
 
 public:
     // 默认构造：创建空的 Buffer（无效）

@@ -17,10 +17,10 @@ enum class EGfxBackend
     Count,
 };
 
-class HK_API FRHIDevice
+class HK_API FGfxDevice
 {
 public:
-    virtual ~FRHIDevice() = default;
+    virtual ~FGfxDevice() = default;
     // 创建缓冲区，返回的值类型包含一个 Handle
     // 可以像普通值类型一样拷贝和移动
     // 只有通过 CreateBuffer 创建的 Buffer 才是有效的
@@ -32,11 +32,11 @@ public:
 };
 
 inline TEvent<> GOnPreRHIDeviceCreated;
-inline TEvent<FRHIDevice*> GOnPostRHIDeviceCreated;
-inline TEvent<FRHIDevice*> GOnPreRHIDeviceDestroyed;
-inline TEvent<FRHIDevice*> GOnPostRHIDeviceDestroyed;
+inline TEvent<FGfxDevice*> GOnPostRHIDeviceCreated;
+inline TEvent<FGfxDevice*> GOnPreRHIDeviceDestroyed;
+inline TEvent<FGfxDevice*> GOnPostRHIDeviceDestroyed;
 
 HK_API void CreateRHIDevice();
 HK_API void DestroyRHIDevice();
 
-HK_API FRHIDevice* GetRHIDevice();
+HK_API FGfxDevice* GetRHIDevice();

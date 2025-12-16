@@ -4,6 +4,7 @@
     "description": "HKEngine Game Engine",
     "dependencies": [
         "spdlog",
-        "cereal"
+        "cereal",
+        "glm"
     ]
 }

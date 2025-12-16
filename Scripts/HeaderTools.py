@@ -1161,6 +1161,114 @@ def find_header_files(engine_dir: str) -> List[str]:
     return header_files
 
 
+def find_source_file_for_generated(generated_file: str, engine_dir: str) -> Optional[str]:
+    """
+    根据生成文件名查找对应的源文件
+    返回源文件路径，如果不存在则返回None
+    
+    注意：只要源文件存在就返回，不检查是否包含宏（因为文件可能被修改移除了宏）
+    """
+    # 从生成文件名中提取基础名称（去掉.generated.h或.generated.cpp）
+    file_name = os.path.basename(generated_file)
+    if file_name.endswith('.generated.h'):
+        base_name = file_name.replace('.generated.h', '')
+    elif file_name.endswith('.generated.cpp'):
+        base_name = file_name.replace('.generated.cpp', '')
+    else:
+        return None
+    
+    # 在Engine目录中搜索对应的源文件（.h或.hpp）
+    for root, dirs, files in os.walk(engine_dir):
+        # 跳过Generated目录
+        if 'Generated' in root:
+            continue
+        
+        for ext in ['.h', '.hpp']:
+            source_file = os.path.join(root, f"{base_name}{ext}")
+            if os.path.exists(source_file):
+                # 只要源文件存在就返回（不检查宏，因为文件可能被修改）
+                return source_file
+    
+    return None
+
+
+def cleanup_deleted_files(cache: Dict[str, str], struct_cache: Dict[str, str], 
+                          engine_dir: str, generated_dir: str) -> int:
+    """
+    清理已删除源文件对应的生成文件
+    返回删除的文件数量
+    
+    注意：struct_cache参数保留用于未来可能的扩展，当前不清理struct_cache
+    因为结构体可能在其他文件中被引用
+    """
+    deleted_count = 0
+    files_to_remove = []
+    processed_generated_files = set()  # 记录已处理的生成文件，避免重复处理
+    
+    # 第一步：检查缓存中的每个文件是否仍然存在
+    for file_path in list(cache.keys()):
+        if not os.path.exists(file_path):
+            # 源文件已删除，需要删除对应的生成文件
+            file_stem = Path(file_path).stem
+            generated_h = os.path.join(generated_dir, f"{file_stem}.generated.h")
+            generated_cpp = os.path.join(generated_dir, f"{file_stem}.generated.cpp")
+            
+            # 删除生成文件
+            deleted_any = False
+            if os.path.exists(generated_h):
+                try:
+                    os.remove(generated_h)
+                    deleted_any = True
+                    processed_generated_files.add(generated_h)
+                except Exception as e:
+                    print(f"[WARN] 无法删除 {generated_h}: {e}")
+            
+            if os.path.exists(generated_cpp):
+                try:
+                    os.remove(generated_cpp)
+                    deleted_any = True
+                    processed_generated_files.add(generated_cpp)
+                except Exception as e:
+                    print(f"[WARN] 无法删除 {generated_cpp}: {e}")
+            
+            if deleted_any:
+                rel_path = os.path.relpath(file_path, engine_dir)
+                print(f"[删除] {rel_path} -> {file_stem}.generated.h/cpp")
+                deleted_count += 1
+            
+            # 标记需要从缓存中移除
+            files_to_remove.append(file_path)
+    
+    # 从缓存中移除已删除的文件
+    for file_path in files_to_remove:
+        cache.pop(file_path, None)
+    
+    # 第二步：扫描Generated目录中的所有生成文件，检查对应的源文件是否存在
+    if os.path.exists(generated_dir):
+        for file_name in os.listdir(generated_dir):
+            if file_name.endswith(('.generated.h', '.generated.cpp')):
+                generated_file = os.path.join(generated_dir, file_name)
+                
+                # 跳过已处理的文件
+                if generated_file in processed_generated_files:
+                    continue
+                
+                # 查找对应的源文件
+                source_file = find_source_file_for_generated(generated_file, engine_dir)
+                
+                if source_file is None:
+                    # 源文件不存在，删除生成文件
+                    try:
+                        os.remove(generated_file)
+                        file_stem = Path(file_name).stem.replace('.generated', '')
+                        print(f"[删除] 孤立生成文件 -> {file_name} (源文件不存在)")
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"[WARN] 无法删除 {generated_file}: {e}")
+    
+    return deleted_count
+
+
 def main():
     """主函数"""
     import sys
@@ -1179,6 +1287,11 @@ def main():
     # 加载缓存
     cache = load_cache(cache_file)
     struct_cache = load_struct_cache(struct_cache_file)
+    
+    # 清理已删除源文件对应的生成文件
+    deleted_count = cleanup_deleted_files(cache, struct_cache, engine_dir, generated_dir)
+    if deleted_count > 0:
+        print(f"清理了 {deleted_count} 个已删除源文件的生成文件")
     
     # 查找所有头文件
     header_files = find_header_files(engine_dir)

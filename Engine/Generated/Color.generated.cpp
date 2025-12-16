@@ -28,28 +28,3 @@ HK_API void FColor::Z_Color_Register::Register_FColor()
     FTypeManager::RegisterTypeRegisterer<FColor>(Register_FColor_Impl);
 }
 
-
-static void Z_Register_MyEnum_Impl()
-{
-    // 注册枚举类型
-    FTypeMutable Type = FTypeManager::Register<MyEnum>("MyEnum");
-
-    // 注册枚举成员: A
-    Type->RegisterEnumMember(MyEnum::A, "A");
-
-    // 注册枚举成员: B
-    Type->RegisterEnumMember(MyEnum::B, "B");
-
-    // 注册枚举成员: C
-    Type->RegisterEnumMember(MyEnum::C, "C");
-
-    // 注册枚举成员: D
-    Type->RegisterEnumMember(MyEnum::D, "D");
-
-}
-
-void Z_Register_MyEnum()
-{
-    // 只注册类型注册器函数，不执行注册操作
-    FTypeManager::RegisterTypeRegisterer<MyEnum>(Z_Register_MyEnum_Impl);
-}

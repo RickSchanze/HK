@@ -10,8 +10,6 @@
 #include "Core/Serialization/XMLArchive.h"
 #include "Core/String/String.h"
 #include "Math/Color.h"
-#include "Math/TestClass.h"
-#include "Math/TestStruct.h"
 #include "TaskGraph/TaskGraph.h"
 
 #include <chrono>

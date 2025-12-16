@@ -23,13 +23,3 @@
         );                                                                                                             \
     }                                                                                                                  \
     static inline Z_Color_Register Z_REGISTERER_COLOR;
-
-HK_API void Z_Register_MyEnum();
-struct F_Z_Register_MyEnum
-{
-    F_Z_Register_MyEnum()
-    {
-        Z_Register_MyEnum();
-    }
-};
-static inline F_Z_Register_MyEnum Z_REGISTERER_MYENUM;

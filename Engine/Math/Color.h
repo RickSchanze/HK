@@ -3,15 +3,6 @@
 
 #include "Color.generated.h"
 
-HENUM()
-enum class MyEnum
-{
-    A,
-    B,
-    C,
-    D
-};
-
 HSTRUCT()
 struct HK_API FColor
 {
