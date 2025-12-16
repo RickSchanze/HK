@@ -90,6 +90,24 @@ typedef float Float;
 typedef double Double;
 typedef bool Bool;
 
+// DLL导出/导入宏
+#ifdef HK_WINDOWS
+#ifdef HK_BUILDING_DLL
+// 构建DLL时导出
+#define HK_API __declspec(dllexport)
+#else
+// 使用DLL时导入
+#define HK_API __declspec(dllimport)
+#endif
+#else
+// 非Windows平台，使用可见性属性（可选）
+#ifdef HK_BUILDING_DLL
+#define HK_API __attribute__((visibility("default")))
+#else
+#define HK_API
+#endif
+#endif
+
 // 原始Assert宏（直接使用标准库，不依赖Logger）
 // 用于Container、Utility、String等基础类型
 #ifdef HK_DEBUG

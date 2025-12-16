@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
+
 #define GENERATED_HEADER_FBaseStruct                                                                                        \
     struct Z_BaseStruct_Register                                                                                            \
     {                                                                                                                  \
@@ -7,7 +9,7 @@
         {                                                                                                              \
             Register_FBaseStruct();                                                                                         \
         }                                                                                                              \
-        static void Register_FBaseStruct();                                                                                 \
+        static HK_API void Register_FBaseStruct();                                                                                 \
     };                                                                                                                 \
     typedef FBaseStruct ThisStruct;                                                                                        \
     template <typename Archive>                                                                                        \
@@ -26,7 +28,7 @@
         {                                                                                                              \
             Register_FDerivedStruct();                                                                                         \
         }                                                                                                              \
-        static void Register_FDerivedStruct();                                                                                 \
+        static HK_API void Register_FDerivedStruct();                                                                                 \
     };                                                                                                                 \
     typedef FBaseStruct::ThisStruct Super;                                                                                        \
     typedef FDerivedStruct ThisStruct;                                                                                        \

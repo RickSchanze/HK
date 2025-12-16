@@ -13,7 +13,7 @@ static void Register_FBaseClass_Impl()
 
 }
 
-void FBaseClass::Z_BaseClass_Register::Register_FBaseClass()
+HK_API void FBaseClass::Z_BaseClass_Register::Register_FBaseClass()
 {
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<FBaseClass>(Register_FBaseClass_Impl);
@@ -43,7 +43,7 @@ static void Register_FDerivedClass_Impl()
 
 }
 
-void FDerivedClass::Z_DerivedClass_Register::Register_FDerivedClass()
+HK_API void FDerivedClass::Z_DerivedClass_Register::Register_FDerivedClass()
 {
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<FDerivedClass>(Register_FDerivedClass_Impl);

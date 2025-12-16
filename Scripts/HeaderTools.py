@@ -35,6 +35,7 @@ class StructInfo:
     type: str  # "struct" 或 "class"
     base_class: Optional[str]  # 父类名称，如果没有则为 None
     macro_type: str  # "HSTRUCT" 或 "HCLASS"
+    has_hk_api: bool = False  # 是否有 HK_API 导出宏
 
 
 @dataclass
@@ -154,9 +155,11 @@ def extract_all_struct_info(file_path: str) -> List[StructInfo]:
     # 查找 HSTRUCT 和 HCLASS 宏
     hstruct_pattern = re.compile(r'HSTRUCT\s*\(([^)]*)\)')
     hclass_pattern = re.compile(r'HCLASS\s*\(([^)]*)\)')
-    # 匹配 struct/class 名称，可能包含继承：struct Name : BaseClass 或 class Name : public BaseClass
+    # 匹配 struct/class 名称，可能包含 HK_API 和继承：
+    # struct Name : BaseClass 或 class Name : public BaseClass
+    # struct HK_API Name 或 class HK_API Name : BaseClass
     # 只匹配第一个父类
-    struct_pattern = re.compile(r'(struct|class)\s+(\w+)(?:\s*:\s*(?:public|private|protected)?\s*(\w+))?')
+    struct_pattern = re.compile(r'(struct|class)\s+(HK_API\s+)?(\w+)(?:\s*:\s*(?:public|private|protected)?\s*(\w+))?')
     property_pattern = re.compile(r'HPROPERTY\s*\(([^)]*)\)')
     
     i = 0
@@ -185,15 +188,18 @@ def extract_all_struct_info(file_path: str) -> List[StructInfo]:
             struct_start_line = i - 1
             
             # 在接下来的几行中查找 struct/class 定义
+            current_has_hk_api = False
             for j in range(i, min(i + 10, len(lines))):
                 struct_match = struct_pattern.search(lines[j])
                 if struct_match:
                     current_struct_type = struct_match.group(1)
-                    current_struct_name = struct_match.group(2)
-                    if struct_match.group(3):
-                        current_base_class = struct_match.group(3).strip()
+                    has_hk_api_match = struct_match.group(2)  # HK_API 部分
+                    current_struct_name = struct_match.group(3)
+                    if struct_match.group(4):
+                        current_base_class = struct_match.group(4).strip()
                     else:
                         current_base_class = None
+                    current_has_hk_api = has_hk_api_match is not None and "HK_API" in has_hk_api_match
                     break
             
             if current_struct_name:
@@ -271,7 +277,8 @@ def extract_all_struct_info(file_path: str) -> List[StructInfo]:
                                 file_path=file_path,
                                 type=current_struct_type,
                                 base_class=current_base_class,
-                                macro_type=pending_macro_type
+                                macro_type=pending_macro_type,
+                                has_hk_api=current_has_hk_api
                             ))
                             i = j + 1
                             break
@@ -296,15 +303,18 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
     # 查找 HSTRUCT 和 HCLASS 宏
     hstruct_pattern = re.compile(r'HSTRUCT\s*\(([^)]*)\)')
     hclass_pattern = re.compile(r'HCLASS\s*\(([^)]*)\)')
-    # 匹配 struct/class 名称，可能包含继承：struct Name : BaseClass 或 class Name : public BaseClass
+    # 匹配 struct/class 名称，可能包含 HK_API 和继承：
+    # struct Name : BaseClass 或 class Name : public BaseClass
+    # struct HK_API Name 或 class HK_API Name : BaseClass
     # 只匹配第一个父类
-    struct_pattern = re.compile(r'(struct|class)\s+(\w+)(?:\s*:\s*(?:public|private|protected)?\s*(\w+))?')
+    struct_pattern = re.compile(r'(struct|class)\s+(HK_API\s+)?(\w+)(?:\s*:\s*(?:public|private|protected)?\s*(\w+))?')
     property_pattern = re.compile(r'HPROPERTY\s*\(([^)]*)\)')
     
     struct_info = None
     current_struct_name = None
     current_struct_type = None  # "struct" 或 "class"
     current_base_class = None
+    current_has_hk_api = False
     in_struct = False
     brace_count = 0
     properties = []
@@ -335,12 +345,14 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
             struct_match = struct_pattern.search(line)
             if struct_match:
                 current_struct_type = struct_match.group(1)  # "struct" 或 "class"
-                current_struct_name = struct_match.group(2)
-                # 检查是否有父类（第3个分组）
-                if struct_match.group(3):
-                    current_base_class = struct_match.group(3).strip()
+                has_hk_api_match = struct_match.group(2)  # HK_API 部分
+                current_struct_name = struct_match.group(3)
+                # 检查是否有父类（第4个分组）
+                if struct_match.group(4):
+                    current_base_class = struct_match.group(4).strip()
                 else:
                     current_base_class = None
+                current_has_hk_api = has_hk_api_match is not None and "HK_API" in has_hk_api_match
                 # 检查当前行或下一行是否有开括号
                 if '{' in line:
                     in_struct = True
@@ -357,7 +369,8 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
                         file_path=file_path,
                         type=current_struct_type,
                         base_class=current_base_class,
-                        macro_type=pending_macro_type or "HSTRUCT"
+                        macro_type=pending_macro_type or "HSTRUCT",
+                        has_hk_api=current_has_hk_api
                     )
                     pending_hstruct = None
                     pending_attributes = None
@@ -382,7 +395,8 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
                 file_path=file_path,
                 type=current_struct_type,
                 base_class=current_base_class,
-                macro_type=pending_macro_type or "HSTRUCT"
+                macro_type=pending_macro_type or "HSTRUCT",
+                has_hk_api=current_has_hk_api
             )
             pending_hstruct = None
             pending_attributes = None
@@ -573,7 +587,7 @@ def generate_enum_header_code(enum_info: EnumInfo) -> str:
     registerer_struct_name = f"F_Z_Register_{enum_name}"
     registerer_var_name = f"Z_REGISTERER_{enum_name.upper()}"
     
-    code = f"""void {register_func_name}();
+    code = f"""HK_API void {register_func_name}();
 struct {registerer_struct_name}
 {{
     {registerer_struct_name}()
@@ -734,6 +748,11 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
                     typedef_code = f"    typedef {struct_info.base_class}::ThisStruct Super;                                                                                        \\\n"
                 typedef_code += f"    typedef {struct_name} ThisStruct;                                                                                        \\\n"
     
+    # 如果结构体有 HK_API，则在注册函数中添加 HK_API
+    register_func_decl = f"static void {register_func_name}();"
+    if struct_info.has_hk_api:
+        register_func_decl = f"static HK_API void {register_func_name}();"
+    
     header_content = f"""#pragma once
 
 #define {macro_name}                                                                                        \\
@@ -743,7 +762,7 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
         {{                                                                                                              \\
             {register_func_name}();                                                                                         \\
         }}                                                                                                              \\
-        static void {register_func_name}();                                                                                 \\
+        {register_func_decl}                                                                                 \\
     }};                                                                                                                 \\
 {typedef_code}{serialize_code}    static inline {registerer_struct_name} {registerer_var_name};
 """
@@ -828,7 +847,12 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
     impl_content += "}\n\n"
     
     # 生成注册函数（只注册函数，不执行注册操作）
-    register_func_code = f"""void {struct_name}::{registerer_struct_name}::{register_func_name}()
+    # 如果结构体有 HK_API，则在函数定义中添加 HK_API
+    register_func_prefix = ""
+    if struct_info.has_hk_api:
+        register_func_prefix = "HK_API "
+    
+    register_func_code = f"""{register_func_prefix}void {struct_name}::{registerer_struct_name}::{register_func_name}()
 {{
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<{struct_name}>({register_impl_func_name});
@@ -1021,6 +1045,7 @@ def process_file(file_path: str, engine_dir: str, generated_dir: str, cache: Dic
         # 生成头文件内容
         header_parts = []
         header_parts.append("#pragma once\n")
+        header_parts.append('#include "Core/Utility/Macros.h"\n')
         
         # 生成所有结构体宏定义
         for struct_info in struct_infos:

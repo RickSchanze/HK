@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Time/TimeDuration.h"
+#include "Core/Utility/Macros.h"
 #include <chrono>
 #include <string>
 
@@ -8,7 +9,7 @@
 using FClock = std::chrono::system_clock;
 
 // FTimePoint封装类
-class FTimePoint
+class HK_API FTimePoint
 {
 public:
     FTimePoint() = default;

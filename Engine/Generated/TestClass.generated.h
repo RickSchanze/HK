@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
+
 #define GENERATED_HEADER_FBaseClass                                                                                        \
     struct Z_BaseClass_Register                                                                                            \
     {                                                                                                                  \
@@ -7,7 +9,7 @@
         {                                                                                                              \
             Register_FBaseClass();                                                                                         \
         }                                                                                                              \
-        static void Register_FBaseClass();                                                                                 \
+        static HK_API void Register_FBaseClass();                                                                                 \
     };                                                                                                                 \
     typedef FBaseClass ThisClass;                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FBaseClass)                                                                                        \
@@ -20,7 +22,7 @@
         {                                                                                                              \
             Register_FDerivedClass();                                                                                         \
         }                                                                                                              \
-        static void Register_FDerivedClass();                                                                                 \
+        static HK_API void Register_FDerivedClass();                                                                                 \
     };                                                                                                                 \
     typedef FBaseClass::ThisClass Super;                                                                                        \
     typedef FDerivedClass ThisClass;                                                                                        \

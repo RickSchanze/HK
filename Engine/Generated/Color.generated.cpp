@@ -22,7 +22,7 @@ static void Register_FColor_Impl()
 
 }
 
-void FColor::Z_Color_Register::Register_FColor()
+HK_API void FColor::Z_Color_Register::Register_FColor()
 {
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<FColor>(Register_FColor_Impl);

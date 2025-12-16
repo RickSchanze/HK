@@ -4,7 +4,7 @@
 #include "Core/Utility/Macros.h"
 #include <string>
 
-class FString
+class HK_API FString
 {
 public:
     using SizeType = size_t;

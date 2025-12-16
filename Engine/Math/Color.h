@@ -13,7 +13,7 @@ enum class MyEnum
 };
 
 HSTRUCT()
-struct FColor
+struct HK_API FColor
 {
     GENERATED_BODY(FColor)
 public:

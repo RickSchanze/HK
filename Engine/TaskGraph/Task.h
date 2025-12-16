@@ -23,7 +23,7 @@ enum class ETaskState
     Failed     // 执行失败
 };
 
-class FTask
+class HK_API FTask
 {
 public:
     using TaskLambda = TDelegate<void>;

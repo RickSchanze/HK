@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
+
 #define GENERATED_HEADER_FColor                                                                                        \
     struct Z_Color_Register                                                                                            \
     {                                                                                                                  \
@@ -7,7 +9,7 @@
         {                                                                                                              \
             Register_FColor();                                                                                         \
         }                                                                                                              \
-        static void Register_FColor();                                                                                 \
+        static HK_API void Register_FColor();                                                                                 \
     };                                                                                                                 \
     typedef FColor ThisStruct;                                                                                        \
     template <typename Archive>                                                                                        \
@@ -22,7 +24,7 @@
     }                                                                                                                  \
     static inline Z_Color_Register Z_REGISTERER_COLOR;
 
-void Z_Register_MyEnum();
+HK_API void Z_Register_MyEnum();
 struct F_Z_Register_MyEnum
 {
     F_Z_Register_MyEnum()

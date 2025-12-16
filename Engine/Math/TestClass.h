@@ -5,7 +5,7 @@
 
 // 父类 class
 HCLASS()
-class FBaseClass
+class HK_API FBaseClass
 {
     GENERATED_BODY(FBaseClass)
 public:
@@ -17,7 +17,7 @@ public:
 
 // 子类 class 继承父类
 HCLASS()
-class FDerivedClass : public FBaseClass
+class HK_API FDerivedClass : public FBaseClass
 {
     GENERATED_BODY(FDerivedClass)
 public:
@@ -27,7 +27,7 @@ public:
 
 // 没有父类的 class
 HCLASS()
-class FSimpleClass
+class HK_API FSimpleClass
 {
     GENERATED_BODY(FSimpleClass)
 public:

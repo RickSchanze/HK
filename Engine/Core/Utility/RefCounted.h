@@ -4,7 +4,7 @@
 #include <atomic>
 #include <type_traits>
 
-class FRefCounted
+class HK_API FRefCounted
 {
 public:
     FRefCounted() : RefCount(1) {}

@@ -95,51 +95,75 @@ endif()
 include_directories(${CMAKE_SOURCE_DIR}/Engine)
 include_directories(${CMAKE_SOURCE_DIR}/Engine/Generated)
 
-# 源文件目录
-file(GLOB_RECURSE SOURCES 
+# 收集Engine目录下的所有源文件（用于动态库）
+file(GLOB_RECURSE ENGINE_SOURCES 
     "Engine/*.cpp"
     "Engine/*.h"
     "Engine/*.hpp"
-    "main.cpp"
 )
 
-# 如果还没有源文件，创建一个示例
-if(NOT SOURCES)
-    message(STATUS "未找到源文件，将创建示例文件")
-    # 这里可以创建示例文件，但暂时不创建，让用户自己添加
-endif()
+# 包含Generated目录下的源文件
+file(GLOB_RECURSE GENERATED_SOURCES
+    "Engine/Generated/*.cpp"
+    "Engine/Generated/*.h"
+)
 
-# 创建可执行文件或库
-if(SOURCES)
-    add_executable(${PROJECT_NAME} ${SOURCES}
-            Engine/RHI/RHIBuffer.cpp
-            Engine/RHI/RHIBuffer.h
-            Engine/RHI/GfxDevice.cpp
-            Engine/RHI/GfxDevice.h)
-    
-    # 设置目标属性
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        CXX_STANDARD 23
-        CXX_STANDARD_REQUIRED ON
+# 合并所有源文件
+list(APPEND ENGINE_SOURCES ${GENERATED_SOURCES})
+
+# 创建HK动态库
+add_library(HK SHARED ${ENGINE_SOURCES})
+
+# 为动态库定义HK_BUILDING_DLL宏
+target_compile_definitions(HK PRIVATE HK_BUILDING_DLL)
+
+# 设置动态库目标属性
+set_target_properties(HK PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    OUTPUT_NAME "HK"
+)
+
+# 配置动态库的依赖静态链接
+if(MSVC)
+    # MSVC: 使用静态运行时库（MultiThreaded = /MT, MultiThreadedDebug = /MTd）
+    set_target_properties(HK PROPERTIES
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     )
-    
-    # 添加 natvis 文件支持（MSVC 调试器可视化）
-    if(MSVC AND EXISTS "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis")
-        set_target_properties(${PROJECT_NAME} PROPERTIES
-            VS_DEBUGGER_VISUALIZERS_FILE "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis"
-        )
-    endif()
-    
-    # 链接库（如果需要）
-    # target_link_libraries(${PROJECT_NAME} ...)
 endif()
 
-# 安装规则（可选）
-# install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-
+# 查找并链接依赖库（静态链接到动态库中）
 find_package(spdlog CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog)
+target_link_libraries(HK PRIVATE spdlog::spdlog)
 
 find_package(cereal CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE cereal::cereal)
+target_link_libraries(HK PRIVATE cereal::cereal)
+
+# 查找fmt库（spdlog的依赖）
+find_package(fmt CONFIG REQUIRED)
+target_link_libraries(HK PRIVATE fmt::fmt)
+
+# 创建可执行文件（只包含main.cpp）
+add_executable(${PROJECT_NAME} main.cpp)
+
+# 设置可执行文件目标属性
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+)
+
+# 链接HK动态库和依赖库（可执行文件编译时也需要这些库的头文件）
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    HK
+    spdlog::spdlog
+    cereal::cereal
+    fmt::fmt
+)
+
+# 添加 natvis 文件支持（MSVC 调试器可视化）
+if(MSVC AND EXISTS "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_VISUALIZERS_FILE "${CMAKE_SOURCE_DIR}/Debug/HKEngine.natvis"
+    )
+endif()
 

@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-class FLogger
+class HK_API FLogger
 {
 public:
     FLogger();
@@ -97,7 +97,7 @@ private:
     std::shared_ptr<spdlog::logger> MyLogger;
 };
 
-extern FLogger GLogger;
+extern HK_API FLogger GLogger;
 
 // 日志宏
 #define HK_LOG_FATAL(InLogcat, Fmt, ...) GLogger.Fatal(InLogcat, Fmt HK_VA_OPT_COMMA(__VA_ARGS__))

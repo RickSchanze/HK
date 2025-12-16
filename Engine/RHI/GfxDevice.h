@@ -9,10 +9,15 @@ class FRHIBuffer;
 HENUM()
 enum class EGfxBackend
 {
-
+    Vulkan,
+    D3D12,
+    Metal,
+    GL,
+    GLES,
+    Count,
 };
 
-class FRHIDevice
+class HK_API FRHIDevice
 {
 public:
     virtual ~FRHIDevice() = default;
@@ -31,7 +36,7 @@ inline TEvent<FRHIDevice*> GOnPostRHIDeviceCreated;
 inline TEvent<FRHIDevice*> GOnPreRHIDeviceDestroyed;
 inline TEvent<FRHIDevice*> GOnPostRHIDeviceDestroyed;
 
-void CreateRHIDevice();
-void DestroyRHIDevice();
+HK_API void CreateRHIDevice();
+HK_API void DestroyRHIDevice();
 
-FRHIDevice* GetRHIDevice();
+HK_API FRHIDevice* GetRHIDevice();

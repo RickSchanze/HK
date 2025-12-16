@@ -5,7 +5,7 @@
 
 // 父类 struct
 HSTRUCT()
-struct FBaseStruct
+struct HK_API FBaseStruct
 {
     GENERATED_BODY(FBaseStruct)
 public:
@@ -15,7 +15,7 @@ public:
 
 // 子类 struct 继承父类
 HSTRUCT()
-struct FDerivedStruct : FBaseStruct
+struct HK_API FDerivedStruct : FBaseStruct
 {
     GENERATED_BODY(FDerivedStruct)
 public:

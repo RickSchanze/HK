@@ -25,7 +25,7 @@ struct TaskWithCallback
     TDelegate<void, TSharedPtr<FTask>> OnComplete;
 };
 
-class IExecutor
+class HK_API IExecutor
 {
 public:
     virtual ~IExecutor() = default;
@@ -36,7 +36,7 @@ public:
 };
 
 // Game线程Executor - 主线程，需要主动Tick
-class FGameExecutor : public IExecutor
+class HK_API FGameExecutor : public IExecutor
 {
 public:
     FGameExecutor();
@@ -57,7 +57,7 @@ private:
 };
 
 // Render线程Executor - 常驻线程，顺序执行任务
-class FRenderExecutor : public IExecutor
+class HK_API FRenderExecutor : public IExecutor
 {
 public:
     FRenderExecutor();
@@ -78,7 +78,7 @@ private:
 };
 
 // IO线程池Executor - 线程池，多个线程并发执行
-class FIOExecutor : public IExecutor
+class HK_API FIOExecutor : public IExecutor
 {
 public:
     explicit FIOExecutor(size_t ThreadCount = 4);
