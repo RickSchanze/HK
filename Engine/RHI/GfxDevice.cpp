@@ -4,4 +4,6 @@
 
 #include "GfxDevice.h"
 
-
+void CreateRHIDevice() {}
+void DestroyRHIDevice() {}
+FGfxDevice* GetRHIDevice() {}

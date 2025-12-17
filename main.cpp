@@ -10,6 +10,7 @@
 #include "Core/Serialization/XMLArchive.h"
 #include "Core/String/String.h"
 #include "Math/Color.h"
+#include "Math/Vector.h"
 #include "TaskGraph/TaskGraph.h"
 
 #include <chrono>
@@ -339,6 +340,115 @@ void TestComplexDependencies()
     HK_LOG_INFO(ELogcat::Test, "测试7通过\n");
 }
 
+void TestVector()
+{
+    HK_LOG_INFO(ELogcat::Test, "=== 测试8: Vector类型 ===");
+
+    // 测试 Vector2
+    {
+        HK_LOG_INFO(ELogcat::Test, "--- 测试 FVector2f ---");
+        FVector2f v1(3.0f, 4.0f);
+        FVector2f v2(1.0f, 2.0f);
+
+        // 加法
+        FVector2f v3 = v1 + v2;
+        HK_LOG_INFO(ELogcat::Test, "v1 + v2 = ({}, {})", v3.X, v3.Y);
+        HK_ASSERT_RAW(v3.X == 4.0f && v3.Y == 6.0f);
+
+        // 减法
+        FVector2f v4 = v1 - v2;
+        HK_LOG_INFO(ELogcat::Test, "v1 - v2 = ({}, {})", v4.X, v4.Y);
+        HK_ASSERT_RAW(v4.X == 2.0f && v4.Y == 2.0f);
+
+        // 标量乘法
+        FVector2f v5 = v1 * 2.0f;
+        HK_LOG_INFO(ELogcat::Test, "v1 * 2 = ({}, {})", v5.X, v5.Y);
+        HK_ASSERT_RAW(v5.X == 6.0f && v5.Y == 8.0f);
+
+        // 标量除法
+        FVector2f v6 = v1 / 2.0f;
+        HK_LOG_INFO(ELogcat::Test, "v1 / 2 = ({}, {})", v6.X, v6.Y);
+        HK_ASSERT_RAW(v6.X == 1.5f && v6.Y == 2.0f);
+
+        // 长度
+        float length = v1.Length();
+        HK_LOG_INFO(ELogcat::Test, "Length of v1 = {}", length);
+        HK_ASSERT_RAW(std::abs(length - 5.0f) < 0.001f);
+
+        // 归一化
+        FVector2f v7 = v1.Normalized();
+        HK_LOG_INFO(ELogcat::Test, "Normalized v1 = ({}, {})", v7.X, v7.Y);
+        float normalizedLength = v7.Length();
+        HK_ASSERT_RAW(std::abs(normalizedLength - 1.0f) < 0.001f);
+
+        // 比较
+        FVector2f v8(3.0f, 4.0f);
+        HK_ASSERT_RAW(v1 == v8);
+        HK_ASSERT_RAW(v1 != v2);
+    }
+
+    // 测试 Vector3
+    {
+        HK_LOG_INFO(ELogcat::Test, "--- 测试 FVector3f ---");
+        FVector3f v1(1.0f, 2.0f, 3.0f);
+        FVector3f v2(4.0f, 5.0f, 6.0f);
+
+        // 加法
+        FVector3f v3 = v1 + v2;
+        HK_LOG_INFO(ELogcat::Test, "v1 + v2 = ({}, {}, {})", v3.X, v3.Y, v3.Z);
+        HK_ASSERT_RAW(v3.X == 5.0f && v3.Y == 7.0f && v3.Z == 9.0f);
+
+        // 复合赋值
+        FVector3f v4 = v1;
+        v4 += v2;
+        HK_ASSERT_RAW(v4 == v3);
+
+        // 长度平方
+        float lengthSq = v1.LengthSquared();
+        HK_LOG_INFO(ELogcat::Test, "LengthSquared of v1 = {}", lengthSq);
+        HK_ASSERT_RAW(lengthSq == 14.0f);
+
+        // 负号
+        FVector3f v5 = -v1;
+        HK_LOG_INFO(ELogcat::Test, "-v1 = ({}, {}, {})", v5.X, v5.Y, v5.Z);
+        HK_ASSERT_RAW(v5.X == -1.0f && v5.Y == -2.0f && v5.Z == -3.0f);
+    }
+
+    // 测试 Vector4
+    {
+        HK_LOG_INFO(ELogcat::Test, "--- 测试 FVector4f ---");
+        FVector4f v1(1.0f, 0.0f, 0.0f, 1.0f);
+        FVector4f v2(0.0f, 1.0f, 0.0f, 1.0f);
+
+        // 分量乘法
+        FVector4f v3 = v1 * v2;
+        HK_LOG_INFO(ELogcat::Test, "v1 * v2 (component-wise) = ({}, {}, {}, {})", v3.X, v3.Y, v3.Z, v3.W);
+        HK_ASSERT_RAW(v3.X == 0.0f && v3.Y == 0.0f && v3.Z == 0.0f && v3.W == 1.0f);
+
+        // 标量左乘
+        FVector4f v4 = 2.0f * v1;
+        HK_ASSERT_RAW(v4.X == 2.0f && v4.Y == 0.0f && v4.Z == 0.0f && v4.W == 2.0f);
+    }
+
+    // 测试整数向量
+    {
+        HK_LOG_INFO(ELogcat::Test, "--- 测试 FVector3i ---");
+        FVector3i v1(10, 20, 30);
+        FVector3i v2(5, 5, 5);
+
+        FVector3i v3 = v1 - v2;
+        HK_LOG_INFO(ELogcat::Test, "v1 - v2 = ({}, {}, {})", v3.X, v3.Y, v3.Z);
+        HK_ASSERT_RAW(v3.X == 5 && v3.Y == 15 && v3.Z == 25);
+
+        // 长度（返回 double）
+        double length = v1.Length();
+        HK_LOG_INFO(ELogcat::Test, "Length of integer vector = {}", length);
+        HK_ASSERT_RAW(length > 0.0);
+    }
+
+    HK_LOG_INFO(ELogcat::Test, "测试8通过\n");
+}
+
 int main()
 {
 #ifdef HK_WINDOWS
@@ -347,10 +457,14 @@ int main()
     SetConsoleCP(65001);       // UTF-8 code page
 #endif
 
-    HK_LOG_INFO(ELogcat::Test, "开始TaskGraph测试...\n");
+    HK_LOG_INFO(ELogcat::Test, "开始测试...\n");
 
     try
     {
+        // Vector测试
+        TestVector();
+        
+        // TaskGraph测试
         TestBasicTask();
         TestTaskDependencies();
         TestEarlyDependencyCompletion();

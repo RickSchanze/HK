@@ -8,8 +8,17 @@
 class FGfxDeviceVk : public FGfxDevice
 {
 public:
+    void Initialize() override;
+    void Uninitialize() override;
+
     FRHIBuffer CreateBuffer(const FRHIBufferCreateInfo& BufferCreateInfo) override;
     void DestroyBuffer(FRHIBuffer& Buffer) override;
+
+    void CreateMainWindowSurface(FName MainWindowName, FVector2i MainWindowInitSize, FRHIWindow& OutMainWindow) override;
+    void CreateMainWindowSwapChain(FRHIWindow& OutMainWindow) override;
+    void CreateWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow) override;
+    void DestroyMainWindow(FRHIWindow& MainWindow) override;
+    void DestroyWindow(FRHIWindow& Window) override;
 
     VkDevice GetDevice() const
     {
@@ -44,5 +53,6 @@ private:
 
     vk::Device Device;
     vk::Instance Instance;
+    vk::SurfaceKHR MainWindowSurface;
     bool bValidationLayersEnabled = false;
 };

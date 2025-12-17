@@ -5,6 +5,7 @@
     "dependencies": [
         "spdlog",
         "cereal",
-        "glm"
+        "glm",
+        "sdl3"
     ]
 }

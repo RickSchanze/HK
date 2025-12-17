@@ -146,6 +146,9 @@ target_link_libraries(HK PRIVATE fmt::fmt)
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(HK PRIVATE glm::glm)
 
+find_package(SDL3 CONFIG REQUIRED)
+target_link_libraries(HK PRIVATE SDL3::SDL3)
+
 # 创建可执行文件（只包含main.cpp）
 add_executable(${PROJECT_NAME} main.cpp)
 

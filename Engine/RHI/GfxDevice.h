@@ -2,7 +2,9 @@
 #include "Core/Event/Event.h"
 #include "Core/Reflection/Reflection.h"
 #include "Core/Singleton/Singleton.h"
+#include "Math/Vector.h"
 
+class FRHIWindow;
 struct FRHIBufferCreateInfo;
 class FRHIBuffer;
 
@@ -20,6 +22,9 @@ enum class EGfxBackend
 class HK_API FGfxDevice
 {
 public:
+    virtual void Initialize() = 0;
+    virtual void Uninitialize() = 0;
+
     virtual ~FGfxDevice() = default;
     // 创建缓冲区，返回的值类型包含一个 Handle
     // 可以像普通值类型一样拷贝和移动
@@ -29,6 +34,48 @@ public:
     // 销毁缓冲区资源
     // 必须通过此方法销毁，不能直接调用 Buffer.Destroy()
     virtual void DestroyBuffer(FRHIBuffer& Buffer) = 0;
+
+#pragma region "窗口创建"
+    // 窗口创建相关的函数, 这块的流程是这样的
+    // 以Vulkan为例, Vulkan初始化Instance -> 拿Instance初始化MainWindow
+    // 为MainWindow创建Surface -> Vulkan利用此Surface创建Device
+    // 利用Device创建MainWindow的SwapChain
+    // 销毁时先销毁SwapChain再销毁Surface, 这一点主窗口和其他一致
+    /**
+     * 创建主窗口的Surface
+     * @param MainWindowName
+     * @param MainWindowInitSize
+     * @param OutMainWindow
+     */
+    virtual void CreateMainWindowSurface(FName MainWindowName, FVector2i MainWindowInitSize,
+                                         FRHIWindow& OutMainWindow) = 0;
+
+    /**
+     * 创建主窗口的SwapChain
+     * @param OutMainWindow
+     */
+    virtual void CreateMainWindowSwapChain(FRHIWindow& OutMainWindow) = 0;
+
+    /**
+     * 创建一个窗口
+     * @param Name
+     * @param Size
+     * @param OutWindow
+     */
+    virtual void CreateWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow);
+
+    /**
+     * 销毁主窗口
+     * @param MainWindow
+     */
+    virtual void DestroyMainWindow(FRHIWindow& MainWindow) = 0;
+
+    /**
+     * 销毁一个窗口
+     * @param Window
+     */
+    virtual void DestroyWindow(FRHIWindow& Window) = 0;
+#pragma endregion
 };
 
 inline TEvent<> GOnPreRHIDeviceCreated;

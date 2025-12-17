@@ -2,10 +2,34 @@
 // Created by Admin on 2025/12/15.
 //
 
-#include "RHIDeviceVk.h"
+#include "GfxDeviceVk.h"
 #include "Core/Logging/Logger.h"
 #include <stdexcept>
 
+void FGfxDeviceVk::Initialize() {}
+
+void FGfxDeviceVk::Uninitialize() {}
+
+FRHIBuffer FGfxDeviceVk::CreateBuffer(const FRHIBufferCreateInfo& BufferCreateInfo)
+{
+
+}
+
+void FGfxDeviceVk::DestroyBuffer(FRHIBuffer& Buffer) {}
+
+void FGfxDeviceVk::CreateMainWindowSurface(FName MainWindowName, FVector2i MainWindowInitSize,
+                                           FRHIWindow& OutMainWindow)
+{
+}
+
+void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow) {}
+
+void FGfxDeviceVk::CreateWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow)
+{
+    FGfxDevice::CreateWindow(Name, Size, OutWindow);
+}
+void FGfxDeviceVk::DestroyMainWindow(FRHIWindow& MainWindow) {}
+void FGfxDeviceVk::DestroyWindow(FRHIWindow& Window) {}
 
 void FGfxDeviceVk::CreateInstance()
 {
