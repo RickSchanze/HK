@@ -62,6 +62,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 if (MSVC)
     # MSVC 编译选项
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /permissive-")
+    # 禁用 DLL 导出相关警告
+    # C4251: 'type' : class 'type1' needs to have dll-interface to be used by clients of class 'type2'
+    # C4193: #pragma warning(pop): no matching '#pragma warning(push)'
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4251 /wd4193")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi /Od /RTC1")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /DNDEBUG")
 else ()
@@ -89,6 +93,16 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "构建类型: Debug (HK_DEBUG)")
 else ()
     message(STATUS "构建类型: ${CMAKE_BUILD_TYPE}")
+endif ()
+
+# 性能分析选项
+option(HK_ENABLE_PROFILING "启用性能分析 (Tracy)" ON)
+if (HK_ENABLE_PROFILING)
+    add_compile_definitions(HK_ENABLE_PROFILING=1)
+    message(STATUS "性能分析: 启用 (HK_ENABLE_PROFILING=1)")
+else ()
+    add_compile_definitions(HK_ENABLE_PROFILING=0)
+    message(STATUS "性能分析: 禁用 (HK_ENABLE_PROFILING=0)")
 endif ()
 
 # 包含目录
@@ -134,7 +148,7 @@ endif ()
 
 # 查找并链接依赖库（静态链接到动态库中）
 find_package(spdlog CONFIG REQUIRED)
-target_link_libraries(HK PRIVATE spdlog::spdlog)
+target_link_libraries(HK PRIVATE spdlog::spdlog_header_only)
 
 find_package(cereal CONFIG REQUIRED)
 target_link_libraries(HK PRIVATE cereal::cereal)
@@ -148,6 +162,9 @@ target_link_libraries(HK PRIVATE glm::glm)
 
 find_package(SDL3 CONFIG REQUIRED)
 target_link_libraries(HK PRIVATE SDL3::SDL3)
+
+find_package(Tracy CONFIG REQUIRED)
+target_link_libraries(HK PRIVATE Tracy::TracyClient)
 
 # 创建可执行文件（只包含main.cpp）
 add_executable(${PROJECT_NAME} main.cpp)
@@ -209,10 +226,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # 链接HK动态库和依赖库（可执行文件编译时也需要这些库的头文件）
 target_link_libraries(${PROJECT_NAME} PRIVATE
         HK
-        spdlog::spdlog
+        spdlog::spdlog_header_only
         cereal::cereal
         fmt::fmt
         glm::glm
+        Tracy::TracyClient
 )
 
 # 添加 natvis 文件支持（MSVC 调试器可视化）

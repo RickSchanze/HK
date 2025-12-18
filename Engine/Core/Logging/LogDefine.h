@@ -45,6 +45,6 @@ struct FLogContent
     ELogLevel Level;
     ELogcat Logcat;
     FString Message;
-    Int32 ThreadID;
+    UInt32 ThreadID;
     FTimePoint Time;
 };

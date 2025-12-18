@@ -81,7 +81,7 @@ public:
     void DestroyRHIHandle(const FRHIHandle& Handle);
 
     // 关闭时记录未被销毁的 Handle
-    void Shutdown();
+    void ShutDown() override;
 
 private:
     TFixedArray<FRHIHandle, MAX_RHI_HANDLE_COUNT> RHIHandles;

@@ -2,7 +2,7 @@
 
 // 定义宏，使枚举类支持位运算
 #ifdef _MSC_VER
-#include <stdint.h>
+#include <cstdint>
 #else
 #include <cstdint>
 #endif
@@ -111,7 +111,6 @@ typedef bool Bool;
 // 原始Assert宏（直接使用标准库，不依赖Logger）
 // 用于Container、Utility、String等基础类型
 #ifdef HK_DEBUG
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #define HK_ASSERT_RAW(Condition)                                                                                       \

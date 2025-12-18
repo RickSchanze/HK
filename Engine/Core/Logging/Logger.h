@@ -4,6 +4,7 @@
 #include "Core/Logging/LogDefine.h"
 #include "Core/String/StringFormatter.h"
 #include "Core/Time/Time.h"
+#include <cstdio>
 #include <fmt/format.h>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -20,31 +21,31 @@ public:
 
     // 使用spdlog的fmt进行格式化，支持编译期类型检查
     template <typename... Args>
-    void Fatal(ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Fatal(ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         Log(ELogLevel::Fatal, InLogcat, Fmt, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void Info(ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Info(ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         Log(ELogLevel::Info, InLogcat, Fmt, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void Warn(ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Warn(ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         Log(ELogLevel::Warning, InLogcat, Fmt, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void Error(ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Error(ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         Log(ELogLevel::Error, InLogcat, Fmt, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void Debug(ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Debug(ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         Log(ELogLevel::Debug, InLogcat, Fmt, std::forward<Args>(args)...);
     }
@@ -52,10 +53,10 @@ public:
 private:
     void Initialize();
     template <typename... Args>
-    void Log(ELogLevel InLevel, ELogcat InLogcat, fmt::format_string<Args...> Fmt, Args&&... args)
+    void Log(ELogLevel InLevel, ELogcat InLogcat, std::format_string<Args...> Fmt, Args&&... args)
     {
         // 格式化消息
-        std::string Message = fmt::format(Fmt, std::forward<Args>(args)...);
+        std::string Message = std::format(Fmt, std::forward<Args>(args)...);
 
         // 创建日志内容
         FLogContent LogContent;
@@ -72,7 +73,7 @@ private:
 
         // 然后使用spdlog输出
         const char* LogcatStr = GetLogcatString(InLogcat);
-        std::string FullMessage = fmt::format("[{}] {}", LogcatStr ? LogcatStr : "Unknown", Message);
+        std::string FullMessage = std::format("[{}] {}", LogcatStr ? LogcatStr : "Unknown", Message);
 
         switch (InLevel)
         {

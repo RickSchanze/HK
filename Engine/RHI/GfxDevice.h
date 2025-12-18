@@ -5,7 +5,7 @@
 #include "Core/Utility/Macros.h"
 #include "Math/Vector.h"
 
-#include INCLUDE_GENERATED(GfxDevice)
+#include "GfxDevice.generated.h"
 
 class FRHIWindow;
 struct FRHIBufferDesc;
@@ -73,7 +73,7 @@ public:
     /// @param Name
     /// @param Size
     /// @param OutWindow
-    virtual void CreateWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow);
+    virtual void CreateRHIWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow) = 0;
 
     /// 销毁主窗口
     /// @param MainWindow
@@ -81,7 +81,7 @@ public:
 
     /// 销毁一个窗口
     /// @param Window
-    virtual void DestroyWindow(FRHIWindow& Window) = 0;
+    virtual void DestroyRHIWindow(FRHIWindow& Window) = 0;
 
     /// 打开窗口（显示窗口）
     /// @param Window
@@ -96,7 +96,7 @@ public:
 inline TEvent<> GOnPreRHIDeviceCreated;
 inline TEvent<FGfxDevice*> GOnPostRHIDeviceCreated;
 inline TEvent<FGfxDevice*> GOnPreRHIDeviceDestroyed;
-inline TEvent<FGfxDevice*> GOnPostRHIDeviceDestroyed;
+inline TEvent<> GOnPostRHIDeviceDestroyed;
 
 HK_API void CreateRHIDevice();
 HK_API void DestroyRHIDevice();

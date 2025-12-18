@@ -4,6 +4,7 @@
 
 #include "GfxDeviceVk.h"
 #include "Core/Logging/Logger.h"
+#include "Core/String/String.h"
 #include "Core/String/StringView.h"
 #include "Core/Utility/Macros.h"
 #include "RHI/RHIBuffer.h"
@@ -42,7 +43,17 @@ FRHIBuffer FGfxDeviceVk::CreateBuffer(const FRHIBufferDesc& BufferCreateInfo)
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "创建Vulkan Buffer失败: {}", e.what());
-        throw std::runtime_error("创建Vulkan Buffer失败");
+        throw std::runtime_error((FString("创建Vulkan Buffer失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建Vulkan Buffer失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建Vulkan Buffer失败: 未知异常");
+        throw std::runtime_error("创建Vulkan Buffer失败: 未知异常");
     }
 
     // 获取内存需求
@@ -62,7 +73,19 @@ FRHIBuffer FGfxDeviceVk::CreateBuffer(const FRHIBufferDesc& BufferCreateInfo)
     {
         Device.destroyBuffer(VkBuffer);
         HK_LOG_FATAL(ELogcat::RHI, "分配Vulkan内存失败: {}", e.what());
-        throw std::runtime_error("分配Vulkan内存失败");
+        throw std::runtime_error((FString("分配Vulkan内存失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Device.destroyBuffer(VkBuffer);
+        HK_LOG_FATAL(ELogcat::RHI, "分配Vulkan内存失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Device.destroyBuffer(VkBuffer);
+        HK_LOG_FATAL(ELogcat::RHI, "分配Vulkan内存失败: 未知异常");
+        throw std::runtime_error("分配Vulkan内存失败: 未知异常");
     }
 
     // 绑定内存到 Buffer
@@ -75,7 +98,21 @@ FRHIBuffer FGfxDeviceVk::CreateBuffer(const FRHIBufferDesc& BufferCreateInfo)
         Device.freeMemory(DeviceMemory);
         Device.destroyBuffer(VkBuffer);
         HK_LOG_FATAL(ELogcat::RHI, "绑定Buffer内存失败: {}", e.what());
-        throw std::runtime_error("绑定Buffer内存失败");
+        throw std::runtime_error((FString("绑定Buffer内存失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Device.freeMemory(DeviceMemory);
+        Device.destroyBuffer(VkBuffer);
+        HK_LOG_FATAL(ELogcat::RHI, "绑定Buffer内存失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Device.freeMemory(DeviceMemory);
+        Device.destroyBuffer(VkBuffer);
+        HK_LOG_FATAL(ELogcat::RHI, "绑定Buffer内存失败: 未知异常");
+        throw std::runtime_error("绑定Buffer内存失败: 未知异常");
     }
 
     // 设置 DebugName
@@ -122,37 +159,79 @@ void FGfxDeviceVk::DestroyBuffer(FRHIBuffer& Buffer)
         return;
     }
 
-    // 如果 Buffer 已映射，先取消映射
-    if (Buffer.IsMapped())
+    try
     {
-        UnmapBuffer(Buffer);
+        // 如果 Buffer 已映射，先取消映射
+        if (Buffer.IsMapped())
+        {
+            UnmapBuffer(Buffer);
+        }
+
+        // 获取 Buffer 数据
+        struct FBufferData
+        {
+            vk::Buffer Buffer;
+            vk::DeviceMemory Memory;
+        };
+
+        if (const FBufferData* BufferData = Buffer.GetHandle().Cast<FBufferData*>())
+        {
+            // 销毁 Buffer 和释放内存
+            try
+            {
+                Device.destroyBuffer(BufferData->Buffer);
+            }
+            catch (const vk::SystemError& e)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "销毁Buffer失败: {}", e.what());
+            }
+            catch (const std::exception& e)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "销毁Buffer失败: {}", e.what());
+            }
+            catch (...)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "销毁Buffer失败: 未知异常");
+            }
+
+            try
+            {
+                Device.freeMemory(BufferData->Memory);
+            }
+            catch (const vk::SystemError& e)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "释放Buffer内存失败: {}", e.what());
+            }
+            catch (const std::exception& e)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "释放Buffer内存失败: {}", e.what());
+            }
+            catch (...)
+            {
+                HK_LOG_ERROR(ELogcat::RHI, "释放Buffer内存失败: 未知异常");
+            }
+
+            // 删除 BufferData
+            delete BufferData;
+        }
+
+        // 销毁 RHI Handle
+        auto& HandleManager = FRHIHandleManager::GetRef();
+        HandleManager.DestroyRHIHandle(Buffer.GetHandle());
+
+        // 清空 Buffer
+        Buffer = FRHIBuffer();
+
+        HK_LOG_INFO(ELogcat::RHI, "Buffer已销毁");
     }
-
-    // 获取 Buffer 数据
-    struct FBufferData
+    catch (const std::exception& e)
     {
-        vk::Buffer Buffer;
-        vk::DeviceMemory Memory;
-    };
-
-    if (const FBufferData* BufferData = Buffer.GetHandle().Cast<FBufferData*>())
-    {
-        // 销毁 Buffer 和释放内存
-        Device.destroyBuffer(BufferData->Buffer);
-        Device.freeMemory(BufferData->Memory);
-
-        // 删除 BufferData
-        delete BufferData;
+        HK_LOG_ERROR(ELogcat::RHI, "销毁Buffer时发生异常: {}", e.what());
     }
-
-    // 销毁 RHI Handle
-    auto& HandleManager = FRHIHandleManager::GetRef();
-    HandleManager.DestroyRHIHandle(Buffer.GetHandle());
-
-    // 清空 Buffer
-    Buffer = FRHIBuffer();
-
-    HK_LOG_INFO(ELogcat::RHI, "Buffer已销毁");
+    catch (...)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "销毁Buffer时发生未知异常");
+    }
 }
 
 void* FGfxDeviceVk::MapBuffer(FRHIBuffer& Buffer, UInt64 Offset, UInt64 Size)
@@ -220,6 +299,16 @@ void* FGfxDeviceVk::MapBuffer(FRHIBuffer& Buffer, UInt64 Offset, UInt64 Size)
         HK_LOG_ERROR(ELogcat::RHI, "映射Buffer内存失败: {}", e.what());
         return nullptr;
     }
+    catch (const std::exception& e)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "映射Buffer内存失败: {}", e.what());
+        return nullptr;
+    }
+    catch (...)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "映射Buffer内存失败: 未知异常");
+        return nullptr;
+    }
 
     // 更新 Buffer 的映射指针
     Buffer.MappedPtr = MappedPtr;
@@ -265,6 +354,14 @@ void FGfxDeviceVk::UnmapBuffer(FRHIBuffer& Buffer)
         catch (const vk::SystemError& e)
         {
             HK_LOG_ERROR(ELogcat::RHI, "取消映射Buffer内存失败: {}", e.what());
+        }
+        catch (const std::exception& e)
+        {
+            HK_LOG_ERROR(ELogcat::RHI, "取消映射Buffer内存失败: {}", e.what());
+        }
+        catch (...)
+        {
+            HK_LOG_ERROR(ELogcat::RHI, "取消映射Buffer内存失败: 未知异常");
         }
     }
 

@@ -67,7 +67,7 @@ FRHIWindow::~FRHIWindow()
     }
 }
 
-FRHIWindow* FRHIWindowManager::CreateWindow(const FName Name, const FVector2i Size)
+FRHIWindow* FRHIWindowManager::CreateRHIWindow(const FName Name, const FVector2i Size)
 {
     // 查找空闲的窗口槽位（从1开始，0是主窗口）
     Int32 FreeIndex = -1;
@@ -107,7 +107,7 @@ FRHIWindow* FRHIWindowManager::CreateWindow(const FName Name, const FVector2i Si
     {
         try
         {
-            GfxDevice->CreateWindow(Name, Size, *Window);
+            GfxDevice->CreateRHIWindow(Name, Size, *Window);
             HK_LOG_INFO(ELogcat::RHI, "窗口创建成功: {} (索引: {})", Name.GetString().CStr(), FreeIndex);
             return Window;
         }
@@ -126,14 +126,14 @@ FRHIWindow* FRHIWindowManager::CreateWindow(const FName Name, const FVector2i Si
     }
 }
 
-bool FRHIWindowManager::DestroyWindow(const FName& Name)
+bool FRHIWindowManager::DestroyRHIWindow(const FName& Name)
 {
     // 查找指定名称的窗口
     for (Int32 i = 1; i < MAX_RHI_WINDOW_COUNT; ++i)
     {
         if (Windows[i] && Windows[i]->GetWindowName() == Name)
         {
-            return DestroyWindow(Windows[i].Get());
+            return DestroyRHIWindow(Windows[i].Get());
         }
     }
 
@@ -141,7 +141,7 @@ bool FRHIWindowManager::DestroyWindow(const FName& Name)
     return false;
 }
 
-bool FRHIWindowManager::DestroyWindow(FRHIWindow* Window)
+bool FRHIWindowManager::DestroyRHIWindow(FRHIWindow* Window)
 {
     if (!Window)
     {
@@ -159,7 +159,7 @@ bool FRHIWindowManager::DestroyWindow(FRHIWindow* Window)
             {
                 try
                 {
-                    GfxDevice->DestroyWindow(*Window);
+                    GfxDevice->DestroyRHIWindow(*Window);
                 }
                 catch (const std::exception& e)
                 {

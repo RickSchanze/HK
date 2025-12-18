@@ -21,7 +21,7 @@ Int32 FRHIHandleManager::FindFreeIndex() const
 
 FRHIHandle FRHIHandleManager::CreateRHIHandle(FStringView DebugName, FRHIHandle::FHandleType Handle)
 {
-    Int32 Index = FindFreeIndex();
+    const Int32 Index = FindFreeIndex();
     HK_ASSERT_MSG_RAW(Index != FRHIHandle::INVALID_ID, "Failed to find free index for RHI handle");
     Occupied[Index] = true;
     RHIHandles[Index].Id = Index;
@@ -44,7 +44,7 @@ void FRHIHandleManager::DestroyRHIHandle(const FRHIHandle& Handle)
 #endif
 }
 
-void FRHIHandleManager::Shutdown()
+void FRHIHandleManager::ShutDown()
 {
     std::lock_guard<std::mutex> Lock(Mutex);
 

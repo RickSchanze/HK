@@ -13,33 +13,51 @@
 #include <SDL3/SDL_vulkan.h>
 #include <set>
 #include <stdexcept>
+#include <vulkan/vulkan.h>
 
 void FGfxDeviceVk::Initialize()
 {
-    // 1. 初始化SDL（如果尚未初始化）
-    if (!SDL_WasInit(SDL_INIT_VIDEO))
+    try
     {
-        if (SDL_Init(SDL_INIT_VIDEO) != 0)
+        // 1. 初始化SDL（如果尚未初始化）
+        if (!SDL_WasInit(SDL_INIT_VIDEO))
         {
-            const FString ErrorMsg = FString("SDL初始化失败: ") + FString(SDL_GetError());
-            HK_LOG_FATAL(ELogcat::RHI, "SDL初始化失败: {}", SDL_GetError());
-            throw std::runtime_error(ErrorMsg.CStr());
+            if (SDL_Init(SDL_INIT_VIDEO) != 0)
+            {
+                const FString ErrorMsg = FString("SDL初始化失败: ") + FString(SDL_GetError());
+                HK_LOG_FATAL(ELogcat::RHI, "SDL初始化失败: {}", SDL_GetError());
+                throw std::runtime_error(ErrorMsg.CStr());
+            }
         }
+
+        // 2. 创建Vulkan实例
+        CreateInstance();
+
+        // 3. 创建主窗口和Surface（使用默认参数）
+        // 注意：这里使用默认值，如果需要自定义，应该在调用 Initialize 之前设置
+        const FName DefaultMainWindowName("HKEngine");
+        const FVector2i DefaultMainWindowSize(1280, 720);
+        CreateMainWindowAndSurface(DefaultMainWindowName, DefaultMainWindowSize);
+
+        // 4. 创建Device（需要Surface）
+        CreateDevice();
+
+        HK_LOG_INFO(ELogcat::RHI, "Vulkan设备初始化完成");
     }
-
-    // 2. 创建Vulkan实例
-    CreateInstance();
-
-    // 3. 创建主窗口和Surface（使用默认参数）
-    // 注意：这里使用默认值，如果需要自定义，应该在调用 Initialize 之前设置
-    const FName DefaultMainWindowName("HKEngine");
-    const FVector2i DefaultMainWindowSize(1280, 720);
-    CreateMainWindowAndSurface(DefaultMainWindowName, DefaultMainWindowSize);
-
-    // 4. 创建Device（需要Surface）
-    CreateDevice();
-
-    HK_LOG_INFO(ELogcat::RHI, "Vulkan设备初始化完成");
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan设备初始化失败: {}", e.what());
+        // 清理已创建的资源
+        Uninitialize();
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan设备初始化失败: 未知异常");
+        // 清理已创建的资源
+        Uninitialize();
+        throw;
+    }
 }
 
 void FGfxDeviceVk::Uninitialize()
@@ -70,7 +88,6 @@ void FGfxDeviceVk::Uninitialize()
 
     // 注意：SDL的清理应该由应用程序负责，这里不清理
 }
-
 
 void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVector2i MainWindowInitSize)
 {
@@ -180,7 +197,17 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: {}", e.what());
-        throw std::runtime_error("获取Surface能力失败");
+        throw std::runtime_error((FString("获取Surface能力失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: 未知异常");
+        throw std::runtime_error("获取Surface能力失败: 未知异常");
     }
 
     // 获取Surface格式
@@ -197,7 +224,17 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: {}", e.what());
-        throw std::runtime_error("获取Surface格式失败");
+        throw std::runtime_error((FString("获取Surface格式失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: 未知异常");
+        throw std::runtime_error("获取Surface格式失败: 未知异常");
     }
 
     // 选择Surface格式
@@ -225,7 +262,17 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: {}", e.what());
-        throw std::runtime_error("获取呈现模式失败");
+        throw std::runtime_error((FString("获取呈现模式失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: 未知异常");
+        throw std::runtime_error("获取呈现模式失败: 未知异常");
     }
 
     vk::PresentModeKHR PresentMode = vk::PresentModeKHR::eFifo; // 默认FIFO模式
@@ -286,7 +333,17 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: {}", e.what());
-        throw std::runtime_error("创建交换链失败");
+        throw std::runtime_error((FString("创建交换链失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: 未知异常");
+        throw std::runtime_error("创建交换链失败: 未知异常");
     }
 
     // 创建RHI Handle
@@ -300,7 +357,7 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     HK_LOG_INFO(ELogcat::RHI, "主窗口SwapChain创建成功");
 }
 
-void FGfxDeviceVk::CreateWindow(const FName Name, const FVector2i Size, FRHIWindow& OutWindow)
+void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIWindow& OutWindow)
 {
     // 确保Instance和Device已创建
     if (!Instance)
@@ -386,7 +443,23 @@ void FGfxDeviceVk::CreateWindow(const FName Name, const FVector2i Size, FRHIWind
         SDL_DestroyWindow(SDLWindow);
         WindowManager.Windows[FreeIndex].Reset();
         HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: {}", e.what());
-        throw std::runtime_error("获取Surface能力失败");
+        throw std::runtime_error((FString("获取Surface能力失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface能力失败: 未知异常");
+        throw std::runtime_error("获取Surface能力失败: 未知异常");
     }
 
     // 获取Surface格式
@@ -406,7 +479,23 @@ void FGfxDeviceVk::CreateWindow(const FName Name, const FVector2i Size, FRHIWind
         SDL_DestroyWindow(SDLWindow);
         WindowManager.Windows[FreeIndex].Reset();
         HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: {}", e.what());
-        throw std::runtime_error("获取Surface格式失败");
+        throw std::runtime_error((FString("获取Surface格式失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取Surface格式失败: 未知异常");
+        throw std::runtime_error("获取Surface格式失败: 未知异常");
     }
 
     // 选择Surface格式
@@ -437,7 +526,23 @@ void FGfxDeviceVk::CreateWindow(const FName Name, const FVector2i Size, FRHIWind
         SDL_DestroyWindow(SDLWindow);
         WindowManager.Windows[FreeIndex].Reset();
         HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: {}", e.what());
-        throw std::runtime_error("获取呈现模式失败");
+        throw std::runtime_error((FString("获取呈现模式失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "获取呈现模式失败: 未知异常");
+        throw std::runtime_error("获取呈现模式失败: 未知异常");
     }
 
     vk::PresentModeKHR PresentMode = vk::PresentModeKHR::eFifo;
@@ -501,7 +606,23 @@ void FGfxDeviceVk::CreateWindow(const FName Name, const FVector2i Size, FRHIWind
         SDL_DestroyWindow(SDLWindow);
         WindowManager.Windows[FreeIndex].Reset();
         HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: {}", e.what());
-        throw std::runtime_error("创建交换链失败");
+        throw std::runtime_error((FString("创建交换链失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        Instance.destroySurfaceKHR(Surface);
+        SDL_DestroyWindow(SDLWindow);
+        WindowManager.Windows[FreeIndex].Reset();
+        HK_LOG_FATAL(ELogcat::RHI, "创建交换链失败: 未知异常");
+        throw std::runtime_error("创建交换链失败: 未知异常");
     }
 
     // 创建SwapChain RHI Handle
@@ -561,7 +682,7 @@ void FGfxDeviceVk::DestroyMainWindow(FRHIWindow& MainWindow)
     WindowManager.Windows[0].Reset();
 }
 
-void FGfxDeviceVk::DestroyWindow(FRHIWindow& Window)
+void FGfxDeviceVk::DestroyRHIWindow(FRHIWindow& Window)
 {
     // 1. 销毁SwapChain
     if (Window.GetSwapChain().Handle.IsValid())
@@ -720,6 +841,18 @@ void FGfxDeviceVk::CreateInstance()
         Instance = nullptr;
         throw std::runtime_error(ErrorMsg.CStr());
     }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan实例创建失败: {}", e.what());
+        Instance = nullptr;
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan实例创建失败: 未知异常");
+        Instance = nullptr;
+        throw std::runtime_error("Vulkan实例创建失败: 未知异常");
+    }
 }
 
 bool FGfxDeviceVk::CheckInstanceExtensionSupport(const TArray<const char*>& RequiredExtensions)
@@ -740,6 +873,16 @@ bool FGfxDeviceVk::CheckInstanceExtensionSupport(const TArray<const char*>& Requ
         const FString ErrorMsg = FString("Vulkan: 枚举实例扩展失败: ") + FString(e.what());
         HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
         throw std::runtime_error(ErrorMsg.CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: 未知异常");
+        throw std::runtime_error("Vulkan: 枚举实例扩展失败: 未知异常");
     }
 
     // 检查每个需要的扩展是否可用
@@ -783,6 +926,16 @@ bool FGfxDeviceVk::CheckValidationLayerSupport(const TArray<const char*>& Requir
         const FString ErrorMsg = FString("Vulkan: 枚举验证层失败: ") + FString(e.what());
         HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举验证层失败: {}", e.what());
         throw std::runtime_error(ErrorMsg.CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举验证层失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举验证层失败: 未知异常");
+        throw std::runtime_error("Vulkan: 枚举验证层失败: 未知异常");
     }
 
     // 检查每个需要的验证层是否可用
@@ -903,11 +1056,16 @@ void FGfxDeviceVk::CreateDevice()
 
     // 检查可选扩展，如果不支持则从列表中移除
     TArray<const char*> FinalExtensions = RequiredExtensions;
+    bDebugUtilsExtensionAvailable = false;
     for (const char* Ext : OptionalExtensions)
     {
         if (CheckDeviceExtensionSupport(PhysicalDevice, TArray<const char*>{Ext}))
         {
             FinalExtensions.Add(Ext);
+            if (strcmp(Ext, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+            {
+                bDebugUtilsExtensionAvailable = true;
+            }
         }
         else
         {
@@ -947,6 +1105,18 @@ void FGfxDeviceVk::CreateDevice()
         Device = nullptr;
         throw std::runtime_error(ErrorMsg.CStr());
     }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan逻辑设备创建失败: {}", e.what());
+        Device = nullptr;
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan逻辑设备创建失败: 未知异常");
+        Device = nullptr;
+        throw std::runtime_error("Vulkan逻辑设备创建失败: 未知异常");
+    }
 }
 
 void FGfxDeviceVk::SelectPhysicalDevice()
@@ -965,7 +1135,17 @@ void FGfxDeviceVk::SelectPhysicalDevice()
     catch (const vk::SystemError& e)
     {
         HK_LOG_FATAL(ELogcat::RHI, "枚举物理设备失败: {}", e.what());
-        throw std::runtime_error("枚举物理设备失败");
+        throw std::runtime_error((FString("枚举物理设备失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "枚举物理设备失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "枚举物理设备失败: 未知异常");
+        throw std::runtime_error("枚举物理设备失败: 未知异常");
     }
 
     if (Devices.IsEmpty())
@@ -975,13 +1155,13 @@ void FGfxDeviceVk::SelectPhysicalDevice()
     }
 
     // 选择第一个合适的设备
-    for (const auto& Device : Devices)
+    for (const auto& MyDevice : Devices)
     {
-        if (IsDeviceSuitable(Device))
+        if (IsDeviceSuitable(MyDevice))
         {
-            PhysicalDevice = Device;
-            vk::PhysicalDeviceProperties Properties = Device.getProperties();
-            HK_LOG_INFO(ELogcat::RHI, "选择物理设备: {}", Properties.deviceName);
+            PhysicalDevice = MyDevice;
+            vk::PhysicalDeviceProperties Properties = MyDevice.getProperties();
+            HK_LOG_INFO(ELogcat::RHI, "选择物理设备: {}", Properties.deviceName.data());
             return;
         }
     }
@@ -1007,6 +1187,16 @@ bool FGfxDeviceVk::CheckDeviceExtensionSupport(const vk::PhysicalDevice Device,
     catch (const vk::SystemError& e)
     {
         HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
+        return false;
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
+        return false;
+    }
+    catch (...)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: 未知异常");
         return false;
     }
 
@@ -1046,17 +1236,17 @@ TArray<const char*> FGfxDeviceVk::GetRequiredDeviceExtensions()
     return Extensions;
 }
 
-bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice Device) const
+bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice InPhysicalDevice) const
 {
     // 检查设备扩展支持
     const TArray<const char*> RequiredExtensions = GetRequiredDeviceExtensions();
-    if (!CheckDeviceExtensionSupport(Device, RequiredExtensions))
+    if (!CheckDeviceExtensionSupport(InPhysicalDevice, RequiredExtensions))
     {
         return false;
     }
 
     // 检查队列族支持
-    const FQueueFamilyIndices Indices = FindQueueFamilies(Device);
+    const FQueueFamilyIndices Indices = FindQueueFamilies(InPhysicalDevice);
     if (!Indices.IsComplete())
     {
         return false;
@@ -1067,14 +1257,14 @@ bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice Device) const
     TArray<vk::PresentModeKHR> PresentModes;
     try
     {
-        const auto FormatsVector = Device.getSurfaceFormatsKHR(MainWindowSurface);
+        const auto FormatsVector = InPhysicalDevice.getSurfaceFormatsKHR(MainWindowSurface);
         SurfaceFormats.Reserve(FormatsVector.size());
         for (const auto& Format : FormatsVector)
         {
             SurfaceFormats.Add(Format);
         }
 
-        const auto ModesVector = Device.getSurfacePresentModesKHR(MainWindowSurface);
+        const auto ModesVector = InPhysicalDevice.getSurfacePresentModesKHR(MainWindowSurface);
         PresentModes.Reserve(ModesVector.size());
         for (const auto& Mode : ModesVector)
         {
@@ -1086,11 +1276,21 @@ bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice Device) const
         HK_LOG_WARN(ELogcat::RHI, "检查Surface支持失败: {}", e.what());
         return false;
     }
+    catch (const std::exception& e)
+    {
+        HK_LOG_WARN(ELogcat::RHI, "检查Surface支持失败: {}", e.what());
+        return false;
+    }
+    catch (...)
+    {
+        HK_LOG_WARN(ELogcat::RHI, "检查Surface支持失败: 未知异常");
+        return false;
+    }
 
     return !SurfaceFormats.IsEmpty() && !PresentModes.IsEmpty();
 }
 
-FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::PhysicalDevice Device) const
+FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::PhysicalDevice InPhysicalDevice) const
 {
     FQueueFamilyIndices Indices;
 
@@ -1098,7 +1298,7 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
     TArray<vk::QueueFamilyProperties> QueueFamilies;
     try
     {
-        const auto QueueFamiliesVector = Device.getQueueFamilyProperties();
+        const auto QueueFamiliesVector = InPhysicalDevice.getQueueFamilyProperties();
         QueueFamilies.Reserve(QueueFamiliesVector.size());
         for (const auto& QueueFamily : QueueFamiliesVector)
         {
@@ -1108,6 +1308,16 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
     catch (const vk::SystemError& e)
     {
         HK_LOG_ERROR(ELogcat::RHI, "获取队列族属性失败: {}", e.what());
+        return Indices;
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "获取队列族属性失败: {}", e.what());
+        return Indices;
+    }
+    catch (...)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "获取队列族属性失败: 未知异常");
         return Indices;
     }
 
@@ -1130,13 +1340,13 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
         {
             try
             {
-                const bool PresentSupport = Device.getSurfaceSupportKHR(static_cast<uint32_t>(i), MainWindowSurface);
+                const bool PresentSupport = InPhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), MainWindowSurface);
                 if (PresentSupport && Indices.PresentFamily < 0)
                 {
                     Indices.PresentFamily = i;
                 }
             }
-            catch (const vk::SystemError& e)
+            catch (const vk::SystemError&)
             {
                 // 忽略错误，继续查找
             }
@@ -1150,7 +1360,6 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
 
     return Indices;
 }
-
 
 UInt32 FGfxDeviceVk::FindMemoryType(const UInt32 TypeFilter, const vk::MemoryPropertyFlags Properties) const
 {
@@ -1171,7 +1380,7 @@ UInt32 FGfxDeviceVk::FindMemoryType(const UInt32 TypeFilter, const vk::MemoryPro
 void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty())
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
     {
         return;
     }
@@ -1188,19 +1397,36 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
         NameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
         NameInfo.pObjectName = NameStr.CStr();
 
-        Device.setDebugUtilsObjectNameEXT(NameInfo);
+        // 使用动态加载的方式调用扩展函数，避免链接错误
+        auto vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        
+        if (vkSetDebugUtilsObjectNameEXT)
+        {
+            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
+            VkNameInfo.pObjectName = NameStr.CStr();
+            
+            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
+        }
     }
     catch (const vk::SystemError& e)
     {
         // 如果扩展不可用，忽略错误（不是致命错误）
         HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
     }
+    catch (...)
+    {
+        // 忽略所有异常
+    }
 }
 
 void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty())
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
     {
         return;
     }
@@ -1210,16 +1436,28 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
         // 将 FStringView 转换为以 null 结尾的字符串
         FString NameStr(Name.Data(), Name.Size());
 
-        vk::DebugUtilsObjectNameInfoEXT NameInfo;
-        NameInfo.objectType = ObjectType;
-        NameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
-        NameInfo.pObjectName = NameStr.CStr();
-
-        Device.setDebugUtilsObjectNameEXT(NameInfo);
+        // 使用动态加载的方式调用扩展函数，避免链接错误
+        auto vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        
+        if (vkSetDebugUtilsObjectNameEXT)
+        {
+            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
+            VkNameInfo.pObjectName = NameStr.CStr();
+            
+            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
+        }
     }
     catch (const vk::SystemError& e)
     {
         // 如果扩展不可用，忽略错误（不是致命错误）
         HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
+    }
+    catch (...)
+    {
+        // 忽略所有异常
     }
 }

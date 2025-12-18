@@ -9,7 +9,7 @@
 
 // FString的fmt格式化支持
 template <>
-struct fmt::formatter<FString> : fmt::formatter<std::string>
+struct std::formatter<FString> : std::formatter<std::string>
 {
     template <typename FormatContext>
     auto format(const FString& Str, FormatContext& Ctx) const -> decltype(Ctx.out())
@@ -20,7 +20,7 @@ struct fmt::formatter<FString> : fmt::formatter<std::string>
 
 // FStringView的fmt格式化支持
 template <>
-struct fmt::formatter<FStringView> : fmt::formatter<std::string_view>
+struct std::formatter<FStringView> : std::formatter<std::string_view>
 {
     template <typename FormatContext>
     auto format(const FStringView& View, FormatContext& Ctx) const -> decltype(Ctx.out())
@@ -31,7 +31,7 @@ struct fmt::formatter<FStringView> : fmt::formatter<std::string_view>
 
 // FName的fmt格式化支持
 template <>
-struct fmt::formatter<FName> : fmt::formatter<std::string>
+struct std::formatter<FName> : std::formatter<std::string>
 {
     template <typename FormatContext>
     auto format(const FName& Name, FormatContext& Ctx) const -> decltype(Ctx.out())

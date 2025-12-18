@@ -53,3 +53,7 @@ inline FTimeDuration TimeDifference(const FTimePoint& Start, const FTimePoint& E
     return End - Start;
 }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+

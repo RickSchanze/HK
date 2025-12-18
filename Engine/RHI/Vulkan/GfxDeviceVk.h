@@ -23,9 +23,9 @@ public:
     void CreateMainWindowSurface(FName MainWindowName, FVector2i MainWindowInitSize,
                                  FRHIWindow& OutMainWindow) override;
     void CreateMainWindowSwapChain(FRHIWindow& OutMainWindow) override;
-    void CreateWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow) override;
+    void CreateRHIWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow) override;
     void DestroyMainWindow(FRHIWindow& MainWindow) override;
-    void DestroyWindow(FRHIWindow& Window) override;
+    void DestroyRHIWindow(FRHIWindow& Window) override;
     void OpenWindow(FRHIWindow& Window) override;
     void CloseWindow(FRHIWindow& Window) override;
 #pragma endregion
@@ -134,4 +134,5 @@ private:
     vk::Queue PresentQueue;
     FQueueFamilyIndices QueueFamilyIndices;
     bool bValidationLayersEnabled = false;
+    bool bDebugUtilsExtensionAvailable = false; // Debug Utils扩展是否可用
 };

@@ -1,0 +1,21 @@
+#include "IConfig.generated.h"
+#include "Core/Reflection/TypeManager.h"
+#include "Config/IConfig.h"
+
+
+static void Register_IConfig_Impl()
+{
+    // 注册类型
+    FTypeMutable Type = FTypeManager::Register<IConfig>("IConfig");
+
+    // 注册类型属性: Interface
+    Type->RegisterAttribute(FName("Interface"), FName());
+
+}
+
+HK_API void IConfig::Z_IConfig_Register::Register_IConfig()
+{
+    // 只注册类型注册器函数，不执行注册操作
+    FTypeManager::RegisterTypeRegisterer<IConfig>(Register_IConfig_Impl);
+}
+

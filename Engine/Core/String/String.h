@@ -256,3 +256,7 @@ struct hash<FString>
     }
 };
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
