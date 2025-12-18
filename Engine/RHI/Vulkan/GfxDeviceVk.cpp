@@ -4,8 +4,9 @@
 
 #include "GfxDeviceVk.h"
 #include "Core/Logging/Logger.h"
+#include "Core/String/String.h"
+#include "Core/Utility/Macros.h"
 #include "Core/Utility/UniquePtr.h"
-#include "RHI/RHIBuffer.h"
 #include "RHI/RHIHandle.h"
 #include "RHI/RHIWindow.h"
 #include <SDL3/SDL.h>
@@ -70,9 +71,6 @@ void FGfxDeviceVk::Uninitialize()
     // 注意：SDL的清理应该由应用程序负责，这里不清理
 }
 
-FRHIBuffer FGfxDeviceVk::CreateBuffer(const FRHIBufferCreateInfo& BufferCreateInfo) {}
-
-void FGfxDeviceVk::DestroyBuffer(FRHIBuffer& Buffer) {}
 
 void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVector2i MainWindowInitSize)
 {
@@ -112,8 +110,7 @@ void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVecto
 
     // 创建RHI Handle
     auto& HandleManager = FRHIHandleManager::GetRef();
-    const FRHIHandle SurfaceRHIHandle =
-        HandleManager.CreateRHIHandle("MainWindowSurface", (SurfaceHandle));
+    const FRHIHandle SurfaceRHIHandle = HandleManager.CreateRHIHandle("MainWindowSurface", (SurfaceHandle));
 
     // 设置窗口信息（通过窗口管理器访问）
     if (!WindowManager.Windows[0])
@@ -879,12 +876,45 @@ void FGfxDeviceVk::CreateDevice()
     // 获取设备扩展
     TArray<const char*> DeviceExtensions = GetRequiredDeviceExtensions();
 
-    // 检查设备扩展支持
-    if (!CheckDeviceExtensionSupport(PhysicalDevice, DeviceExtensions))
+    // 检查设备扩展支持（Debug Utils 是可选的）
+    TArray<const char*> RequiredExtensions;
+    TArray<const char*> OptionalExtensions;
+    for (const char* Ext : DeviceExtensions)
+    {
+#ifdef HK_DEBUG
+        if (strcmp(Ext, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        {
+            OptionalExtensions.Add(Ext);
+        }
+        else
+        {
+            RequiredExtensions.Add(Ext);
+        }
+#else
+        RequiredExtensions.Add(Ext);
+#endif
+    }
+
+    if (!CheckDeviceExtensionSupport(PhysicalDevice, RequiredExtensions))
     {
         HK_LOG_FATAL(ELogcat::RHI, "设备不支持所需的扩展");
         throw std::runtime_error("设备不支持所需的扩展");
     }
+
+    // 检查可选扩展，如果不支持则从列表中移除
+    TArray<const char*> FinalExtensions = RequiredExtensions;
+    for (const char* Ext : OptionalExtensions)
+    {
+        if (CheckDeviceExtensionSupport(PhysicalDevice, TArray<const char*>{Ext}))
+        {
+            FinalExtensions.Add(Ext);
+        }
+        else
+        {
+            HK_LOG_WARN(ELogcat::RHI, "设备不支持可选扩展: {}，DebugName功能将不可用", Ext);
+        }
+    }
+    DeviceExtensions = FinalExtensions;
 
     // 设备特性
     vk::PhysicalDeviceFeatures DeviceFeatures;
@@ -960,7 +990,8 @@ void FGfxDeviceVk::SelectPhysicalDevice()
     throw std::runtime_error("未找到合适的物理设备");
 }
 
-bool FGfxDeviceVk::CheckDeviceExtensionSupport(const vk::PhysicalDevice Device, const TArray<const char*>& RequiredExtensions)
+bool FGfxDeviceVk::CheckDeviceExtensionSupport(const vk::PhysicalDevice Device,
+                                               const TArray<const char*>& RequiredExtensions)
 {
     // 获取设备支持的扩展
     TArray<vk::ExtensionProperties> AvailableExtensions;
@@ -1006,6 +1037,12 @@ TArray<const char*> FGfxDeviceVk::GetRequiredDeviceExtensions()
 {
     TArray<const char*> Extensions;
     Extensions.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+    // 添加 Debug Utils 扩展（如果可用，用于设置 DebugName）
+#ifdef HK_DEBUG
+    Extensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
     return Extensions;
 }
 
@@ -1112,4 +1149,77 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
     }
 
     return Indices;
+}
+
+
+UInt32 FGfxDeviceVk::FindMemoryType(const UInt32 TypeFilter, const vk::MemoryPropertyFlags Properties) const
+{
+    vk::PhysicalDeviceMemoryProperties MemProperties = PhysicalDevice.getMemoryProperties();
+
+    for (UInt32 i = 0; i < MemProperties.memoryTypeCount; ++i)
+    {
+        if ((TypeFilter & (1 << i)) && (MemProperties.memoryTypes[i].propertyFlags & Properties) == Properties)
+        {
+            return i;
+        }
+    }
+
+    HK_LOG_FATAL(ELogcat::RHI, "未找到合适的内存类型");
+    throw std::runtime_error("未找到合适的内存类型");
+}
+
+void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::ObjectType ObjectType,
+                                const FStringView& Name) const
+{
+    if (!Device || Name.IsEmpty())
+    {
+        return;
+    }
+
+    // 检查是否支持 VK_EXT_debug_utils 扩展
+    // 注意：这需要在设备创建时启用该扩展
+    try
+    {
+        // 将 FStringView 转换为以 null 结尾的字符串
+        FString NameStr(Name.Data(), Name.Size());
+
+        vk::DebugUtilsObjectNameInfoEXT NameInfo;
+        NameInfo.objectType = ObjectType;
+        NameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
+        NameInfo.pObjectName = NameStr.CStr();
+
+        Device.setDebugUtilsObjectNameEXT(NameInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        // 如果扩展不可用，忽略错误（不是致命错误）
+        HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
+    }
+}
+
+void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectType ObjectType,
+                                const FStringView& Name) const
+{
+    if (!Device || Name.IsEmpty())
+    {
+        return;
+    }
+
+    try
+    {
+        // 将 FStringView 转换为以 null 结尾的字符串
+        FString NameStr(Name.Data(), Name.Size());
+
+        vk::DebugUtilsObjectNameInfoEXT NameInfo;
+        NameInfo.objectType = ObjectType;
+        NameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
+        NameInfo.pObjectName = NameStr.CStr();
+
+        Device.setDebugUtilsObjectNameEXT(NameInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        // 如果扩展不可用，忽略错误（不是致命错误）
+        HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
+    }
 }

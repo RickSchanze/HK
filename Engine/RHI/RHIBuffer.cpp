@@ -3,26 +3,9 @@
 //
 
 #include "RHIBuffer.h"
-#include "Core/String/String.h"
+#include "RHI/GfxDevice.h"
 
-void FRHIBuffer::Destroy()
-{
-    if (!IsValid())
-    {
-        return;
-    }
-
-    // 销毁句柄
-    FRHIHandleManager::GetRef().DestroyRHIHandle(Handle);
-
-    Handle = FRHIHandle();
-    Size = 0;
-    Usage = EBufferUsage::None;
-    MemoryProperty = EBufferMemoryProperty::None;
-    MappedPtr = nullptr;
-}
-
-void* FRHIBuffer::Map(UInt64 Offset, UInt64 MapSize)
+void* FRHIBuffer::Map(const UInt64 Offset, UInt64 MapSize)
 {
     HK_ASSERT_MSG_RAW(IsValid(), "Cannot map invalid buffer");
     HK_ASSERT_MSG_RAW(!IsMapped(), "Buffer is already mapped");
@@ -36,11 +19,16 @@ void* FRHIBuffer::Map(UInt64 Offset, UInt64 MapSize)
 
     HK_ASSERT_MSG_RAW(Offset + MapSize <= Size, "Map range exceeds buffer size");
 
-    // TODO: 这里应该调用实际的图形 API 来映射内存
-    // MappedPtr = MapNativeBuffer(Handle.Handle, Offset, MapSize);
-
-    // 临时实现：返回 nullptr，实际实现中应该返回映射的指针
-    MappedPtr = nullptr;
+    // 通过 GfxDevice 映射内存
+    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    {
+        MappedPtr = GfxDevice->MapBuffer(*this, Offset, MapSize);
+    }
+    else
+    {
+        HK_ASSERT_MSG_RAW(false, "GfxDevice未初始化，无法映射Buffer");
+        MappedPtr = nullptr;
+    }
 
     return MappedPtr;
 }
@@ -52,8 +40,14 @@ void FRHIBuffer::Unmap()
         return;
     }
 
-    // TODO: 这里应该调用实际的图形 API 来取消映射内存
-    // UnmapNativeBuffer(Handle.Handle);
-
-    MappedPtr = nullptr;
+    // 通过 GfxDevice 取消映射内存
+    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    {
+        GfxDevice->UnmapBuffer(*this);
+    }
+    else
+    {
+        // 即使 GfxDevice 未初始化，也清空映射指针
+        MappedPtr = nullptr;
+    }
 }

@@ -140,3 +140,10 @@ typedef bool Bool;
 #define HK_ASSERT_RAW(Condition) ((void)0)
 #define HK_ASSERT_MSG_RAW(Condition, Fmt, ...) ((void)0)
 #endif
+
+// 包含 generated 头文件的宏，用于防止未使用警告
+// 使用方法: #include INCLUDE_GENERATED(GfxDevice)
+// 这会展开为: #include "GfxDevice.generated.h"
+// 注意: 必须配合 #include 指令使用，不能单独使用
+#define INCLUDE_GENERATED_HELPER(Name) #Name ".generated.h"
+#define INCLUDE_GENERATED(Name) INCLUDE_GENERATED_HELPER(Name)

@@ -127,26 +127,20 @@ class FRHIWindowManager : public FSingleton<FRHIWindowManager>
     friend class FGfxDeviceVk;
 
 public:
-    /**
-     * 创建窗口
-     * @param Name 窗口名称
-     * @param Size 窗口大小
-     * @return 创建的窗口指针，失败返回nullptr
-     */
+    /// 创建窗口
+    /// @param Name 窗口名称
+    /// @param Size 窗口大小
+    /// @return 创建的窗口指针，失败返回nullptr
     FRHIWindow* CreateWindow(FName Name, FVector2i Size);
 
-    /**
-     * 销毁窗口（通过名称）
-     * @param Name 窗口名称
-     * @return 是否成功销毁
-     */
+    /// 销毁窗口（通过名称）
+    /// @param Name 窗口名称
+    /// @return 是否成功销毁
     bool DestroyWindow(const FName& Name);
 
-    /**
-     * 销毁窗口（通过指针）
-     * @param Window 窗口指针
-     * @return 是否成功销毁
-     */
+    /// 销毁窗口（通过指针）
+    /// @param Window 窗口指针
+    /// @return 是否成功销毁
     bool DestroyWindow(FRHIWindow* Window);
 
 private:

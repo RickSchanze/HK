@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/String/StringView.h"
+#include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
 
@@ -29,18 +29,19 @@ enum class EBufferMemoryProperty : UInt32
 };
 HK_ENABLE_BITMASK_OPERATORS(EBufferMemoryProperty)
 
-struct FRHIBufferCreateInfo
+struct FRHIBufferDesc
 {
     UInt64 Size = 0;                                                           // 缓冲区大小（字节）
     EBufferUsage Usage = EBufferUsage::None;                                   // 使用标志
     EBufferMemoryProperty MemoryProperty = EBufferMemoryProperty::DeviceLocal; // 内存属性
-    FStringView DebugName;                                                     // 调试名称
+    FString DebugName;                                                         // 调试名称
 };
 
 // 简单的 Buffer 值类型，只包含一个 Handle
 class FRHIBuffer
 {
     friend class FGfxDevice;
+    friend class FGfxDeviceVk;
 
 public:
     // 默认构造：创建空的 Buffer（无效）
@@ -67,6 +68,11 @@ public:
         return Handle;
     }
 
+    FRHIHandle& GetHandle()
+    {
+        return Handle;
+    }
+
     // 获取缓冲区大小
     UInt64 GetSize() const
     {
@@ -86,7 +92,7 @@ public:
     }
 
     // 映射内存（用于 CPU 访问）
-    void* Map(UInt64 Offset = 0, UInt64 Size = 0);
+    void* Map(UInt64 Offset = 0, UInt64 MapSize = 0);
 
     // 取消映射内存
     void Unmap();
@@ -120,9 +126,6 @@ public:
     }
 
 private:
-    // 销毁缓冲区资源（只能通过 FRHIDevice::DestroyBuffer 调用）
-    void Destroy();
-
     FRHIHandle Handle;
     UInt64 Size = 0;
     EBufferUsage Usage = EBufferUsage::None;
