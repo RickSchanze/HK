@@ -75,6 +75,18 @@ public:
      * @param Window
      */
     virtual void DestroyWindow(FRHIWindow& Window) = 0;
+
+    /**
+     * 打开窗口（显示窗口）
+     * @param Window
+     */
+    virtual void OpenWindow(FRHIWindow& Window) = 0;
+
+    /**
+     * 关闭窗口（隐藏窗口）
+     * @param Window
+     */
+    virtual void CloseWindow(FRHIWindow& Window) = 0;
 #pragma endregion
 };
 
