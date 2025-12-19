@@ -64,16 +64,16 @@ struct FTypeImpl
     FTypeMutable RegisterAttribute(FName InAttributeName, FName InAttributeValue);
 
     /// 检查是否有注解
-    bool HasAttribute(FName InAttributeName) const
+    bool HasAttribute(const FName InAttributeName) const
     {
         return Attributes.Contains(InAttributeName);
     }
 
     /// 获取注解
-    FName GetAttribute(FName InAttributeName) const
+    FStringView GetAttribute(const FName InAttributeName) const
     {
-        const FName* Value = Attributes.Find(InAttributeName);
-        return Value != nullptr ? *Value : FName();
+        const FString* Value = Attributes.Find(InAttributeName);
+        return Value != nullptr ? *Value : "";
     }
 
     /// 检查是否是Abstract类型

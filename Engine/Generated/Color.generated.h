@@ -22,4 +22,11 @@
             MakeNamedPair("A", A)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
+    static void Register_FColor_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FColor::R, "R");                                                                                        \
+        Type->RegisterProperty(&FColor::G, "G");                                                                                        \
+        Type->RegisterProperty(&FColor::B, "B");                                                                                        \
+        Type->RegisterProperty(&FColor::A, "A");                                                                                        \
+    }                                                                                        \
     static inline Z_Color_Register Z_REGISTERER_COLOR;

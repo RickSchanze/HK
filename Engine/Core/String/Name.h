@@ -75,6 +75,7 @@ public:
 
     // 隐式转换为FString（前向声明）
     operator FString() const;
+    operator FStringView() const;
 
     // 全局字符串ID表管理
     static void ClearNameTable();

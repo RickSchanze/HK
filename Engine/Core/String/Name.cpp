@@ -34,7 +34,7 @@ const FString& FName::GetString() const
     HK_ASSERT_RAW(IsValid());
     auto& Table = GetNameTableInstance();
     std::lock_guard<std::mutex> Lock(Table.Mutex);
-    auto It = Table.IDToString.find(ID);
+    const auto It = Table.IDToString.find(ID);
     HK_ASSERT_MSG_RAW(It != Table.IDToString.end(), "FName ID not found in name table");
     return It->second;
 }
@@ -55,13 +55,13 @@ FName::FIDType FName::GetOrCreateID(const FString& InStr)
     auto& Table = GetNameTableInstance();
     std::lock_guard<std::mutex> Lock(Table.Mutex);
 
-    auto It = Table.StringToID.find(InStr);
+    const auto It = Table.StringToID.find(InStr);
     if (It != Table.StringToID.end())
     {
         return It->second;
     }
 
-    FIDType NewID = Table.NextID++;
+    const FIDType NewID = Table.NextID++;
     Table.StringToID[InStr] = NewID;
     Table.IDToString[NewID] = InStr;
     return NewID;
@@ -92,4 +92,14 @@ const std::unordered_map<FName::FIDType, FString>& FName::GetNameTable()
 FName::operator FString() const
 {
     return GetString();
+}
+
+FName::operator FStringView() const
+{
+    HK_ASSERT_RAW(IsValid());
+    auto& Table = GetNameTableInstance();
+    std::lock_guard<std::mutex> Lock(Table.Mutex);
+    const auto It = Table.IDToString.find(ID);
+    HK_ASSERT_MSG_RAW(It != Table.IDToString.end(), "FName ID not found in name table");
+    return It->second;
 }

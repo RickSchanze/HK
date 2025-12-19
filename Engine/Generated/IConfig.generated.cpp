@@ -19,3 +19,11 @@ HK_API void IConfig::Z_IConfig_Register::Register_IConfig()
     FTypeManager::RegisterTypeRegisterer<IConfig>(Register_IConfig_Impl);
 }
 
+#define IConfig_SERIALIZATION_CODE \
+        // No serializable properties \
+
+
+HK_DEFINE_CLASS_SERIALIZATION(IConfig)
+
+#undef IConfig_SERIALIZATION_CODE
+

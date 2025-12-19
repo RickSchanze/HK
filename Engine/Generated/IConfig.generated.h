@@ -12,4 +12,5 @@
         static HK_API void Register_IConfig();                                                                                 \
     };                                                                                                                 \
     typedef IConfig ThisClass;                                                                                        \
+    HK_DECL_CLASS_SERIALIZATION(IConfig)                                                                                        \
     static inline Z_IConfig_Register Z_REGISTERER_ICONFIG;

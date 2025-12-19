@@ -8,17 +8,8 @@ static void Register_FColor_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<FColor>("Color");
 
-    // 注册属性: R
-    Type->RegisterProperty(&FColor::R, "R");
-
-    // 注册属性: G
-    Type->RegisterProperty(&FColor::G, "G");
-
-    // 注册属性: B
-    Type->RegisterProperty(&FColor::B, "B");
-
-    // 注册属性: A
-    Type->RegisterProperty(&FColor::A, "A");
+    // 注册属性
+    FColor::Register_FColor_Properties(Type);
 
 }
 

@@ -681,8 +681,15 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
             prop for prop in struct_info.properties
             if "Transient" not in prop.attributes
         ]
-        
-        if serializable_properties:
+
+        # 检查是否有被标注的父类
+        has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
+
+        if struct_info.macro_type == "HCLASS":
+            # class: 总是使用宏声明六个Serialize函数，即使没有属性
+            serialize_code = f"    HK_DECL_CLASS_SERIALIZATION({struct_name})                                                                                        \\\n"
+        elif serializable_properties:
+            # struct: 只有有属性时才生成模板函数
             serialize_pairs = []
             for i, prop in enumerate(serializable_properties):
                 # 最后一个不需要逗号
@@ -690,20 +697,13 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
                     serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name}),                                                                                     \\')
                 else:
                     serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name})                                                                                      \\')
-            
-            # 检查是否有被标注的父类
-            has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
-            
-            if struct_info.macro_type == "HCLASS":
-                # class: 使用宏声明六个Serialize函数
-                serialize_code = f"    HK_DECL_CLASS_SERIALIZATION({struct_name})                                                                                        \\\n"
-            else:
-                # struct: 生成模板函数
-                super_call = ""
-                if has_annotated_parent:
-                    super_call = "        Super::Serialize(Ar);                                                                                        \\\n"
-                
-                serialize_code = f"""    template <typename Archive>                                                                                        \\
+
+            # struct: 生成模板函数
+            super_call = ""
+            if has_annotated_parent:
+                super_call = "        Super::Serialize(Ar);                                                                                        \\\n"
+
+            serialize_code = f"""    template <typename Archive>                                                                                        \\
     void Serialize(Archive& Ar)                                                                                        \\
     {{                                                                                                                  \\
 {super_call}        Ar(                                                                                                            \\
@@ -752,7 +752,13 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
     register_func_decl = f"static void {register_func_name}();"
     if struct_info.has_hk_api:
         register_func_decl = f"static HK_API void {register_func_name}();"
-    
+
+    # 生成 Getter 和 Setter 方法声明（如果有 DefaultProperty）
+    getter_setter_decls = generate_getter_setter_declarations(struct_info)
+
+    # 生成属性注册函数（在类内部，这样就能访问私有成员）
+    property_registration_code = generate_property_registration(struct_info)
+
     header_content = f"""#pragma once
 
 #define {macro_name}                                                                                        \\
@@ -764,9 +770,9 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
         }}                                                                                                              \\
         {register_func_decl}                                                                                 \\
     }};                                                                                                                 \\
-{typedef_code}{serialize_code}    static inline {registerer_struct_name} {registerer_var_name};
+{typedef_code}{serialize_code}{property_registration_code}{getter_setter_decls}    static inline {registerer_struct_name} {registerer_var_name};
 """
-    
+
     return header_content
 
 
@@ -778,6 +784,92 @@ def remove_prefix(name: str) -> str:
     if len(name) > 1 and name[0] == 'F' and name[1].isupper():
         return name[1:]
     return name
+
+
+def generate_property_registration(struct_info: StructInfo) -> str:
+    """
+    生成属性注册代码，在类内部定义，这样就能访问私有成员
+    """
+    registration_code = ""
+
+    if not struct_info.properties:
+        return registration_code
+
+    # 生成静态注册函数的声明和定义
+    register_impl_func_name = f"Register_{struct_info.name}_Properties"
+
+    registration_code += f"""    static void {register_impl_func_name}(FTypeMutable Type)                                                                                        \\
+    {{                                                                                        \\\n"""
+
+    # 注册属性
+    for prop in struct_info.properties:
+        registration_code += f"""        Type->RegisterProperty(&{struct_info.name}::{prop.name}, "{prop.name}");                                                                                        \\\n"""
+
+    registration_code += f"""    }}                                                                                        \\\n"""
+
+    return registration_code
+
+
+def is_basic_type(prop_type: str) -> bool:
+    """
+    判断属性类型是否是基本类型（按值传递）
+    基本类型包括：int, float, double, bool, char, 以及它们的变体
+    """
+    prop_type = prop_type.strip()
+    # 移除指针和引用
+    prop_type = prop_type.replace('*', '').replace('&', '').strip()
+    
+    basic_types = {
+        'int', 'Int32', 'Int64', 'Int16', 'Int8',
+        'uint', 'UInt32', 'UInt64', 'UInt16', 'UInt8',
+        'float', 'Float32', 'Float64', 'double',
+        'bool', 'Bool',
+        'char', 'Char',
+        'size_t', 'SizeType'
+    }
+    
+    return prop_type in basic_types
+
+
+def generate_getter_setter_declarations(struct_info: StructInfo) -> str:
+    """
+    为有 DefaultProperty 属性的属性生成 Get 和 Set 方法声明和定义
+    """
+    getter_setter_code = ""
+
+    # 查找所有有 DefaultProperty 属性的属性
+    default_properties = [
+        prop for prop in struct_info.properties
+        if "DefaultProperty" in prop.attributes
+    ]
+
+    if not default_properties:
+        return getter_setter_code
+
+    for prop in default_properties:
+        prop_type = prop.type.strip()
+        prop_name = prop.name
+        getter_name = f"Get{prop_name}"
+        setter_name = f"Set{prop_name}"
+
+        # 判断是否需要按引用传递
+        is_basic = is_basic_type(prop_type)
+
+        if is_basic:
+            # 基本类型：按值返回和传递
+            getter_code = f"""    {prop_type} {getter_name}() const {{ return {prop_name}; }}                                                                                        \\\n"""
+            setter_code = f"""    void {setter_name}({prop_type} InValue) {{ {prop_name} = InValue; }}                                                                                        \\\n"""
+        else:
+            # 复杂类型：按 const 引用返回，按 const 引用传递
+            getter_code = f"""    const {prop_type}& {getter_name}() const {{ return {prop_name}; }}                                                                                        \\\n"""
+            setter_code = f"""    void {setter_name}(const {prop_type}& InValue) {{ {prop_name} = InValue; }}                                                                                        \\\n"""
+
+        getter_setter_code += getter_code
+        getter_setter_code += setter_code
+
+    return getter_setter_code
+
+
 
 
 def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str, engine_dir: str, struct_cache: Dict[str, str] = None) -> str:
@@ -824,10 +916,10 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
 
 """
     
-    # 注册属性
-    for prop in struct_info.properties:
-        impl_content += f"""    // 注册属性: {prop.name}
-    Type->RegisterProperty(&{struct_name}::{prop.name}, "{prop.name}");
+    # 调用类内部的属性注册函数
+    if struct_info.properties:
+        impl_content += f"""    // 注册属性
+    {struct_name}::Register_{struct_name}_Properties(Type);
 
 """
     
@@ -865,14 +957,22 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
     if struct_info.macro_type == "HCLASS":
         # 检查是否有 CustomReadWrite 属性
         has_custom_read_write = "CustomReadWrite" in struct_info.attributes
-        
+
         if not has_custom_read_write:
             # 过滤掉有 Transient 属性的属性
             serializable_properties = [
                 prop for prop in struct_info.properties
                 if "Transient" not in prop.attributes
             ]
-            
+
+            # 检查是否有被标注的父类
+            has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
+
+            # 生成序列化代码宏定义（每行末尾都需要反斜杠，因为会被替换到另一个宏中）
+            serialization_code_lines = []
+            if has_annotated_parent:
+                serialization_code_lines.append("        Super::Serialize(Ar);")
+
             if serializable_properties:
                 serialize_pairs = []
                 for i, prop in enumerate(serializable_properties):
@@ -881,42 +981,38 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
                         serialize_pairs.append(f'        MakeNamedPair("{prop.name}", {prop.name}),')
                     else:
                         serialize_pairs.append(f'        MakeNamedPair("{prop.name}", {prop.name})')
-                
-                # 检查是否有被标注的父类
-                has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
-                
-                # 生成序列化代码宏定义（每行末尾都需要反斜杠，因为会被替换到另一个宏中）
-                serialization_code_lines = []
-                if has_annotated_parent:
-                    serialization_code_lines.append("        Super::Serialize(Ar);")
+
                 serialization_code_lines.append("        Ar(")
                 # 添加序列化对（不在这里加反斜杠，后面统一加）
                 serialization_code_lines.extend(serialize_pairs)
                 serialization_code_lines.append("        );")
-                
-                # 将每行用反斜杠连接（所有行都需要反斜杠，因为会被替换到另一个宏中）
-                serialization_code_content = ""
-                for line in serialization_code_lines:
-                    serialization_code_content += f"{line} \\\n"
-                
-                # 定义 {ClassName}_SERIALIZATION_CODE 宏
-                serialize_impl_code = f"""#define {struct_name}_SERIALIZATION_CODE \\
+            else:
+                # 没有可序列化属性，生成空的序列化代码
+                serialization_code_lines.append("        // No serializable properties")
+
+            # 将每行用反斜杠连接（所有行都需要反斜杠，因为会被替换到另一个宏中）
+            serialization_code_content = ""
+            for line in serialization_code_lines:
+                serialization_code_content += f"{line} \\\n"
+
+            # 定义 {ClassName}_SERIALIZATION_CODE 宏
+            serialize_impl_code = f"""#define {struct_name}_SERIALIZATION_CODE \\
 {serialization_code_content}
 
 """
-                # 使用HK_DEFINE_CLASS_SERIALIZATION宏
-                serialize_impl_code += f"HK_DEFINE_CLASS_SERIALIZATION({struct_name})\n\n"
-                # 取消定义宏
-                serialize_impl_code += f"#undef {struct_name}_SERIALIZATION_CODE\n\n"
-    
-    # 生成完整的cpp内容
+            # 使用HK_DEFINE_CLASS_SERIALIZATION宏
+            serialize_impl_code += f"HK_DEFINE_CLASS_SERIALIZATION({struct_name})\n\n"
+            # 取消定义宏
+            serialize_impl_code += f"#undef {struct_name}_SERIALIZATION_CODE\n\n"
+
+    # 生成完整的cpp内容（不再生成 Getter 和 Setter 方法定义，因为现在在头文件中定义）
     cpp_content = f"""#include "{generated_h_name}"
 #include "Core/Reflection/TypeManager.h"
 #include "{rel_path}.h"
 
 
 {impl_content}{register_func_code}{serialize_impl_code}"""
-    
+
     return cpp_content
 
 
@@ -1032,6 +1128,24 @@ def process_file(file_path: str, engine_dir: str, generated_dir: str, cache: Dic
         
         if not struct_infos and not enum_info:
             return (True, f"跳过 {rel_path}：未找到 HSTRUCT/HCLASS 或 HENUM 宏", None, None)
+        
+        # 检查继承自 IConfig 的类是否有 ConfigPath 属性
+        for struct_info in struct_infos:
+            # 检查是否继承自 IConfig
+            if struct_info.base_class == "IConfig":
+                # 检查是否有 ConfigPath 属性
+                if "ConfigPath" not in struct_info.attributes:
+                    # 生成建议的类名（去掉 F 前缀）
+                    suggested_name = struct_info.name
+                    if suggested_name.startswith("F") and len(suggested_name) > 1 and suggested_name[1].isupper():
+                        suggested_name = suggested_name[1:]
+                    error_msg = (
+                        f"错误：类 {struct_info.name} 继承自 IConfig，但缺少必需的 ConfigPath 属性。\n"
+                        f"请在 HCLASS 宏中添加 ConfigPath 属性，例如：\n"
+                        f'HCLASS(ConfigPath = "Config/{suggested_name}.xml")\n'
+                        f"文件：{rel_path}:{struct_info.line}"
+                    )
+                    return (False, error_msg, None, None)
         
         # 确定输出路径
         file_stem = Path(file_path).stem
@@ -1307,6 +1421,8 @@ def main():
     
     success_count = 0
     fail_count = 0
+    config_error_occurred = False
+    config_error_message = ""
     
     # 由于需要更新共享的缓存字典，我们需要在主进程中处理结果
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -1342,7 +1458,24 @@ def main():
                         struct_cache[class_name] = macro_type
             else:
                 fail_count += 1
-                print(f"[FAIL] {message}")
+                print(f"[FAIL] {message}", file=sys.stderr)
+                # 检查是否是配置错误（继承自 IConfig 但缺少 ConfigPath）
+                if "继承自 IConfig" in message or "缺少必需的 ConfigPath" in message:
+                    config_error_occurred = True
+                    config_error_message = message
+                    # 取消所有未完成的任务
+                    for f in futures:
+                        f.cancel()
+                    break
+    
+    # 如果发生配置错误，立即退出
+    if config_error_occurred:
+        print("\n" + "="*70, file=sys.stderr)
+        print("配置错误：继承自 IConfig 的类必须包含 ConfigPath 属性。", file=sys.stderr)
+        print("="*70, file=sys.stderr)
+        print(config_error_message, file=sys.stderr)
+        print("\nCMake 配置已中止。", file=sys.stderr)
+        return 1
     
     # 保存更新后的缓存
     save_cache(cache_file, cache)

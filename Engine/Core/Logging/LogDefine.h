@@ -9,7 +9,8 @@
     HK_LOGCAT_ITEM(Reflection)                                                                                         \
     HK_LOGCAT_ITEM(Test)                                                                                               \
     HK_LOGCAT_ITEM(TaskGraph)                                                                                          \
-    HK_LOGCAT_ITEM(RHI)
+    HK_LOGCAT_ITEM(RHI)                                                                                                \
+    HK_LOGCAT_ITEM(Config)
 
 enum class ELogcat
 {
