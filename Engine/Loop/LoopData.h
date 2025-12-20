@@ -20,7 +20,7 @@ public:
     /**
       * 是否应该关闭引擎了
       */
-    bool ShouldCloseEngine;
+    bool bShouldCloseEngine;
 };
 
 inline FLoopData GLoopData;

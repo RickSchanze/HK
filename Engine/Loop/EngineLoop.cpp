@@ -8,10 +8,16 @@
 #include "EngineLoopEvents.h"
 #include "LoopData.h"
 #include "RHI/GfxDevice.h"
+#include "RHI/RHIWindow.h"
 
-void FEngineLoop::Init() const
+void FEngineLoop::Init()
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::Init");
+
+    // 初始化图形
+    CreateGfxDevice();
+
+    SetInputTickFunc(&FRHIWindowManager::PollAllWindowInput);
 
     // 检查必要的函数是否已设置
     if (RenderTickFunc == nullptr)
@@ -26,12 +32,9 @@ void FEngineLoop::Init() const
 
     // 初始化循环数据
     GLoopData.FrameNumber = 0;
-    GLoopData.ShouldCloseEngine = false;
+    GLoopData.bShouldCloseEngine = false;
     GLoopData.LastFrameTime = FTimePoint::Now();
     GLoopData.DeltaTime = FTimeDuration();
-
-    // 初始化图形
-    CreateGfxDevice();
 
     HK_LOG_INFO(ELogcat::Engine, "引擎循环初始化完成");
 }
@@ -53,7 +56,7 @@ void FEngineLoop::Run()
     bIsRunning = true;
     HK_LOG_INFO(ELogcat::Engine, "引擎循环开始运行");
 
-    while (!GLoopData.ShouldCloseEngine && bIsRunning)
+    while (!GLoopData.bShouldCloseEngine && bIsRunning)
     {
         HK_PROFILE_FRAME_MARK();
 

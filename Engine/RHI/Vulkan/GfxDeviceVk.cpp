@@ -10,6 +10,7 @@
 #include "RHI/RHIHandle.h"
 #include "RHI/RHIWindow.h"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_version.h>
 #include <SDL3/SDL_vulkan.h>
 #include <set>
 #include <stdexcept>
@@ -22,6 +23,14 @@ void FGfxDeviceVk::Init()
         // 1. 初始化SDL（如果尚未初始化）
         if (!SDL_WasInit(SDL_INIT_VIDEO))
         {
+            // 打印SDL版本信息
+            const int Version = SDL_GetVersion();
+            int LinkedMajor = SDL_VERSIONNUM_MAJOR(Version);
+            int LinkedMinor = SDL_VERSIONNUM_MINOR(Version);
+            int LinkedPatch = SDL_VERSIONNUM_MICRO(Version);
+
+            HK_LOG_INFO(ELogcat::RHI, "SDL版本 - 运行时: {}.{}.{}", LinkedMajor, LinkedMinor, LinkedPatch);
+
             if (const auto Success = SDL_Init(SDL_INIT_VIDEO); !Success)
             {
                 const auto ErrMsg = SDL_GetError();
@@ -102,10 +111,9 @@ void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVecto
     // 获取窗口管理器
     auto& WindowManager = FRHIWindowManager::GetRef();
 
-    // 创建SDL窗口（默认隐藏，需要调用Open()来显示）
-    SDL_Window* SDLWindow =
-        SDL_CreateWindow(MainWindowName.GetString().CStr(), MainWindowInitSize.X, MainWindowInitSize.Y,
-                         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
+    // 创建SDL窗口（默认打开）
+    SDL_Window* SDLWindow = SDL_CreateWindow(MainWindowName.GetString().CStr(), MainWindowInitSize.X,
+                                             MainWindowInitSize.Y, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
     if (!SDLWindow)
     {
@@ -141,7 +149,7 @@ void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVecto
     MainWindow->SetHandle(SDLWindow);
     MainWindow->SetWindowName(MainWindowName);
     MainWindow->SetSize(MainWindowInitSize);
-    MainWindow->SetOpened(false); // 窗口创建时默认未打开
+    MainWindow->SetOpened(true); // 窗口创建时默认打开
 
     HK_LOG_INFO(ELogcat::RHI, "主窗口Surface创建成功: {}x{}", MainWindowInitSize.X, MainWindowInitSize.Y);
 }
@@ -741,7 +749,7 @@ void FGfxDeviceVk::OpenWindow(FRHIWindow& Window)
         return;
     }
 
-    auto SDLWindow = static_cast<SDL_Window*>(Window.GetHandle());
+    const auto SDLWindow = static_cast<SDL_Window*>(Window.GetHandle());
 
     // SDL3 中，窗口创建后默认就是显示的，但我们可以显式地显示它
     SDL_ShowWindow(SDLWindow);
@@ -758,7 +766,7 @@ void FGfxDeviceVk::CloseWindow(FRHIWindow& Window)
         return;
     }
 
-    SDL_Window* SDLWindow = static_cast<SDL_Window*>(Window.GetHandle());
+    auto* SDLWindow = static_cast<SDL_Window*>(Window.GetHandle());
 
     // 隐藏窗口
     SDL_HideWindow(SDLWindow);
@@ -773,10 +781,49 @@ void FGfxDeviceVk::CreateInstance()
     TArray<const char*> RequiredExtensions = GetRequiredExtensions();
 
     // 检查扩展支持
-    if (!CheckInstanceExtensionSupport(RequiredExtensions))
+    TArray<const char*> MissingExtensionsList;
+    try
+    {
+        const auto AvailableExtensionsVector = vk::enumerateInstanceExtensionProperties();
+        for (const char* RequiredExt : RequiredExtensions)
+        {
+            bool Found = false;
+            for (const auto& AvailableExt : AvailableExtensionsVector)
+            {
+                if (strcmp(AvailableExt.extensionName, RequiredExt) == 0)
+                {
+                    Found = true;
+                    break;
+                }
+            }
+
+            if (!Found)
+            {
+                MissingExtensionsList.Add(RequiredExt);
+            }
+        }
+    }
+    catch (const vk::SystemError& e)
+    {
+        const FString ErrorMsg = FString("Vulkan: 枚举实例扩展失败: ") + FString(e.what());
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
+        throw std::runtime_error(ErrorMsg.CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: 未知异常");
+        throw std::runtime_error("Vulkan: 枚举实例扩展失败: 未知异常");
+    }
+
+    if (!MissingExtensionsList.IsEmpty())
     {
         FString MissingExtensions;
-        for (const char* Ext : RequiredExtensions)
+        for (const char* Ext : MissingExtensionsList)
         {
             if (!MissingExtensions.IsEmpty())
             {
@@ -787,6 +834,19 @@ void FGfxDeviceVk::CreateInstance()
         HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 不支持的实例扩展: {}", MissingExtensions.CStr());
         throw std::runtime_error("Vulkan实例扩展不支持");
     }
+
+    // 检查 Debug Utils 扩展是否可用
+#ifdef HK_DEBUG
+    bDebugUtilsExtensionAvailable = true; // 假设可用，因为它在必需扩展列表中
+    for (const char* MissingExt : MissingExtensionsList)
+    {
+        if (strcmp(MissingExt, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        {
+            bDebugUtilsExtensionAvailable = false;
+            break;
+        }
+    }
+#endif
 
     // 获取验证层列表
     TArray<const char*> ValidationLayers = GetRequiredValidationLayers();
@@ -803,7 +863,7 @@ void FGfxDeviceVk::CreateInstance()
     AppInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     AppInfo.pEngineName = "HKEngine";
     AppInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    AppInfo.apiVersion = VK_API_VERSION_1_3;
+    AppInfo.apiVersion = VK_API_VERSION_1_4;
 
     // 创建实例创建信息
     vk::InstanceCreateInfo CreateInfo;
@@ -854,59 +914,6 @@ void FGfxDeviceVk::CreateInstance()
         Instance = nullptr;
         throw std::runtime_error("Vulkan实例创建失败: 未知异常");
     }
-}
-
-bool FGfxDeviceVk::CheckInstanceExtensionSupport(const TArray<const char*>& RequiredExtensions)
-{
-    // 获取可用的扩展
-    TArray<vk::ExtensionProperties> AvailableExtensions;
-    try
-    {
-        const auto AvailableExtensionsVector = vk::enumerateInstanceExtensionProperties();
-        AvailableExtensions.Reserve(AvailableExtensionsVector.size());
-        for (const auto& Ext : AvailableExtensionsVector)
-        {
-            AvailableExtensions.Add(Ext);
-        }
-    }
-    catch (const vk::SystemError& e)
-    {
-        const FString ErrorMsg = FString("Vulkan: 枚举实例扩展失败: ") + FString(e.what());
-        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
-        throw std::runtime_error(ErrorMsg.CStr());
-    }
-    catch (const std::exception& e)
-    {
-        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: {}", e.what());
-        throw;
-    }
-    catch (...)
-    {
-        HK_LOG_FATAL(ELogcat::RHI, "Vulkan: 枚举实例扩展失败: 未知异常");
-        throw std::runtime_error("Vulkan: 枚举实例扩展失败: 未知异常");
-    }
-
-    // 检查每个需要的扩展是否可用
-    for (const char* RequiredExt : RequiredExtensions)
-    {
-        bool Found = false;
-        for (const auto& AvailableExt : AvailableExtensions)
-        {
-            if (strcmp(AvailableExt.extensionName, RequiredExt) == 0)
-            {
-                Found = true;
-                break;
-            }
-        }
-
-        if (!Found)
-        {
-            HK_LOG_ERROR(ELogcat::RHI, "Vulkan扩展不可用: {}", RequiredExt);
-            return false;
-        }
-    }
-
-    return true;
 }
 
 bool FGfxDeviceVk::CheckValidationLayerSupport(const TArray<const char*>& RequiredLayers)
@@ -978,11 +985,10 @@ TArray<const char*> FGfxDeviceVk::GetRequiredExtensions()
     Extensions.Add(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 #endif
 
-    // 功能扩展（实例扩展）
-    Extensions.Add(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
-
-    // 注意：VK_EXT_descriptor_indexing 和 VK_EXT_dynamic_state 是设备扩展，
-    // 不是实例扩展，需要在设备创建时启用
+    // 添加 Debug Utils 扩展（如果可用，用于设置 DebugName）
+#ifdef HK_DEBUG
+    Extensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
     return Extensions;
 }
@@ -1030,59 +1036,113 @@ void FGfxDeviceVk::CreateDevice()
     // 获取设备扩展
     TArray<const char*> DeviceExtensions = GetRequiredDeviceExtensions();
 
-    // 检查设备扩展支持（Debug Utils 是可选的）
-    TArray<const char*> RequiredExtensions;
-    TArray<const char*> OptionalExtensions;
-    for (const char* Ext : DeviceExtensions)
+    // 检查设备扩展支持
+    TArray<const char*> MissingDeviceExtensions;
+    try
     {
-#ifdef HK_DEBUG
-        if (strcmp(Ext, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        // 获取设备支持的扩展
+        const auto AvailableExtensionsVector = PhysicalDevice.enumerateDeviceExtensionProperties();
+        for (const char* RequiredExt : DeviceExtensions)
         {
-            OptionalExtensions.Add(Ext);
+            bool Found = false;
+            for (const auto& AvailableExt : AvailableExtensionsVector)
+            {
+                if (strcmp(AvailableExt.extensionName, RequiredExt) == 0)
+                {
+                    Found = true;
+                    break;
+                }
+            }
+
+            if (!Found)
+            {
+                MissingDeviceExtensions.Add(RequiredExt);
+            }
         }
-        else
-        {
-            RequiredExtensions.Add(Ext);
-        }
-#else
-        RequiredExtensions.Add(Ext);
-#endif
+    }
+    catch (const vk::SystemError& e)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
+        throw std::runtime_error((FString("枚举设备扩展失败: ") + FString(e.what())).CStr());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: 未知异常");
+        throw std::runtime_error("枚举设备扩展失败: 未知异常");
     }
 
-    if (!CheckDeviceExtensionSupport(PhysicalDevice, RequiredExtensions))
+    if (!MissingDeviceExtensions.IsEmpty())
     {
-        HK_LOG_FATAL(ELogcat::RHI, "设备不支持所需的扩展");
+        FString MissingExtensionsStr;
+        for (const char* Ext : MissingDeviceExtensions)
+        {
+            if (!MissingExtensionsStr.IsEmpty())
+            {
+                MissingExtensionsStr += ", ";
+            }
+            MissingExtensionsStr += Ext;
+        }
+        HK_LOG_FATAL(ELogcat::RHI, "设备不支持所需的扩展: {}", MissingExtensionsStr.CStr());
         throw std::runtime_error("设备不支持所需的扩展");
     }
 
-    // 检查可选扩展，如果不支持则从列表中移除
-    TArray<const char*> FinalExtensions = RequiredExtensions;
-    bDebugUtilsExtensionAvailable = false;
-    for (const char* Ext : OptionalExtensions)
-    {
-        if (CheckDeviceExtensionSupport(PhysicalDevice, TArray<const char*>{Ext}))
-        {
-            FinalExtensions.Add(Ext);
-            if (strcmp(Ext, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-            {
-                bDebugUtilsExtensionAvailable = true;
-            }
-        }
-        else
-        {
-            HK_LOG_WARN(ELogcat::RHI, "设备不支持可选扩展: {}，DebugName功能将不可用", Ext);
-        }
-    }
-    DeviceExtensions = FinalExtensions;
+    // 所有设备扩展都是必需的
 
-    // 设备特性
-    vk::PhysicalDeviceFeatures DeviceFeatures;
+    // 设备特性（使用Features2以支持扩展特性）
+    vk::PhysicalDeviceFeatures2 DeviceFeatures2;
+    DeviceFeatures2.features.samplerAnisotropy = VK_TRUE; // 启用各向异性采样
+
+    // 缓冲区设备地址特性
+    vk::PhysicalDeviceBufferDeviceAddressFeatures BufferDeviceAddressFeatures;
+    BufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+
+    // 描述符索引特性（用于bindless）
+    vk::PhysicalDeviceDescriptorIndexingFeatures DescriptorIndexingFeatures;
+    DescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+    DescriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+    DescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+
+    // 网格着色器特性
+    vk::PhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures;
+    MeshShaderFeatures.meshShader = VK_TRUE;
+    MeshShaderFeatures.taskShader = VK_TRUE;
+
+    // 光线追踪管线特性
+    vk::PhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingFeatures;
+    RayTracingFeatures.rayTracingPipeline = VK_TRUE;
+
+    // 时间线信号量特性
+    vk::PhysicalDeviceTimelineSemaphoreFeatures TimelineSemaphoreFeatures;
+    TimelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+
+    // 同步2.0特性
+    vk::PhysicalDeviceSynchronization2Features Synchronization2Features;
+    Synchronization2Features.synchronization2 = VK_TRUE;
+
+    // 动态渲染特性
+    vk::PhysicalDeviceDynamicRenderingFeatures DynamicRenderingFeatures;
+    DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+    // 链式连接特性结构体
+    DeviceFeatures2.pNext = &Synchronization2Features;
+    Synchronization2Features.pNext = &BufferDeviceAddressFeatures;
+    BufferDeviceAddressFeatures.pNext = &DescriptorIndexingFeatures;
+    DescriptorIndexingFeatures.pNext = &MeshShaderFeatures;
+    MeshShaderFeatures.pNext = &RayTracingFeatures;
+    RayTracingFeatures.pNext = &TimelineSemaphoreFeatures;
+    TimelineSemaphoreFeatures.pNext = &DynamicRenderingFeatures;
 
     // 创建设备创建信息
     vk::DeviceCreateInfo CreateInfo;
+    CreateInfo.pNext = &DeviceFeatures2;
     CreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfos.Size());
     CreateInfo.pQueueCreateInfos = QueueCreateInfos.Data();
-    CreateInfo.pEnabledFeatures = &DeviceFeatures;
+    CreateInfo.pEnabledFeatures = nullptr; // 使用Features2时设为nullptr
     CreateInfo.enabledExtensionCount = static_cast<uint32_t>(DeviceExtensions.Size());
     CreateInfo.ppEnabledExtensionNames = DeviceExtensions.Data();
 
@@ -1171,68 +1231,33 @@ void FGfxDeviceVk::SelectPhysicalDevice()
     throw std::runtime_error("未找到合适的物理设备");
 }
 
-bool FGfxDeviceVk::CheckDeviceExtensionSupport(const vk::PhysicalDevice Device,
-                                               const TArray<const char*>& RequiredExtensions)
-{
-    // 获取设备支持的扩展
-    TArray<vk::ExtensionProperties> AvailableExtensions;
-    try
-    {
-        const auto ExtensionsVector = Device.enumerateDeviceExtensionProperties();
-        AvailableExtensions.Reserve(ExtensionsVector.size());
-        for (const auto& Ext : ExtensionsVector)
-        {
-            AvailableExtensions.Add(Ext);
-        }
-    }
-    catch (const vk::SystemError& e)
-    {
-        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
-        return false;
-    }
-    catch (const std::exception& e)
-    {
-        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: {}", e.what());
-        return false;
-    }
-    catch (...)
-    {
-        HK_LOG_ERROR(ELogcat::RHI, "枚举设备扩展失败: 未知异常");
-        return false;
-    }
-
-    // 检查每个需要的扩展是否可用
-    for (const char* RequiredExt : RequiredExtensions)
-    {
-        bool Found = false;
-        for (const auto& AvailableExt : AvailableExtensions)
-        {
-            if (strcmp(AvailableExt.extensionName, RequiredExt) == 0)
-            {
-                Found = true;
-                break;
-            }
-        }
-
-        if (!Found)
-        {
-            HK_LOG_ERROR(ELogcat::RHI, "设备扩展不可用: {}", RequiredExt);
-            return false;
-        }
-    }
-
-    return true;
-}
-
 TArray<const char*> FGfxDeviceVk::GetRequiredDeviceExtensions()
 {
     TArray<const char*> Extensions;
     Extensions.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-    // 添加 Debug Utils 扩展（如果可用，用于设置 DebugName）
-#ifdef HK_DEBUG
-    Extensions.Add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+    // 核心功能扩展
+    // 同步2.0扩展（设备扩展）
+    Extensions.Add(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+
+    // 动态渲染扩展
+    Extensions.Add(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+    // 缓冲区设备地址扩展
+    Extensions.Add(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+
+    // 描述符索引扩展（用于bindless）
+    Extensions.Add(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+
+    // 时间线信号量扩展
+    Extensions.Add(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+
+    // 网格着色器相关扩展
+    Extensions.Add(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+    Extensions.Add(VK_KHR_SPIRV_1_4_EXTENSION_NAME); // mesh shader 依赖
+
+    // shader float controls (mesh shader 和 ray tracing 可能需要)
+    Extensions.Add(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 
     return Extensions;
 }
@@ -1241,7 +1266,33 @@ bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice InPhysicalDevice) c
 {
     // 检查设备扩展支持
     const TArray<const char*> RequiredExtensions = GetRequiredDeviceExtensions();
-    if (!CheckDeviceExtensionSupport(InPhysicalDevice, RequiredExtensions))
+
+    try
+    {
+        const auto AvailableExtensionsVector = InPhysicalDevice.enumerateDeviceExtensionProperties();
+        for (const char* RequiredExt : RequiredExtensions)
+        {
+            bool Found = false;
+            for (const auto& AvailableExt : AvailableExtensionsVector)
+            {
+                if (strcmp(AvailableExt.extensionName, RequiredExt) == 0)
+                {
+                    Found = true;
+                    break;
+                }
+            }
+
+            if (!Found)
+            {
+                return false;
+            }
+        }
+    }
+    catch (const vk::SystemError&)
+    {
+        return false;
+    }
+    catch (...)
     {
         return false;
     }
@@ -1365,7 +1416,7 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
 
 UInt32 FGfxDeviceVk::FindMemoryType(const UInt32 TypeFilter, const vk::MemoryPropertyFlags Properties) const
 {
-    vk::PhysicalDeviceMemoryProperties MemProperties = PhysicalDevice.getMemoryProperties();
+    const vk::PhysicalDeviceMemoryProperties MemProperties = PhysicalDevice.getMemoryProperties();
 
     for (UInt32 i = 0; i < MemProperties.memoryTypeCount; ++i)
     {
@@ -1392,7 +1443,7 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
     try
     {
         // 将 FStringView 转换为以 null 结尾的字符串
-        FString NameStr(Name.Data(), Name.Size());
+        const FString NameStr(Name.Data(), Name.Size());
 
         vk::DebugUtilsObjectNameInfoEXT NameInfo;
         NameInfo.objectType = ObjectType;
@@ -1400,7 +1451,7 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
         NameInfo.pObjectName = NameStr.CStr();
 
         // 使用动态加载的方式调用扩展函数，避免链接错误
-        auto vkSetDebugUtilsObjectNameEXT =
+        const auto vkSetDebugUtilsObjectNameEXT =
             reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
 
         if (vkSetDebugUtilsObjectNameEXT)
@@ -1436,10 +1487,10 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
     try
     {
         // 将 FStringView 转换为以 null 结尾的字符串
-        FString NameStr(Name.Data(), Name.Size());
+        const FString NameStr(Name.Data(), Name.Size());
 
         // 使用动态加载的方式调用扩展函数，避免链接错误
-        auto vkSetDebugUtilsObjectNameEXT =
+        const auto vkSetDebugUtilsObjectNameEXT =
             reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
 
         if (vkSetDebugUtilsObjectNameEXT)

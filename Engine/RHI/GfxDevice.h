@@ -52,7 +52,7 @@ public:
     virtual void UnmapBuffer(FRHIBuffer& Buffer) = 0;
 #pragma endregion
 
-#pragma region "窗口创建"
+#pragma region "窗口操作"
     // 窗口创建相关的函数, 这块的流程是这样的
     // 以Vulkan为例, Vulkan初始化Instance -> 拿Instance初始化MainWindow
     // 为MainWindow创建Surface -> Vulkan利用此Surface创建Device

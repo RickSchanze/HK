@@ -110,9 +110,8 @@ public:
     // Destroy请调用FRHIWindowManager::Destroy
     // void Destroy();
     ~FRHIWindow();
+
 private:
-
-
     FRHISurface Surface;
     FRHISwapChain SwapChain;
     FName WindowName;
@@ -128,26 +127,31 @@ class FRHIWindowManager : public FSingleton<FRHIWindowManager>
 
 public:
     /**
-      * 创建窗口
-      * @param Name 窗口名称
-      * @param Size 窗口大小
-      * @return 创建的窗口指针，失败返回nullptr
-      */
+     * 创建窗口
+     * @param Name 窗口名称
+     * @param Size 窗口大小
+     * @return 创建的窗口指针，失败返回nullptr
+     */
     FRHIWindow* CreateRHIWindow(FName Name, FVector2i Size);
 
     /**
-      * 销毁窗口（通过名称）
-      * @param Name 窗口名称
-      * @return 是否成功销毁
-      */
+     * 销毁窗口（通过名称）
+     * @param Name 窗口名称
+     * @return 是否成功销毁
+     */
     bool DestroyRHIWindow(const FName& Name);
 
     /**
-      * 销毁窗口（通过指针）
-      * @param Window 窗口指针
-      * @return 是否成功销毁
-      */
+     * 销毁窗口（通过指针）
+     * @param Window 窗口指针
+     * @return 是否成功销毁
+     */
     bool DestroyRHIWindow(FRHIWindow* Window);
+
+    /**
+     * 对所有创建的Window进行Pool
+     */
+    static void PollAllWindowInput();
 
 private:
     // Index = 0 代表MainWindow, 为Nullptr时代表未被占用

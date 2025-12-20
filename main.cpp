@@ -17,11 +17,6 @@ int main()
     // 创建并初始化引擎循环
     FEngineLoop EngineLoop;
 
-    // 设置渲染和输入Tick函数（示例）
-    // 注意：这里设置为nullptr以触发警告，实际使用时应该设置实际的函数
-    EngineLoop.SetRenderTickFunc(nullptr);
-    EngineLoop.SetInputTickFunc(nullptr);
-
     // 初始化引擎循环
     EngineLoop.Init();
 
