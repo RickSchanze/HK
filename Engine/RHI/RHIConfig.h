@@ -1,6 +1,7 @@
 #pragma once
 #include "Config/IConfig.h"
 #include "Math/Vector.h"
+#include "Core/Serialization/Serialization.h"
 
 #include "RHIConfig.generated.h"
 

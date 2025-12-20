@@ -170,6 +170,12 @@ struct TVector2
     {
         *this = Normalized();
     }
+
+    template <typename Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MakeNamedPair("X", X), MakeNamedPair("Y", Y));
+    }
 };
 
 // 标量在左侧的乘法

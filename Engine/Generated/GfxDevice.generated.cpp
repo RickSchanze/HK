@@ -28,6 +28,8 @@ static void Z_Register_EGfxBackend_Impl()
 
 }
 
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
 void Z_Register_EGfxBackend()
 {
     // 只注册类型注册器函数，不执行注册操作

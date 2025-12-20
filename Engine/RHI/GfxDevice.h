@@ -25,8 +25,8 @@ enum class EGfxBackend
 class HK_API FGfxDevice
 {
 public:
-    virtual void Initialize() = 0;
-    virtual void Uninitialize() = 0;
+    virtual void Init() = 0;
+    virtual void UnInit() = 0;
 
     virtual ~FGfxDevice() = default;
 
@@ -58,37 +58,51 @@ public:
     // 为MainWindow创建Surface -> Vulkan利用此Surface创建Device
     // 利用Device创建MainWindow的SwapChain
     // 销毁时先销毁SwapChain再销毁Surface, 这一点主窗口和其他一致
-    /// 创建主窗口的Surface
-    /// @param MainWindowName
-    /// @param MainWindowInitSize
-    /// @param OutMainWindow
+    /**
+     * 创建主窗口的Surface
+     * @param MainWindowName
+     * @param MainWindowInitSize
+     * @param OutMainWindow
+     */
     virtual void CreateMainWindowSurface(FName MainWindowName, FVector2i MainWindowInitSize,
                                          FRHIWindow& OutMainWindow) = 0;
 
-    /// 创建主窗口的SwapChain
-    /// @param OutMainWindow
+    /**
+     * 创建主窗口的SwapChain
+     * @param OutMainWindow
+     */
     virtual void CreateMainWindowSwapChain(FRHIWindow& OutMainWindow) = 0;
 
-    /// 创建一个窗口
-    /// @param Name
-    /// @param Size
-    /// @param OutWindow
+    /**
+     * 创建一个窗口
+     * @param Name
+     * @param Size
+     * @param OutWindow
+     */
     virtual void CreateRHIWindow(FName Name, FVector2i Size, FRHIWindow& OutWindow) = 0;
 
-    /// 销毁主窗口
-    /// @param MainWindow
+    /**
+     * 销毁主窗口
+     * @param MainWindow
+     */
     virtual void DestroyMainWindow(FRHIWindow& MainWindow) = 0;
 
-    /// 销毁一个窗口
-    /// @param Window
+    /**
+     * 销毁一个窗口
+     * @param Window
+     */
     virtual void DestroyRHIWindow(FRHIWindow& Window) = 0;
 
-    /// 打开窗口（显示窗口）
-    /// @param Window
+    /**
+     * 打开窗口（显示窗口）
+     * @param Window
+     */
     virtual void OpenWindow(FRHIWindow& Window) = 0;
 
-    /// 关闭窗口（隐藏窗口）
-    /// @param Window
+    /**
+     * 关闭窗口（隐藏窗口）
+     * @param Window
+     */
     virtual void CloseWindow(FRHIWindow& Window) = 0;
 #pragma endregion
 };
@@ -98,7 +112,7 @@ inline TEvent<FGfxDevice*> GOnPostRHIDeviceCreated;
 inline TEvent<FGfxDevice*> GOnPreRHIDeviceDestroyed;
 inline TEvent<> GOnPostRHIDeviceDestroyed;
 
-HK_API void CreateRHIDevice();
-HK_API void DestroyRHIDevice();
+HK_API void CreateGfxDevice();
+HK_API void DestroyGfxDevice();
 
-HK_API FGfxDevice* GetRHIDevice();
+HK_API FGfxDevice* GetGfxDevice();

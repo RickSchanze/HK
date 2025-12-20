@@ -20,7 +20,7 @@ void* FRHIBuffer::Map(const UInt64 Offset, UInt64 MapSize)
     HK_ASSERT_MSG_RAW(Offset + MapSize <= Size, "Map range exceeds buffer size");
 
     // 通过 GfxDevice 映射内存
-    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    if (FGfxDevice* GfxDevice = GetGfxDevice())
     {
         MappedPtr = GfxDevice->MapBuffer(*this, Offset, MapSize);
     }
@@ -41,7 +41,7 @@ void FRHIBuffer::Unmap()
     }
 
     // 通过 GfxDevice 取消映射内存
-    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    if (FGfxDevice* GfxDevice = GetGfxDevice())
     {
         GfxDevice->UnmapBuffer(*this);
     }

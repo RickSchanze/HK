@@ -5,6 +5,7 @@
 #include "ConfigManager.h"
 #include "Core/Logging/Logger.h"
 #include "Core/Reflection/TypeManager.h"
+#include "Core/Serialization/Serialization.h"
 #include <filesystem>
 #include <ranges>
 

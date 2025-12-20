@@ -16,13 +16,19 @@ public:
 
     void SaveAllConfigs();
 
-    /// 通过名字获取配置，如果不存在则创建默认的
+    /**
+      * 通过名字获取配置，如果不存在则创建默认的
+      */
     IConfig* GetConfig(FName InConfigName);
 
-    /// 获取配置的类型信息（内部使用）
+    /**
+      * 获取配置的类型信息（内部使用）
+      */
     FType GetConfigType(IConfig* InConfig) const;
 
-    /// 通过类型获取配置，如果不存在则创建默认的
+    /**
+      * 通过类型获取配置，如果不存在则创建默认的
+      */
     template <typename T>
     T* GetConfig()
     {
@@ -73,7 +79,9 @@ public:
     }
 
 private:
-    /// 获取配置名称（从 ConfigName 属性或类名）
+    /**
+      * 获取配置名称（从 ConfigName 属性或类名）
+      */
     template <typename T>
     static FStringView GetConfigName()
     {
@@ -93,7 +101,9 @@ private:
         return Type->Name;
     }
 
-    /// 创建配置实例
+    /**
+      * 创建配置实例
+      */
     template <typename T>
     static T* CreateConfigInstance()
     {
@@ -106,7 +116,9 @@ private:
         return Type->CreateInstanceT<T>();
     }
 
-    /// 从文件加载配置
+    /**
+      * 从文件加载配置
+      */
     template <typename T>
     static bool LoadConfigFromFile(T* InConfig, const FString& InFilePath)
     {
@@ -140,7 +152,9 @@ private:
         }
     }
 
-    /// 获取配置文件路径
+    /**
+      * 获取配置文件路径
+      */
     template <typename T>
     static FStringView GetConfigPath()
     {

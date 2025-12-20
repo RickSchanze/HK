@@ -7,8 +7,9 @@
 #include "Core/Utility/Profiler.h"
 #include "EngineLoopEvents.h"
 #include "LoopData.h"
+#include "RHI/GfxDevice.h"
 
-void FEngineLoop::Init()
+void FEngineLoop::Init() const
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::Init");
 
@@ -29,12 +30,25 @@ void FEngineLoop::Init()
     GLoopData.LastFrameTime = FTimePoint::Now();
     GLoopData.DeltaTime = FTimeDuration();
 
+    // 初始化图形
+    CreateGfxDevice();
+
     HK_LOG_INFO(ELogcat::Engine, "引擎循环初始化完成");
+}
+
+void FEngineLoop::UnInit()
+{
+    HK_PROFILE_SCOPE_N("FEngineLoop::UnInit");
+
+    bIsRunning = false;
+    HK_LOG_INFO(ELogcat::Engine, "引擎循环清理完成");
 }
 
 void FEngineLoop::Run()
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::Run");
+
+    DestroyGfxDevice();
 
     bIsRunning = true;
     HK_LOG_INFO(ELogcat::Engine, "引擎循环开始运行");
@@ -101,12 +115,4 @@ void FEngineLoop::PostTick()
 
     // 触发PostTick事件
     GEngineLoopEvents.OnPostTick.Invoke();
-}
-
-void FEngineLoop::UnInit()
-{
-    HK_PROFILE_SCOPE_N("FEngineLoop::UnInit");
-
-    bIsRunning = false;
-    HK_LOG_INFO(ELogcat::Engine, "引擎循环清理完成");
 }

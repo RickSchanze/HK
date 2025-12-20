@@ -187,7 +187,7 @@ FString& FString::operator+=(const FStringView& Str)
 
 FString& FString::operator+=(const FString& Str)
 {
-    MyData += Str.Data();
+    MyData += Str.GetStdString();
     return *this;
 }
 

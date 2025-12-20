@@ -10,8 +10,10 @@ class HK_API IConfig
 public:
     virtual ~IConfig() = default;
 
-    /// 将配置保存至文件, 文件路径由属性ConfigPath给出
-    /// 可以使用ConfigName属性来标注此配置的类别
+    /**
+      * 将配置保存至文件, 文件路径由属性ConfigPath给出
+      * 可以使用ConfigName属性来标注此配置的类别
+      */
     void Save();
 
 

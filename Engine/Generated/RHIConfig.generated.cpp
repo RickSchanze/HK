@@ -3,6 +3,9 @@
 #include "RHI/RHIConfig.h"
 
 
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+
 static void Register_FRHIConfig_Impl()
 {
     // 注册类型

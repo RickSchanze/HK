@@ -8,7 +8,7 @@ public:
     using FRenderTickFunc = void (*)(void);
     using FInputTickFunc = void (*)(void);
 
-    void Init();
+    void Init() const;
     void Run();
     void UnInit();
 

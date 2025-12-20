@@ -16,7 +16,7 @@ void FRHIWindow::Open()
     }
 
     // 通过 FGfxDevice 打开窗口
-    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    if (FGfxDevice* GfxDevice = GetGfxDevice())
     {
         try
         {
@@ -42,7 +42,7 @@ void FRHIWindow::Close()
     }
 
     // 通过 FGfxDevice 关闭窗口
-    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    if (FGfxDevice* GfxDevice = GetGfxDevice())
     {
         try
         {
@@ -103,7 +103,7 @@ FRHIWindow* FRHIWindowManager::CreateRHIWindow(const FName Name, const FVector2i
     Window->SetSize(Size);
 
     // 通过 FGfxDevice 创建实际的窗口资源（Surface、SwapChain等）
-    if (FGfxDevice* GfxDevice = GetRHIDevice())
+    if (FGfxDevice* GfxDevice = GetGfxDevice())
     {
         try
         {
@@ -155,7 +155,7 @@ bool FRHIWindowManager::DestroyRHIWindow(FRHIWindow* Window)
         if (Windows[i] && Windows[i].Get() == Window)
         {
             // 通过 FGfxDevice 销毁窗口资源
-            if (FGfxDevice* GfxDevice = GetRHIDevice())
+            if (FGfxDevice* GfxDevice = GetGfxDevice())
             {
                 try
                 {

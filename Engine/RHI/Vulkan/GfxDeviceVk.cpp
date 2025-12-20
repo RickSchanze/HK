@@ -15,16 +15,17 @@
 #include <stdexcept>
 #include <vulkan/vulkan.h>
 
-void FGfxDeviceVk::Initialize()
+void FGfxDeviceVk::Init()
 {
     try
     {
         // 1. 初始化SDL（如果尚未初始化）
         if (!SDL_WasInit(SDL_INIT_VIDEO))
         {
-            if (SDL_Init(SDL_INIT_VIDEO) != 0)
+            if (const auto Success = SDL_Init(SDL_INIT_VIDEO); !Success)
             {
-                const FString ErrorMsg = FString("SDL初始化失败: ") + FString(SDL_GetError());
+                const auto ErrMsg = SDL_GetError();
+                const FString ErrorMsg = std::format("SDL初始化失败! ErrMsg={}.", ErrMsg);
                 HK_LOG_FATAL(ELogcat::RHI, "SDL初始化失败: {}", SDL_GetError());
                 throw std::runtime_error(ErrorMsg.CStr());
             }
@@ -48,19 +49,19 @@ void FGfxDeviceVk::Initialize()
     {
         HK_LOG_FATAL(ELogcat::RHI, "Vulkan设备初始化失败: {}", e.what());
         // 清理已创建的资源
-        Uninitialize();
+        UnInit();
         throw;
     }
     catch (...)
     {
         HK_LOG_FATAL(ELogcat::RHI, "Vulkan设备初始化失败: 未知异常");
         // 清理已创建的资源
-        Uninitialize();
+        UnInit();
         throw;
     }
 }
 
-void FGfxDeviceVk::Uninitialize()
+void FGfxDeviceVk::UnInit()
 {
     // 1. 先销毁Device（对称操作：与Initialize相反的顺序）
     if (Device)
@@ -1340,7 +1341,8 @@ FGfxDeviceVk::FQueueFamilyIndices FGfxDeviceVk::FindQueueFamilies(const vk::Phys
         {
             try
             {
-                const bool PresentSupport = InPhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), MainWindowSurface);
+                const bool PresentSupport =
+                    InPhysicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), MainWindowSurface);
                 if (PresentSupport && Indices.PresentFamily < 0)
                 {
                     Indices.PresentFamily = i;
@@ -1398,9 +1400,9 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
         NameInfo.pObjectName = NameStr.CStr();
 
         // 使用动态加载的方式调用扩展函数，避免链接错误
-        auto vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-            Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
-        
+        auto vkSetDebugUtilsObjectNameEXT =
+            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+
         if (vkSetDebugUtilsObjectNameEXT)
         {
             VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
@@ -1408,7 +1410,7 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
             VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
             VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
             VkNameInfo.pObjectName = NameStr.CStr();
-            
+
             vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
         }
     }
@@ -1437,9 +1439,9 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
         FString NameStr(Name.Data(), Name.Size());
 
         // 使用动态加载的方式调用扩展函数，避免链接错误
-        auto vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-            Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
-        
+        auto vkSetDebugUtilsObjectNameEXT =
+            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+
         if (vkSetDebugUtilsObjectNameEXT)
         {
             VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
@@ -1447,7 +1449,7 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
             VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
             VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
             VkNameInfo.pObjectName = NameStr.CStr();
-            
+
             vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
         }
     }

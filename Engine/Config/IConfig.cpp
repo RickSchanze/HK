@@ -4,7 +4,6 @@
 
 #include "IConfig.h"
 #include "ConfigManager.h"
-#include "Core/Reflection/TypeManager.h"
 #include "Core/Serialization/XMLArchive.h"
 #include "Core/Logging/Logger.h"
 #include <filesystem>
@@ -15,8 +14,8 @@ void IConfig::Save()
     PreSave();
 
     // 从 ConfigManager 获取类型信息
-    FConfigManager& ConfigManager = FConfigManager::GetRef();
-    FType Type = ConfigManager.GetConfigType(this);
+    const FConfigManager& ConfigManager = FConfigManager::GetRef();
+    const FType Type = ConfigManager.GetConfigType(this);
     if (Type == nullptr)
     {
         HK_LOG_ERROR(ELogcat::Config, "Failed to get type info for config");
@@ -25,7 +24,7 @@ void IConfig::Save()
     }
 
     // 获取 ConfigPath 属性
-    FStringView ConfigPathAttr = Type->GetAttribute(FName("ConfigPath"));
+    const FStringView ConfigPathAttr = Type->GetAttribute(FName("ConfigPath"));
     if (ConfigPathAttr.IsEmpty())
     {
         HK_LOG_ERROR(ELogcat::Config, "ConfigPath attribute not found for type: {}", Type->Name.GetStdString());
@@ -33,11 +32,11 @@ void IConfig::Save()
         return;
     }
 
-    FString ConfigPath = ConfigPathAttr.GetString();
+    FStringView ConfigPath = ConfigPathAttr;
 
     // 确保目录存在
-    std::filesystem::path FilePath(ConfigPath.GetStdString());
-    std::filesystem::path DirPath = FilePath.parent_path();
+    const std::filesystem::path FilePath(ConfigPath.GetStdStringView());
+    const std::filesystem::path DirPath = FilePath.parent_path();
     if (!DirPath.empty() && !std::filesystem::exists(DirPath))
     {
         std::filesystem::create_directories(DirPath);
@@ -47,7 +46,7 @@ void IConfig::Save()
     std::ofstream File(FilePath.string(), std::ios::binary);
     if (!File.is_open())
     {
-        HK_LOG_ERROR(ELogcat::Config, "Failed to open config file for writing: {}", ConfigPath.GetStdString());
+        HK_LOG_ERROR(ELogcat::Config, "Failed to open config file for writing: {}", ConfigPath);
         PostSave();
         return;
     }
@@ -57,7 +56,7 @@ void IConfig::Save()
         FXMLOutputArchive Archive(File);
         Serialize(Archive);
         File.close();
-        HK_LOG_INFO(ELogcat::Config, "Config saved to: {}", ConfigPath.GetStdString());
+        HK_LOG_INFO(ELogcat::Config, "Config saved to: {}", ConfigPath);
     }
     catch (const std::exception& e)
     {

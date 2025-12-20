@@ -9,15 +9,15 @@
 
 static inline FGfxDevice* GGfxDevice = nullptr;
 
-void CreateRHIDevice()
+void CreateGfxDevice()
 {
     GOnPreRHIDeviceCreated.Invoke();
     GGfxDevice = New<FGfxDeviceVk>();
-    GGfxDevice->Initialize();
+    GGfxDevice->Init();
     GOnPostRHIDeviceCreated.Invoke(GGfxDevice);
 }
 
-void DestroyRHIDevice()
+void DestroyGfxDevice()
 {
     GOnPreRHIDeviceDestroyed.Invoke(GGfxDevice);
     Delete(GGfxDevice);
@@ -25,7 +25,7 @@ void DestroyRHIDevice()
     GOnPostRHIDeviceDestroyed.Invoke();
 }
 
-FGfxDevice* GetRHIDevice()
+FGfxDevice* GetGfxDevice()
 {
     return GGfxDevice;
 }

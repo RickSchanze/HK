@@ -641,7 +641,9 @@ def generate_enum_cpp_code(enum_info: EnumInfo, header_path: str, engine_dir: st
     impl_content += "}\n\n"
     
     # 生成注册函数（只注册函数，不执行注册操作）
-    code = f"""{impl_content}void {register_func_name}()
+    code = f"""{impl_content}#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+void {register_func_name}()
 {{
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<{enum_name}>({register_impl_func_name});
@@ -1009,6 +1011,8 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
     cpp_content = f"""#include "{generated_h_name}"
 #include "Core/Reflection/TypeManager.h"
 #include "{rel_path}.h"
+
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
 
 
 {impl_content}{register_func_code}{serialize_impl_code}"""
