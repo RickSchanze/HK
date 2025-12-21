@@ -11,6 +11,7 @@
 #include "Core/Utility/UniquePtr.h"
 #include "RHI/RHIConfig.h"
 #include "RHI/RHIHandle.h"
+#include "RHI/RHIImage.h"
 #include "RHI/RHIWindow.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_version.h>

@@ -9,7 +9,7 @@ void* FRHIBuffer::Map(const UInt64 Offset, UInt64 MapSize)
 {
     HK_ASSERT_MSG_RAW(IsValid(), "Cannot map invalid buffer");
     HK_ASSERT_MSG_RAW(!IsMapped(), "Buffer is already mapped");
-    HK_ASSERT_MSG_RAW(HasFlag(MemoryProperty, EBufferMemoryProperty::HostVisible),
+    HK_ASSERT_MSG_RAW(HasFlag(MemoryProperty, ERHIBufferMemoryProperty::HostVisible),
                       "Buffer must have HostVisible memory property to be mapped");
 
     if (MapSize == 0)

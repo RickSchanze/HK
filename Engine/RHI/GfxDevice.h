@@ -10,6 +10,14 @@
 class FRHIWindow;
 struct FRHIBufferDesc;
 class FRHIBuffer;
+struct FRHIImageDesc;
+class FRHIImage;
+struct FRHIImageViewDesc;
+class FRHIImageView;
+struct FRHIDescriptorPoolDesc;
+class FRHIDescriptorPool;
+struct FRHIDescriptorSetDesc;
+class FRHIDescriptorSet;
 
 HENUM()
 enum class EGfxBackend
@@ -50,6 +58,48 @@ public:
     // 取消映射缓冲区内存
     // @param Buffer 要取消映射的缓冲区
     virtual void UnmapBuffer(FRHIBuffer& Buffer) = 0;
+#pragma endregion
+
+#pragma region Image操作
+    // 创建图像，返回的值类型包含一个 Handle
+    // 可以像普通值类型一样拷贝和移动
+    // 只有通过 CreateImage 创建的 Image 才是有效的
+    virtual FRHIImage CreateImage(const FRHIImageDesc& ImageCreateInfo) = 0;
+
+    // 销毁图像资源
+    // 必须通过此方法销毁，不能直接调用 Image.Destroy()
+    virtual void DestroyImage(FRHIImage& Image) = 0;
+
+    // 创建图像视图
+    // 图像视图允许以不同的方式访问图像的子资源
+    virtual FRHIImageView CreateImageView(const FRHIImage& Image, const FRHIImageViewDesc& ViewCreateInfo) = 0;
+
+    // 销毁图像视图资源
+    // 必须通过此方法销毁，不能直接调用 ImageView.Destroy()
+    virtual void DestroyImageView(FRHIImageView& ImageView) = 0;
+#pragma endregion
+
+#pragma region Descriptor操作
+    // 创建描述符池
+    // 描述符池用于分配描述符集
+    virtual FRHIDescriptorPool CreateDescriptorPool(const FRHIDescriptorPoolDesc& PoolCreateInfo) = 0;
+
+    // 销毁描述符池资源
+    // 销毁描述符池会自动释放所有从中分配的描述符集
+    // 必须通过此方法销毁，不能直接调用 DescriptorPool.Destroy()
+    virtual void DestroyDescriptorPool(FRHIDescriptorPool& DescriptorPool) = 0;
+
+    // 从描述符池分配描述符集
+    // @param Pool 描述符池
+    // @param SetCreateInfo 描述符集创建信息
+    // @return 分配的描述符集
+    virtual FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool, const FRHIDescriptorSetDesc& SetCreateInfo) = 0;
+
+    // 释放描述符集
+    // 将描述符集返回到描述符池
+    // @param Pool 描述符池
+    // @param DescriptorSet 要释放的描述符集
+    virtual void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) = 0;
 #pragma endregion
 
 #pragma region "窗口操作"

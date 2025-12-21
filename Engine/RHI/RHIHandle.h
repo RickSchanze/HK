@@ -59,7 +59,7 @@ struct FRHIHandle
     }
 
     template <typename T>
-    T Cast()
+    T Cast() const
     {
         return reinterpret_cast<T>(Handle);
     }

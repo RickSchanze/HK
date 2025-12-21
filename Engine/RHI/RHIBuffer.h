@@ -4,7 +4,7 @@
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
 
-enum class EBufferUsage : UInt32
+enum class ERHIBufferUsage : UInt32
 {
     None = 0,
     TransferSrc = 1 << 0,        // 可以作为传输源
@@ -17,9 +17,9 @@ enum class EBufferUsage : UInt32
     VertexBuffer = 1 << 7,       // 顶点缓冲区
     IndirectBuffer = 1 << 8,     // 间接缓冲区
 };
-HK_ENABLE_BITMASK_OPERATORS(EBufferUsage)
+HK_ENABLE_BITMASK_OPERATORS(ERHIBufferUsage)
 
-enum class EBufferMemoryProperty : UInt32
+enum class ERHIBufferMemoryProperty : UInt32
 {
     None = 0,
     DeviceLocal = 1 << 0,  // 设备本地内存（GPU 访问快）
@@ -27,13 +27,13 @@ enum class EBufferMemoryProperty : UInt32
     HostCoherent = 1 << 2, // 主机一致（CPU/GPU 自动同步）
     HostCached = 1 << 3,   // 主机缓存（CPU 读取快）
 };
-HK_ENABLE_BITMASK_OPERATORS(EBufferMemoryProperty)
+HK_ENABLE_BITMASK_OPERATORS(ERHIBufferMemoryProperty)
 
 struct FRHIBufferDesc
 {
     UInt64 Size = 0;                                                           // 缓冲区大小（字节）
-    EBufferUsage Usage = EBufferUsage::None;                                   // 使用标志
-    EBufferMemoryProperty MemoryProperty = EBufferMemoryProperty::DeviceLocal; // 内存属性
+    ERHIBufferUsage Usage = ERHIBufferUsage::None;                                   // 使用标志
+    ERHIBufferMemoryProperty MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal; // 内存属性
     FString DebugName;                                                         // 调试名称
 };
 
@@ -80,13 +80,13 @@ public:
     }
 
     // 获取使用标志
-    EBufferUsage GetUsage() const
+    ERHIBufferUsage GetUsage() const
     {
         return Usage;
     }
 
     // 获取内存属性
-    EBufferMemoryProperty GetMemoryProperty() const
+    ERHIBufferMemoryProperty GetMemoryProperty() const
     {
         return MemoryProperty;
     }
@@ -128,7 +128,7 @@ public:
 private:
     FRHIHandle Handle;
     UInt64 Size = 0;
-    EBufferUsage Usage = EBufferUsage::None;
-    EBufferMemoryProperty MemoryProperty = EBufferMemoryProperty::None;
+    ERHIBufferUsage Usage = ERHIBufferUsage::None;
+    ERHIBufferMemoryProperty MemoryProperty = ERHIBufferMemoryProperty::None;
     void* MappedPtr = nullptr; // 映射的内存指针
 };

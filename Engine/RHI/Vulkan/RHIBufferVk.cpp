@@ -255,7 +255,7 @@ void* FGfxDeviceVk::MapBuffer(FRHIBuffer& Buffer, UInt64 Offset, UInt64 Size)
     }
 
     // 检查内存属性
-    if (!HasFlag(Buffer.GetMemoryProperty(), EBufferMemoryProperty::HostVisible))
+    if (!HasFlag(Buffer.GetMemoryProperty(), ERHIBufferMemoryProperty::HostVisible))
     {
         HK_LOG_ERROR(ELogcat::RHI, "Buffer必须具有HostVisible内存属性才能映射");
         return nullptr;
@@ -371,43 +371,43 @@ void FGfxDeviceVk::UnmapBuffer(FRHIBuffer& Buffer)
     HK_LOG_INFO(ELogcat::RHI, "Buffer取消映射成功");
 }
 
-vk::BufferUsageFlags FGfxDeviceVk::ConvertBufferUsage(const EBufferUsage Usage)
+vk::BufferUsageFlags FGfxDeviceVk::ConvertBufferUsage(const ERHIBufferUsage Usage)
 {
     vk::BufferUsageFlags Flags = {};
 
-    if (HasFlag(Usage, EBufferUsage::TransferSrc))
+    if (HasFlag(Usage, ERHIBufferUsage::TransferSrc))
     {
         Flags |= vk::BufferUsageFlagBits::eTransferSrc;
     }
-    if (HasFlag(Usage, EBufferUsage::TransferDst))
+    if (HasFlag(Usage, ERHIBufferUsage::TransferDst))
     {
         Flags |= vk::BufferUsageFlagBits::eTransferDst;
     }
-    if (HasFlag(Usage, EBufferUsage::UniformTexelBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::UniformTexelBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eUniformTexelBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::StorageTexelBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::StorageTexelBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eStorageTexelBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::UniformBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::UniformBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eUniformBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::StorageBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::StorageBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eStorageBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::IndexBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::IndexBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eIndexBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::VertexBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::VertexBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eVertexBuffer;
     }
-    if (HasFlag(Usage, EBufferUsage::IndirectBuffer))
+    if (HasFlag(Usage, ERHIBufferUsage::IndirectBuffer))
     {
         Flags |= vk::BufferUsageFlagBits::eIndirectBuffer;
     }
@@ -415,23 +415,23 @@ vk::BufferUsageFlags FGfxDeviceVk::ConvertBufferUsage(const EBufferUsage Usage)
     return Flags;
 }
 
-vk::MemoryPropertyFlags FGfxDeviceVk::ConvertMemoryProperty(const EBufferMemoryProperty MemoryProperty)
+vk::MemoryPropertyFlags FGfxDeviceVk::ConvertMemoryProperty(const ERHIBufferMemoryProperty MemoryProperty)
 {
     vk::MemoryPropertyFlags Flags = {};
 
-    if (HasFlag(MemoryProperty, EBufferMemoryProperty::DeviceLocal))
+    if (HasFlag(MemoryProperty, ERHIBufferMemoryProperty::DeviceLocal))
     {
         Flags |= vk::MemoryPropertyFlagBits::eDeviceLocal;
     }
-    if (HasFlag(MemoryProperty, EBufferMemoryProperty::HostVisible))
+    if (HasFlag(MemoryProperty, ERHIBufferMemoryProperty::HostVisible))
     {
         Flags |= vk::MemoryPropertyFlagBits::eHostVisible;
     }
-    if (HasFlag(MemoryProperty, EBufferMemoryProperty::HostCoherent))
+    if (HasFlag(MemoryProperty, ERHIBufferMemoryProperty::HostCoherent))
     {
         Flags |= vk::MemoryPropertyFlagBits::eHostCoherent;
     }
-    if (HasFlag(MemoryProperty, EBufferMemoryProperty::HostCached))
+    if (HasFlag(MemoryProperty, ERHIBufferMemoryProperty::HostCached))
     {
         Flags |= vk::MemoryPropertyFlagBits::eHostCached;
     }

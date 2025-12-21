@@ -4,6 +4,9 @@
 #include "Core/String/String.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIBuffer.h"
+#include "RHI/RHIImage.h"
+#include "RHI/RHIImageView.h"
+#include "RHI/RHIDescriptorSet.h"
 #include "vulkan/vulkan.hpp"
 
 class FGfxDeviceVk : public FGfxDevice
@@ -17,6 +20,20 @@ public:
     void DestroyBuffer(FRHIBuffer& Buffer) override;
     void* MapBuffer(FRHIBuffer& Buffer, UInt64 Offset, UInt64 Size) override;
     void UnmapBuffer(FRHIBuffer& Buffer) override;
+#pragma endregion
+
+#pragma region Image操作
+    FRHIImage CreateImage(const FRHIImageDesc& ImageCreateInfo) override;
+    void DestroyImage(FRHIImage& Image) override;
+    FRHIImageView CreateImageView(const FRHIImage& Image, const FRHIImageViewDesc& ViewCreateInfo) override;
+    void DestroyImageView(FRHIImageView& ImageView) override;
+#pragma endregion
+
+#pragma region Descriptor操作
+    FRHIDescriptorPool CreateDescriptorPool(const FRHIDescriptorPoolDesc& PoolCreateInfo) override;
+    void DestroyDescriptorPool(FRHIDescriptorPool& DescriptorPool) override;
+    FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool, const FRHIDescriptorSetDesc& SetCreateInfo) override;
+    void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) override;
 #pragma endregion
 
 #pragma region 窗口操作
@@ -117,14 +134,63 @@ private:
      * @param Usage 缓冲区使用标志
      * @return Vulkan 缓冲区使用标志
      */
-    static vk::BufferUsageFlags ConvertBufferUsage(EBufferUsage Usage);
+    static vk::BufferUsageFlags ConvertBufferUsage(ERHIBufferUsage Usage);
 
     /**
      * 转换 EBufferMemoryProperty 到 VkMemoryPropertyFlags
      * @param MemoryProperty 内存属性
      * @return Vulkan 内存属性标志
      */
-    static vk::MemoryPropertyFlags ConvertMemoryProperty(EBufferMemoryProperty MemoryProperty);
+    static vk::MemoryPropertyFlags ConvertMemoryProperty(ERHIBufferMemoryProperty MemoryProperty);
+
+    /**
+     * 转换 EImageFormat 到 VkFormat
+     * @param Format 图像格式
+     * @return Vulkan 图像格式
+     */
+    static vk::Format ConvertImageFormat(ERHIImageFormat Format);
+
+    /**
+     * 转换 EImageUsage 到 VkImageUsageFlags
+     * @param Usage 图像使用标志
+     * @return Vulkan 图像使用标志
+     */
+    static vk::ImageUsageFlags ConvertImageUsage(ERHIImageUsage Usage);
+
+    /**
+     * 转换 EImageLayout 到 VkImageLayout
+     * @param Layout 图像布局
+     * @return Vulkan 图像布局
+     */
+    static vk::ImageLayout ConvertImageLayout(ERHIImageLayout Layout);
+
+    /**
+     * 转换 EImageType 到 VkImageType
+     * @param Type 图像类型
+     * @return Vulkan 图像类型
+     */
+    static vk::ImageType ConvertImageType(ERHIImageType Type);
+
+    /**
+     * 转换 ESampleCount 到 VkSampleCountFlagBits
+     * @param Samples 采样数量
+     * @return Vulkan 采样计数标志
+     */
+    static vk::SampleCountFlagBits ConvertSampleCount(ERHISampleCount Samples);
+
+    /**
+     * 转换 ERHIDescriptorType 到 VkDescriptorType
+     * @param Type 描述符类型
+     * @return Vulkan 描述符类型
+     */
+    static vk::DescriptorType ConvertDescriptorType(ERHIDescriptorType Type);
+
+    /**
+     * 转换 ERHIDescriptorPoolCreateFlag 到 VkDescriptorPoolCreateFlags
+     * @param Flags 描述符池创建标志
+     * @return Vulkan 描述符池创建标志
+     */
+    static vk::DescriptorPoolCreateFlags ConvertDescriptorPoolCreateFlags(ERHIDescriptorPoolCreateFlag Flags);
 
     /**
      * 查找合适的内存类型索引
@@ -142,6 +208,10 @@ private:
      */
     void SetDebugName(vk::DeviceMemory ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Buffer ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::Image ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::ImageView ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::DescriptorSet ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
 
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;

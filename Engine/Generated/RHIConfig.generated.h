@@ -11,6 +11,8 @@
         }                                                                                                              \
         static void Register_FRHIConfig();                                                                                 \
     };                                                                                                                 \
+    typedef IConfig::ThisClass Super;                                                                                        \
+    typedef FRHIConfig ThisClass;                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FRHIConfig)                                                                                        \
     static void Register_FRHIConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
