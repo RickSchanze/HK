@@ -8,6 +8,7 @@
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
 #include "RHI/RHIPipeline.h"
+#include "RHI/RHISync.h"
 #include "vulkan/vulkan.hpp"
 
 class FGfxDeviceVk : public FGfxDevice
@@ -49,6 +50,13 @@ public:
     FRHIPipeline CreateComputePipeline(const FRHIComputePipelineDesc& PipelineCreateInfo) override;
     FRHIPipeline CreateRayTracingPipeline(const FRHIRayTracingPipelineDesc& PipelineCreateInfo) override;
     void DestroyPipeline(FRHIPipeline& Pipeline) override;
+#pragma endregion
+
+#pragma region Sync操作
+    FRHISemaphore CreateSemaphore(const FRHISemaphoreDesc& SemaphoreCreateInfo) override;
+    void DestroySemaphore(FRHISemaphore& Semaphore) override;
+    FRHIFence CreateFence(const FRHIFenceDesc& FenceCreateInfo) override;
+    void DestroyFence(FRHIFence& Fence) override;
 #pragma endregion
 
 #pragma region 窗口操作
@@ -310,6 +318,8 @@ private:
     void SetDebugName(vk::ShaderModule ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::PipelineLayout ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Pipeline ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::Semaphore ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::Fence ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
 
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;

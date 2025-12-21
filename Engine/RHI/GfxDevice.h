@@ -7,6 +7,7 @@
 
 #include "GfxDevice.generated.h"
 #include "RHIPipeline.h"
+#include "RHISync.h"
 
 class FRHIWindow;
 struct FRHIBufferDesc;
@@ -162,6 +163,28 @@ public:
     // 销毁管线资源
     // 必须通过此方法销毁，不能直接调用 Pipeline.Destroy()
     virtual void DestroyPipeline(FRHIPipeline& Pipeline) = 0;
+#pragma endregion
+
+#pragma region Sync操作
+    // 创建信号量
+    // 信号量用于GPU命令之间的同步，通常用于队列提交之间的同步
+    // @param SemaphoreCreateInfo 信号量创建信息
+    // @return 创建的信号量
+    virtual FRHISemaphore CreateSemaphore(const FRHISemaphoreDesc& SemaphoreCreateInfo) = 0;
+
+    // 销毁信号量资源
+    // 必须通过此方法销毁，不能直接调用 Semaphore.Destroy()
+    virtual void DestroySemaphore(FRHISemaphore& Semaphore) = 0;
+
+    // 创建栅栏
+    // 栅栏用于CPU和GPU之间的同步，可以等待GPU完成某些操作
+    // @param FenceCreateInfo 栅栏创建信息
+    // @return 创建的栅栏
+    virtual FRHIFence CreateFence(const FRHIFenceDesc& FenceCreateInfo) = 0;
+
+    // 销毁栅栏资源
+    // 必须通过此方法销毁，不能直接调用 Fence.Destroy()
+    virtual void DestroyFence(FRHIFence& Fence) = 0;
 #pragma endregion
 
 #pragma region "窗口操作"
