@@ -4,9 +4,10 @@
 #include "Core/String/String.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIBuffer.h"
+#include "RHI/RHIDescriptorSet.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
-#include "RHI/RHIDescriptorSet.h"
+#include "RHI/RHIPipeline.h"
 #include "vulkan/vulkan.hpp"
 
 class FGfxDeviceVk : public FGfxDevice
@@ -30,10 +31,24 @@ public:
 #pragma endregion
 
 #pragma region Descriptor操作
+    FRHIDescriptorSetLayout CreateDescriptorSetLayout(const FRHIDescriptorSetLayoutDesc& LayoutCreateInfo) override;
+    void DestroyDescriptorSetLayout(FRHIDescriptorSetLayout& DescriptorSetLayout) override;
     FRHIDescriptorPool CreateDescriptorPool(const FRHIDescriptorPoolDesc& PoolCreateInfo) override;
     void DestroyDescriptorPool(FRHIDescriptorPool& DescriptorPool) override;
-    FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool, const FRHIDescriptorSetDesc& SetCreateInfo) override;
+    FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool,
+                                            const FRHIDescriptorSetDesc& SetCreateInfo) override;
     void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) override;
+#pragma endregion
+
+#pragma region Pipeline操作
+    FRHIShaderModule CreateShaderModule(const FRHIShaderModuleDesc& ModuleCreateInfo, ERHIShaderStage Stage) override;
+    void DestroyShaderModule(FRHIShaderModule& ShaderModule) override;
+    FRHIPipelineLayout CreatePipelineLayout(const FRHIPipelineLayoutDesc& LayoutCreateInfo) override;
+    void DestroyPipelineLayout(FRHIPipelineLayout& PipelineLayout) override;
+    FRHIPipeline CreateGraphicsPipeline(const FRHIGraphicsPipelineDesc& PipelineCreateInfo) override;
+    FRHIPipeline CreateComputePipeline(const FRHIComputePipelineDesc& PipelineCreateInfo) override;
+    FRHIPipeline CreateRayTracingPipeline(const FRHIRayTracingPipelineDesc& PipelineCreateInfo) override;
+    void DestroyPipeline(FRHIPipeline& Pipeline) override;
 #pragma endregion
 
 #pragma region 窗口操作
@@ -193,6 +208,85 @@ private:
     static vk::DescriptorPoolCreateFlags ConvertDescriptorPoolCreateFlags(ERHIDescriptorPoolCreateFlag Flags);
 
     /**
+     * 转换 ERHIShaderStage 到 VkShaderStageFlagBits
+     * @param Stage 着色器阶段
+     * @return Vulkan 着色器阶段标志
+     */
+    static vk::ShaderStageFlagBits ConvertShaderStage(ERHIShaderStage Stage);
+
+    /**
+     * 转换 ERHIShaderStage 到 VkShaderStageFlags
+     * @param Stages 着色器阶段标志组合
+     * @return Vulkan 着色器阶段标志
+     */
+    static vk::ShaderStageFlags ConvertShaderStageFlags(ERHIShaderStage Stages);
+
+    /**
+     * 转换 ERHIPrimitiveTopology 到 VkPrimitiveTopology
+     */
+    static vk::PrimitiveTopology ConvertPrimitiveTopology(ERHIPrimitiveTopology Topology);
+
+    /**
+     * 转换 ERHIPolygonMode 到 VkPolygonMode
+     */
+    static vk::PolygonMode ConvertPolygonMode(ERHIPolygonMode Mode);
+
+    /**
+     * 转换 ERHICullMode 到 VkCullModeFlags
+     */
+    static vk::CullModeFlags ConvertCullMode(ERHICullMode Mode);
+
+    /**
+     * 转换 ERHIFrontFace 到 VkFrontFace
+     */
+    static vk::FrontFace ConvertFrontFace(ERHIFrontFace Face);
+
+    /**
+     * 转换 ERHICompareOp 到 VkCompareOp
+     */
+    static vk::CompareOp ConvertCompareOp(ERHICompareOp Op);
+
+    /**
+     * 转换 ERHIStencilOp 到 VkStencilOp
+     */
+    static vk::StencilOp ConvertStencilOp(ERHIStencilOp Op);
+
+    /**
+     * 转换 ERHIBlendFactor 到 VkBlendFactor
+     */
+    static vk::BlendFactor ConvertBlendFactor(ERHIBlendFactor Factor);
+
+    /**
+     * 转换 ERHIBlendOp 到 VkBlendOp
+     */
+    static vk::BlendOp ConvertBlendOp(ERHIBlendOp Op);
+
+    /**
+     * 转换 ERHILogicOp 到 VkLogicOp
+     */
+    static vk::LogicOp ConvertLogicOp(ERHILogicOp Op);
+
+    /**
+     * 转换 ERHIDynamicState 标志位到 VkDynamicState 数组
+     */
+    static TArray<vk::DynamicState> ConvertDynamicStateFlags(ERHIDynamicState States);
+
+    /**
+     * 转换 ERHIColorComponentFlag 到 VkColorComponentFlags
+     */
+    static vk::ColorComponentFlags ConvertColorComponentFlags(ERHIColorComponentFlag Flags);
+
+    /**
+     * 内部辅助函数：创建图形管线（Vulkan 实现）
+     */
+    vk::Pipeline CreateGraphicsPipelineInternal(vk::PipelineLayout Layout, const FRHIGraphicsPipelineDesc& Desc) const;
+
+    /**
+     * 内部辅助函数：创建计算管线（Vulkan 实现）
+     */
+    vk::Pipeline CreateComputePipelineInternal(vk::PipelineLayout Layout, const FRHIComputePipelineDesc& Desc);
+
+    /**
      * 查找合适的内存类型索引
      * @param TypeFilter 内存类型过滤器
      * @param Properties 所需的内存属性
@@ -210,8 +304,12 @@ private:
     void SetDebugName(vk::Buffer ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Image ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::ImageView ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::DescriptorSetLayout ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::DescriptorSet ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::ShaderModule ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::PipelineLayout ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::Pipeline ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
 
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;
@@ -221,5 +319,6 @@ private:
     vk::Queue PresentQueue;
     FQueueFamilyIndices QueueFamilyIndices;
     bool bValidationLayersEnabled = false;
-    bool bDebugUtilsExtensionAvailable = false; // Debug Utils扩展是否可用
+    bool bDebugUtilsExtensionAvailable = false;                              // Debug Utils扩展是否可用
+    PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT = nullptr; // 缓存的Debug Utils函数指针
 };

@@ -9,6 +9,116 @@
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
 #include "RHI/RHIHandle.h"
+#include "RHI/RHIPipeline.h"
+
+#pragma region DescriptorSetLayout实现
+
+FRHIDescriptorSetLayout FGfxDeviceVk::CreateDescriptorSetLayout(const FRHIDescriptorSetLayoutDesc& LayoutCreateInfo)
+{
+    try
+    {
+        // 转换绑定数组
+        TArray<vk::DescriptorSetLayoutBinding> VulkanBindings;
+        VulkanBindings.Reserve(LayoutCreateInfo.Bindings.Size());
+
+        for (const auto& Binding : LayoutCreateInfo.Bindings)
+        {
+            vk::DescriptorSetLayoutBinding VulkanBinding;
+            VulkanBinding.binding = Binding.Binding;
+            VulkanBinding.descriptorType = ConvertDescriptorType(Binding.DescriptorType);
+            VulkanBinding.descriptorCount = Binding.DescriptorCount;
+            VulkanBinding.stageFlags = ConvertShaderStageFlags(static_cast<ERHIShaderStage>(Binding.StageFlags));
+            VulkanBinding.pImmutableSamplers = nullptr; // 暂时不支持不可变采样器
+            VulkanBindings.Add(VulkanBinding);
+        }
+
+        // 创建 Vulkan 描述符集布局创建信息
+        vk::DescriptorSetLayoutCreateInfo LayoutInfo;
+        LayoutInfo.bindingCount = static_cast<uint32_t>(VulkanBindings.Size());
+        LayoutInfo.pBindings = VulkanBindings.Data();
+
+        // 创建 Vulkan 描述符集布局
+        vk::DescriptorSetLayout VulkanLayout;
+        try
+        {
+            VulkanLayout = Device.createDescriptorSetLayout(LayoutInfo);
+        }
+        catch (const vk::SystemError& e)
+        {
+            HK_LOG_FATAL(ELogcat::RHI, "创建 Vulkan 描述符集布局失败: {}", e.what());
+            throw std::runtime_error((FString("创建 Vulkan 描述符集布局失败: ") + FString(e.what())).CStr());
+        }
+
+        // 设置调试名称
+        if (!LayoutCreateInfo.DebugName.IsEmpty())
+        {
+            SetDebugName(VulkanLayout, vk::ObjectType::eDescriptorSetLayout, LayoutCreateInfo.DebugName);
+        }
+
+        // 创建 RHI 句柄
+        auto& HandleManager = FRHIHandleManager::GetRef();
+        const FRHIHandle LayoutHandle =
+            HandleManager.CreateRHIHandle(LayoutCreateInfo.DebugName.CStr(),
+                                          reinterpret_cast<void*>(static_cast<VkDescriptorSetLayout>(VulkanLayout)));
+
+        // 创建 FRHIDescriptorSetLayout 对象
+        FRHIDescriptorSetLayout DescriptorSetLayout;
+        DescriptorSetLayout.Handle = LayoutHandle;
+
+        HK_LOG_INFO(ELogcat::RHI, "描述符集布局创建成功: Bindings={}", VulkanBindings.Size());
+
+        return DescriptorSetLayout;
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建描述符集布局失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "创建描述符集布局失败: 未知异常");
+        throw std::runtime_error("创建描述符集布局失败: 未知异常");
+    }
+}
+
+void FGfxDeviceVk::DestroyDescriptorSetLayout(FRHIDescriptorSetLayout& DescriptorSetLayout)
+{
+    if (!DescriptorSetLayout.IsValid())
+    {
+        HK_LOG_WARN(ELogcat::RHI, "尝试销毁无效的描述符集布局");
+        return;
+    }
+
+    try
+    {
+        // 获取 Vulkan 描述符集布局
+        const auto VulkanLayout = vk::DescriptorSetLayout(DescriptorSetLayout.Handle.Cast<VkDescriptorSetLayout>());
+
+        // 销毁 Vulkan 描述符集布局
+        Device.destroyDescriptorSetLayout(VulkanLayout);
+
+        // 销毁 RHI 句柄
+        auto& HandleManager = FRHIHandleManager::GetRef();
+        HandleManager.DestroyRHIHandle(DescriptorSetLayout.Handle);
+
+        // 重置句柄
+        DescriptorSetLayout.Handle = FRHIHandle();
+
+        HK_LOG_INFO(ELogcat::RHI, "描述符集布局销毁成功");
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "销毁描述符集布局失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "销毁描述符集布局失败: 未知异常");
+        throw std::runtime_error("销毁描述符集布局失败: 未知异常");
+    }
+}
+
+#pragma endregion
 
 #pragma region DescriptorPool实现
 
@@ -115,13 +225,13 @@ FRHIDescriptorSet FGfxDeviceVk::AllocateDescriptorSet(const FRHIDescriptorPool& 
                                                       const FRHIDescriptorSetDesc& SetCreateInfo)
 {
     HK_ASSERT_MSG_RAW(Pool.IsValid(), "无效的描述符池句柄");
-    HK_ASSERT_MSG_RAW(SetCreateInfo.Layout != nullptr, "描述符集布局不能为空");
+    HK_ASSERT_MSG_RAW(SetCreateInfo.Layout.IsValid(), "描述符集布局不能为空");
 
     try
     {
         // 获取 Vulkan 描述符池和布局
         const auto VulkanPool = vk::DescriptorPool(Pool.Handle.Cast<VkDescriptorPool>());
-        const auto VulkanLayout = vk::DescriptorSetLayout(static_cast<VkDescriptorSetLayout>(SetCreateInfo.Layout));
+        const auto VulkanLayout = vk::DescriptorSetLayout(SetCreateInfo.Layout.Handle.Cast<VkDescriptorSetLayout>());
 
         // 创建 Vulkan 描述符集分配信息
         vk::DescriptorSetAllocateInfo AllocInfo;
@@ -286,7 +396,7 @@ vk::DescriptorPoolCreateFlags FGfxDeviceVk::ConvertDescriptorPoolCreateFlags(ERH
 void FGfxDeviceVk::SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
@@ -295,19 +405,13 @@ void FGfxDeviceVk::SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType 
     {
         const FString NameStr(Name.Data(), Name.Size());
 
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDescriptorPool>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDescriptorPool>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
-
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {
@@ -323,7 +427,7 @@ void FGfxDeviceVk::SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType 
 void FGfxDeviceVk::SetDebugName(vk::DescriptorSet ObjectHandle, vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
@@ -332,19 +436,13 @@ void FGfxDeviceVk::SetDebugName(vk::DescriptorSet ObjectHandle, vk::ObjectType O
     {
         const FString NameStr(Name.Data(), Name.Size());
 
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDescriptorSet>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDescriptorSet>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
-
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {

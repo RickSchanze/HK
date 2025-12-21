@@ -45,12 +45,83 @@ struct FRHIDescriptorPoolDesc
     FString DebugName;                                                       // 调试名称
 };
 
+// 描述符集布局绑定
+struct FRHIDescriptorSetLayoutBinding
+{
+    UInt32 Binding = 0;                    // 绑定索引
+    ERHIDescriptorType DescriptorType = ERHIDescriptorType::UniformBuffer; // 描述符类型
+    UInt32 DescriptorCount = 1;            // 描述符数量
+    UInt32 StageFlags = 0;                 // 着色器阶段标志（ERHIShaderStage 的位掩码）
+    // 注意：ImmutableSamplers 将在后续实现
+};
+
+// 描述符集布局描述
+struct FRHIDescriptorSetLayoutDesc
+{
+    TArray<FRHIDescriptorSetLayoutBinding> Bindings; // 绑定数组
+    FString DebugName;                                 // 调试名称
+};
+
+// 描述符集布局类
+class FRHIDescriptorSetLayout
+{
+    friend class FGfxDevice;
+    friend class FGfxDeviceVk;
+
+public:
+    // 默认构造：创建空的 DescriptorSetLayout（无效）
+    FRHIDescriptorSetLayout() = default;
+
+    // 析构函数：不自动销毁资源，必须通过 FRHIDevice::DestroyDescriptorSetLayout 销毁
+    ~FRHIDescriptorSetLayout() = default;
+
+    // 允许拷贝和移动
+    FRHIDescriptorSetLayout(const FRHIDescriptorSetLayout& Other) = default;
+    FRHIDescriptorSetLayout& operator=(const FRHIDescriptorSetLayout& Other) = default;
+    FRHIDescriptorSetLayout(FRHIDescriptorSetLayout&& Other) noexcept = default;
+    FRHIDescriptorSetLayout& operator=(FRHIDescriptorSetLayout&& Other) noexcept = default;
+
+    // 检查是否有效
+    bool IsValid() const
+    {
+        return Handle.IsValid();
+    }
+
+    // 获取底层句柄
+    const FRHIHandle& GetHandle() const
+    {
+        return Handle;
+    }
+
+    FRHIHandle& GetHandle()
+    {
+        return Handle;
+    }
+
+    operator bool() const
+    {
+        return IsValid();
+    }
+
+    // 比较操作符
+    bool operator==(const FRHIDescriptorSetLayout& Other) const
+    {
+        return Handle == Other.Handle;
+    }
+
+    bool operator!=(const FRHIDescriptorSetLayout& Other) const
+    {
+        return Handle != Other.Handle;
+    }
+
+private:
+    FRHIHandle Handle;
+};
+
 struct FRHIDescriptorSetDesc
 {
-    // 注意：DescriptorSetLayout 将在后续实现
-    // 这里暂时使用 void* 作为占位符，后续可以改为 FRHIDescriptorSetLayout
-    void* Layout = nullptr; // 描述符集布局（暂时使用占位符）
-    FString DebugName;      // 调试名称
+    FRHIDescriptorSetLayout Layout; // 描述符集布局（必须有效）
+    FString DebugName;               // 调试名称
 };
 
 // 描述符池类

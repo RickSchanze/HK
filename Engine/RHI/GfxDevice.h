@@ -6,6 +6,7 @@
 #include "Math/Vector.h"
 
 #include "GfxDevice.generated.h"
+#include "RHIPipeline.h"
 
 class FRHIWindow;
 struct FRHIBufferDesc;
@@ -16,8 +17,18 @@ struct FRHIImageViewDesc;
 class FRHIImageView;
 struct FRHIDescriptorPoolDesc;
 class FRHIDescriptorPool;
+struct FRHIDescriptorSetLayoutDesc;
+class FRHIDescriptorSetLayout;
 struct FRHIDescriptorSetDesc;
 class FRHIDescriptorSet;
+struct FRHIShaderModuleDesc;
+class FRHIShaderModule;
+struct FRHIPipelineLayoutDesc;
+class FRHIPipelineLayout;
+struct FRHIGraphicsPipelineDesc;
+struct FRHIComputePipelineDesc;
+struct FRHIRayTracingPipelineDesc;
+class FRHIPipeline;
 
 HENUM()
 enum class EGfxBackend
@@ -80,6 +91,16 @@ public:
 #pragma endregion
 
 #pragma region Descriptor操作
+    // 创建描述符集布局
+    // 描述符集布局定义了描述符集的绑定信息
+    // @param LayoutCreateInfo 描述符集布局创建信息
+    // @return 创建的描述符集布局
+    virtual FRHIDescriptorSetLayout CreateDescriptorSetLayout(const FRHIDescriptorSetLayoutDesc& LayoutCreateInfo) = 0;
+
+    // 销毁描述符集布局资源
+    // 必须通过此方法销毁，不能直接调用 DescriptorSetLayout.Destroy()
+    virtual void DestroyDescriptorSetLayout(FRHIDescriptorSetLayout& DescriptorSetLayout) = 0;
+
     // 创建描述符池
     // 描述符池用于分配描述符集
     virtual FRHIDescriptorPool CreateDescriptorPool(const FRHIDescriptorPoolDesc& PoolCreateInfo) = 0;
@@ -100,6 +121,47 @@ public:
     // @param Pool 描述符池
     // @param DescriptorSet 要释放的描述符集
     virtual void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) = 0;
+#pragma endregion
+
+#pragma region Pipeline操作
+    // 创建着色器模块
+    // @param ModuleCreateInfo 着色器模块创建信息
+    // @param Stage 着色器阶段
+    // @return 创建的着色器模块
+    virtual FRHIShaderModule CreateShaderModule(const FRHIShaderModuleDesc& ModuleCreateInfo, ERHIShaderStage Stage) = 0;
+
+    // 销毁着色器模块资源
+    // 必须通过此方法销毁，不能直接调用 ShaderModule.Destroy()
+    virtual void DestroyShaderModule(FRHIShaderModule& ShaderModule) = 0;
+
+    // 创建管线布局
+    // 管线布局定义了描述符集布局和推送常量的组合
+    // @param LayoutCreateInfo 管线布局创建信息
+    // @return 创建的管线布局
+    virtual FRHIPipelineLayout CreatePipelineLayout(const FRHIPipelineLayoutDesc& LayoutCreateInfo) = 0;
+
+    // 销毁管线布局资源
+    // 必须通过此方法销毁，不能直接调用 PipelineLayout.Destroy()
+    virtual void DestroyPipelineLayout(FRHIPipelineLayout& PipelineLayout) = 0;
+
+    // 创建图形管线
+    // @param PipelineCreateInfo 图形管线创建信息
+    // @return 创建的管线
+    virtual FRHIPipeline CreateGraphicsPipeline(const FRHIGraphicsPipelineDesc& PipelineCreateInfo) = 0;
+
+    // 创建计算管线
+    // @param PipelineCreateInfo 计算管线创建信息
+    // @return 创建的管线
+    virtual FRHIPipeline CreateComputePipeline(const FRHIComputePipelineDesc& PipelineCreateInfo) = 0;
+
+    // 创建光线追踪管线
+    // @param PipelineCreateInfo 光线追踪管线创建信息
+    // @return 创建的管线
+    virtual FRHIPipeline CreateRayTracingPipeline(const FRHIRayTracingPipelineDesc& PipelineCreateInfo) = 0;
+
+    // 销毁管线资源
+    // 必须通过此方法销毁，不能直接调用 Pipeline.Destroy()
+    virtual void DestroyPipeline(FRHIPipeline& Pipeline) = 0;
 #pragma endregion
 
 #pragma region "窗口操作"

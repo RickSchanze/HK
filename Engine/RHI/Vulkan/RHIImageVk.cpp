@@ -358,7 +358,7 @@ vk::SampleCountFlagBits FGfxDeviceVk::ConvertSampleCount(ERHISampleCount Samples
 
 void FGfxDeviceVk::SetDebugName(vk::Image ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
@@ -367,19 +367,13 @@ void FGfxDeviceVk::SetDebugName(vk::Image ObjectHandle, vk::ObjectType ObjectTyp
     {
         const FString NameStr(Name.Data(), Name.Size());
 
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkImage>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkImage>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
-
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {

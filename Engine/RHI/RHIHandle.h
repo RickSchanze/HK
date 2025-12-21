@@ -32,7 +32,7 @@ enum class ERHIResourceType
 
 struct FRHIHandle
 {
-    typedef Int32 FID;
+    typedef Int64 FID;
     typedef void* FHandleType;
     constexpr static FID INVALID_ID = 0;
 

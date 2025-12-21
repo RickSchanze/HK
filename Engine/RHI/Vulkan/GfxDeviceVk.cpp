@@ -83,6 +83,7 @@ void FGfxDeviceVk::UnInit()
         Device.waitIdle();
         Device.destroy();
         Device = nullptr;
+        vkSetDebugUtilsObjectNameEXT = nullptr; // 重置函数指针
         HK_LOG_INFO(ELogcat::RHI, "Vulkan逻辑设备已销毁");
     }
 
@@ -1163,6 +1164,18 @@ void FGfxDeviceVk::CreateDevice()
         // 获取队列
         GraphicsQueue = Device.getQueue(static_cast<uint32_t>(QueueFamilyIndices.GraphicsFamily), 0);
         PresentQueue = Device.getQueue(static_cast<uint32_t>(QueueFamilyIndices.PresentFamily), 0);
+
+        // 初始化 Debug Utils 函数指针
+        if (bDebugUtilsExtensionAvailable)
+        {
+            vkSetDebugUtilsObjectNameEXT =
+                reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+            if (!vkSetDebugUtilsObjectNameEXT)
+            {
+                HK_LOG_WARN(ELogcat::RHI, "无法获取 vkSetDebugUtilsObjectNameEXT 函数指针，Debug名称设置将被禁用");
+                bDebugUtilsExtensionAvailable = false;
+            }
+        }
     }
     catch (const vk::SystemError& e)
     {
@@ -1438,37 +1451,22 @@ UInt32 FGfxDeviceVk::FindMemoryType(const UInt32 TypeFilter, const vk::MemoryPro
 void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
 
-    // 检查是否支持 VK_EXT_debug_utils 扩展
-    // 注意：这需要在设备创建时启用该扩展
     try
     {
-        // 将 FStringView 转换为以 null 结尾的字符串
         const FString NameStr(Name.Data(), Name.Size());
 
-        vk::DebugUtilsObjectNameInfoEXT NameInfo;
-        NameInfo.objectType = ObjectType;
-        NameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
-        NameInfo.pObjectName = NameStr.CStr();
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        // 使用动态加载的方式调用扩展函数，避免链接错误
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
-
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
-
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {
@@ -1484,30 +1482,22 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
 void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectType ObjectType,
                                 const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
 
     try
     {
-        // 将 FStringView 转换为以 null 结尾的字符串
         const FString NameStr(Name.Data(), Name.Size());
 
-        // 使用动态加载的方式调用扩展函数，避免链接错误
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
-
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {

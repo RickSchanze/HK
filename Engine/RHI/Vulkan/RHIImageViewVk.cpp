@@ -129,7 +129,7 @@ void FGfxDeviceVk::DestroyImageView(FRHIImageView& ImageView)
 
 void FGfxDeviceVk::SetDebugName(vk::ImageView ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const
 {
-    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable)
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
     {
         return;
     }
@@ -138,19 +138,44 @@ void FGfxDeviceVk::SetDebugName(vk::ImageView ObjectHandle, vk::ObjectType Objec
     {
         const FString NameStr(Name.Data(), Name.Size());
 
-        const auto vkSetDebugUtilsObjectNameEXT =
-            reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(Device.getProcAddr("vkSetDebugUtilsObjectNameEXT"));
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkImageView>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
 
-        if (vkSetDebugUtilsObjectNameEXT)
-        {
-            VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-            VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-            VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
-            VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkImageView>(ObjectHandle));
-            VkNameInfo.pObjectName = NameStr.CStr();
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        // 如果扩展不可用，忽略错误（不是致命错误）
+        HK_LOG_DEBUG(ELogcat::RHI, "设置ImageView DebugName失败（扩展可能不可用）: {}", e.what());
+    }
+    catch (...)
+    {
+        // 忽略所有异常
+    }
+}
 
-            vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
-        }
+void FGfxDeviceVk::SetDebugName(vk::DescriptorSetLayout ObjectHandle, vk::ObjectType ObjectType,
+                                const FStringView& Name) const
+{
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
+    {
+        return;
+    }
+
+    try
+    {
+        const FString NameStr(Name.Data(), Name.Size());
+
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDescriptorSetLayout>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
+
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
     catch (const vk::SystemError& e)
     {
