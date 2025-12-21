@@ -11,13 +11,14 @@
         }                                                                                                              \
         static void Register_FRHIConfig();                                                                                 \
     };                                                                                                                 \
-    typedef IConfig::ThisClass Super;                                                                                        \
-    typedef FRHIConfig ThisClass;                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FRHIConfig)                                                                                        \
     static void Register_FRHIConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
         Type->RegisterProperty(&FRHIConfig::DefaultWindowSize, "DefaultWindowSize");                                                                                        \
+        Type->RegisterProperty(&FRHIConfig::GfxBackend, "GfxBackend");                                                                                        \
     }                                                                                        \
     const FVector2i& GetDefaultWindowSize() const { return DefaultWindowSize; }                                                                                        \
     void SetDefaultWindowSize(const FVector2i& InValue) { DefaultWindowSize = InValue; }                                                                                        \
+    const EGfxBackend& GetGfxBackend() const { return GfxBackend; }                                                                                        \
+    void SetGfxBackend(const EGfxBackend& InValue) { GfxBackend = InValue; }                                                                                        \
     static inline Z_RHIConfig_Register Z_REGISTERER_RHICONFIG;

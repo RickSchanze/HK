@@ -220,7 +220,7 @@ struct FPropertyImpl
     /**
       * 注册属性注解（链式调用）
       */
-    FProperty RegisterAttribute(FName InAttributeName, FName InAttributeValue);
+    FProperty RegisterAttribute(FName InAttributeName, FStringView InAttributeValue);
 
     /**
       * 检查是否有注解
@@ -235,7 +235,7 @@ struct FPropertyImpl
       */
     FStringView GetAttribute(const FName InAttributeName) const
     {
-        const FString* Value = Attributes.Find(InAttributeName);
+        const FStringView* Value = Attributes.Find(InAttributeName);
         return Value != nullptr ? *Value : "";
     }
 };

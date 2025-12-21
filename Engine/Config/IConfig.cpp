@@ -55,13 +55,11 @@ void IConfig::Save()
     {
         FXMLOutputArchive Archive(File);
         Serialize(Archive);
-        File.close();
         HK_LOG_INFO(ELogcat::Config, "Config saved to: {}", ConfigPath);
     }
     catch (const std::exception& e)
     {
         HK_LOG_ERROR(ELogcat::Config, "Failed to save config: {}", e.what());
-        File.close();
     }
 
     PostSave();

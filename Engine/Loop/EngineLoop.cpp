@@ -3,6 +3,7 @@
 //
 
 #include "EngineLoop.h"
+#include "Config/ConfigManager.h"
 #include "Core/Logging/Logger.h"
 #include "Core/Utility/Profiler.h"
 #include "EngineLoopEvents.h"
@@ -13,7 +14,8 @@
 void FEngineLoop::Init()
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::Init");
-
+    // 初始化配置
+    FConfigManager::GetRef();
     // 初始化图形
     CreateGfxDevice();
 
@@ -42,6 +44,9 @@ void FEngineLoop::Init()
 void FEngineLoop::UnInit()
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::UnInit");
+
+    DestroyGfxDevice();
+    FConfigManager::Destroy();
 
     bIsRunning = false;
     HK_LOG_INFO(ELogcat::Engine, "引擎循环清理完成");

@@ -235,11 +235,6 @@ public:
     bool operator<=(const FString& Other) const noexcept;
     bool operator>=(const FString& Other) const noexcept;
 
-    operator FStringView() const noexcept
-    {
-        return FStringView(MyData);
-    }
-
 private:
     std::string MyData;
 };

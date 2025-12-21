@@ -4,7 +4,10 @@
 #include <string>
 #include <string_view>
 
-class FStringView
+// FString 构造函数前向声明
+class FString;
+
+class HK_API FStringView
 {
 public:
     using SizeType = size_t;
@@ -16,6 +19,9 @@ public:
     constexpr FStringView(const char* InStr, SizeType InSize) : View(InStr, InSize) {}
     constexpr FStringView(const std::string& InStr) : View(InStr) {}
     constexpr explicit FStringView(std::string_view InView) : View(InView) {}
+
+
+    FStringView(const FString& InStr) noexcept;
 
     ConstIterator begin() const noexcept
     {

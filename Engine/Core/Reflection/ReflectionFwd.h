@@ -17,7 +17,7 @@ typedef const FMethodParamImpl* FMethodParam;
 // 注册时返回的可变类型指针
 typedef FTypeImpl* FTypeMutable;
 
-typedef TMap<FName, FString> FAttributeMap;
+typedef TMap<FName, FStringView> FAttributeMap;
 
 enum class ETypeFlags
 {

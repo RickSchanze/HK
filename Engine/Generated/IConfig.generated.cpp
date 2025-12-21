@@ -12,7 +12,7 @@ static void Register_IConfig_Impl()
     FTypeMutable Type = FTypeManager::Register<IConfig>("IConfig");
 
     // 注册类型属性: Interface
-    Type->RegisterAttribute(FName("Interface"), FName());
+    Type->RegisterAttribute(FName("Interface"), "");
 
 }
 

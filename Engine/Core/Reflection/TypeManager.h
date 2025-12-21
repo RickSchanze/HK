@@ -8,7 +8,6 @@
 #include "Core/String/Name.h"
 #include "Core/Utility/Macros.h"
 #include "Core/Utility/Optional.h"
-#include <cstddef>
 #include <functional>
 #include <mutex>
 #include <type_traits>
@@ -88,9 +87,6 @@ public:
     {
         return Get().TryGetValueImpl<T, T1>(InObj, OutValue);
     }
-
-    // 初始化所有注册的类型
-    void InitializeAllTypes();
 
     // 类型创建和销毁函数类型
     using TypeCreateFunc = void* (*)();

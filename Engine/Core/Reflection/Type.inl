@@ -2,7 +2,6 @@
 
 #include "Property.h"
 #include "Type.h"
-#include <cstddef>
 
 // 前向声明，避免循环依赖
 class FTypeManager;
@@ -37,7 +36,7 @@ inline FTypeMutable FTypeImpl::RegisterProperty(PropertyType ClassType::* InMemb
     return this;
 }
 
-inline FTypeMutable FTypeImpl::RegisterParent(FType InParentType)
+inline FTypeMutable FTypeImpl::RegisterParent(const FType InParentType)
 {
     if (InParentType != nullptr)
     {
@@ -46,7 +45,7 @@ inline FTypeMutable FTypeImpl::RegisterParent(FType InParentType)
     return this;
 }
 
-inline FTypeMutable FTypeImpl::RegisterAttribute(FName InAttributeName, FName InAttributeValue)
+inline FTypeMutable FTypeImpl::RegisterAttribute(const FName InAttributeName, FStringView InAttributeValue)
 {
     Attributes[InAttributeName] = InAttributeValue;
     return this;

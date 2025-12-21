@@ -629,12 +629,12 @@ def generate_enum_cpp_code(enum_info: EnumInfo, header_path: str, engine_dir: st
     for key, value in enum_info.attributes.items():
         if value:
             impl_content += f"""    // 注册枚举属性: {key} = {value}
-    Type->RegisterAttribute(FName("{key}"), FName("{value}"));
+    Type->RegisterAttribute(FName("{key}"), "{value}");
 
 """
         else:
             impl_content += f"""    // 注册枚举属性: {key}
-    Type->RegisterAttribute(FName("{key}"), FName());
+    Type->RegisterAttribute(FName("{key}"), "");
 
 """
     
@@ -929,12 +929,12 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
     for key, value in struct_info.attributes.items():
         if value:
             impl_content += f"""    // 注册类型属性: {key} = {value}
-    Type->RegisterAttribute(FName("{key}"), FName("{value}"));
+    Type->RegisterAttribute(FName("{key}"), "{value}");
 
 """
         else:
             impl_content += f"""    // 注册类型属性: {key}
-    Type->RegisterAttribute(FName("{key}"), FName());
+    Type->RegisterAttribute(FName("{key}"), "");
 
 """
     

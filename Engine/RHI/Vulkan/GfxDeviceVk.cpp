@@ -3,10 +3,13 @@
 //
 
 #include "GfxDeviceVk.h"
+
+#include "Config/ConfigManager.h"
 #include "Core/Logging/Logger.h"
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
 #include "Core/Utility/UniquePtr.h"
+#include "RHI/RHIConfig.h"
 #include "RHI/RHIHandle.h"
 #include "RHI/RHIWindow.h"
 #include <SDL3/SDL.h>
@@ -45,8 +48,9 @@ void FGfxDeviceVk::Init()
 
         // 3. 创建主窗口和Surface（使用默认参数）
         // 注意：这里使用默认值，如果需要自定义，应该在调用 Initialize 之前设置
+        const auto* Config = FConfigManager::GetRef().GetConfig<FRHIConfig>();
         const FName DefaultMainWindowName("HKEngine");
-        const FVector2i DefaultMainWindowSize(1280, 720);
+        const FVector2i DefaultMainWindowSize = Config->GetDefaultWindowSize();
         CreateMainWindowAndSurface(DefaultMainWindowName, DefaultMainWindowSize);
 
         // 4. 创建Device（需要Surface）

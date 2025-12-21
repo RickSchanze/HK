@@ -1,13 +1,15 @@
 #include "TypeManager.h"
 #include "Core/Logging/Logger.h"
 
+#include <ranges>
+
 FTypeManager& FTypeManager::Get()
 {
     static FTypeManager Instance;
     return Instance;
 }
 
-FType FTypeManager::FindTypeByName(FName InName) const
+FType FTypeManager::FindTypeByName(const FName InName) const
 {
     std::lock_guard<std::mutex> Lock(Mutex);
     FTypeImpl* const* Found = TypeMap.Find(InName);
@@ -19,39 +21,14 @@ FType FTypeManager::FindTypeByName(const char* InName) const
     return FindTypeByName(FName(InName));
 }
 
-void FTypeManager::InitializeAllTypes()
-{
-    // 先收集所有注册函数，在锁外调用，避免死锁
-    TArray<TypeRegistererFunc> RegistererFuncs;
-    {
-        std::lock_guard<std::mutex> Lock(Mutex);
-        for (const auto& Pair : TypeRegistererMap)
-        {
-            if (Pair.second != nullptr)
-            {
-                RegistererFuncs.Add(Pair.second);
-            }
-        }
-    }
-    
-    // 在锁外调用注册函数
-    for (TypeRegistererFunc Func : RegistererFuncs)
-    {
-        if (Func != nullptr)
-        {
-            Func();
-        }
-    }
-}
-
-FTypeManager::TypeCreateFunc FTypeManager::GetCreateFunc(FName InTypeName) const
+FTypeManager::TypeCreateFunc FTypeManager::GetCreateFunc(const FName InTypeName) const
 {
     std::lock_guard<std::mutex> Lock(Mutex);
     const TypeCreateFunc* Found = TypeCreateMap.Find(InTypeName);
     return Found != nullptr ? *Found : nullptr;
 }
 
-FTypeManager::TypeDestroyFunc FTypeManager::GetDestroyFunc(FName InTypeName) const
+FTypeManager::TypeDestroyFunc FTypeManager::GetDestroyFunc(const FName InTypeName) const
 {
     std::lock_guard<std::mutex> Lock(Mutex);
     const TypeDestroyFunc* Found = TypeDestroyMap.Find(InTypeName);

@@ -6,13 +6,14 @@
 #include "Core/Logging/Logger.h"
 #include "Core/Reflection/TypeManager.h"
 #include "Core/Serialization/Serialization.h"
+#include "RHI/RHIConfig.h"
+
 #include <filesystem>
 #include <ranges>
 
 void FConfigManager::StartUp()
 {
-    // 初始化所有类型
-    FTypeManager::Get().InitializeAllTypes();
+    GetConfig<FRHIConfig>();
 }
 
 void FConfigManager::ShutDown()
