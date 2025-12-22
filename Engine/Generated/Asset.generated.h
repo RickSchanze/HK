@@ -11,5 +11,7 @@
         }                                                                                                              \
         static HK_API void Register_HAsset();                                                                                 \
     };                                                                                                                 \
+    typedef HObject::ThisClass Super;                                                                                        \
+    typedef HAsset ThisClass;                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HAsset)                                                                                        \
     static inline Z_HAsset_Register Z_REGISTERER_HASSET;

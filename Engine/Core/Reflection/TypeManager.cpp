@@ -52,6 +52,8 @@ struct FTypeManagerAutoRegister
         FTypeManager::Register<Float>("Float");
         FTypeManager::Register<Double>("Double");
         FTypeManager::Register<Bool>("Bool");
+        FTypeManager::Register<FString>("String");
+        FTypeManager::Register<FStringView>("StringView");
     }
 };
 

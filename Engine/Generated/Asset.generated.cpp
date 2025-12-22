@@ -11,6 +11,9 @@ static void Register_HAsset_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<HAsset>("HAsset");
 
+    // 注册父类: HObject
+    Type->RegisterParent(FTypeManager::TypeOf<HObject>());
+
 }
 
 HK_API void HAsset::Z_HAsset_Register::Register_HAsset()
@@ -20,6 +23,7 @@ HK_API void HAsset::Z_HAsset_Register::Register_HAsset()
 }
 
 #define HAsset_SERIALIZATION_CODE \
+        Super::Serialize(Ar); \
         // No serializable properties \
 
 

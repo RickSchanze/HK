@@ -1,12 +1,11 @@
 #pragma once
 
 #include "Core/Utility/Macros.h"
-#ifdef _MSC_VER
-#include <stdint.h>
-#else
-#include <cstdint>
-#endif
 #include "Core/String/String.h"
+#include "Core/Serialization/Serialization.h"
+#include <cereal/types/string.hpp>
+#include <cstdint>
+
 #include <functional>
 #include <mutex>
 #include <string>
@@ -81,6 +80,20 @@ public:
     static void ClearNameTable();
     static size_t GetNameTableSize();
     static const std::unordered_map<FIDType, FString>& GetNameTable();
+
+    template <typename Archive>
+    void Write(Archive& Ar)
+    {
+        Ar(GetStdString());
+    }
+
+    template <typename Archive>
+    void Read(Archive& Ar)
+    {
+        std::string NameStr;
+        Ar(NameStr);
+        ID = GetOrCreateID(FString(std::move(NameStr)));
+    }
 
 private:
     FIDType ID;
