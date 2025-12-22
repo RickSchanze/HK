@@ -34,7 +34,7 @@ public:
     void StartUp() override;
     void ShutDown() override;
 
-    bool RequestCompile(const FShaderCompileRequest& Request, FShaderCompileResult& OutResult);
+    bool RequestCompileGraphicsShader(const FShaderCompileRequest& Request, FShaderCompileResult& OutResult);
 
     class FImpl;
 

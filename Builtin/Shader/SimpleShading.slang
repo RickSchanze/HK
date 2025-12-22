@@ -33,7 +33,7 @@ struct FSOut
 // Vertex Shader
 // -----------------------------------------------------------
 [shader("vertex")]
-VSOut vertex(Vertex_PNU In)
+VSOut VertexMain(Vertex_PNU In)
 {
     VSOut Out;
 
@@ -52,7 +52,7 @@ VSOut vertex(Vertex_PNU In)
 // Fragment Shader
 // -----------------------------------------------------------
 [shader("fragment")]
-FSOut fragment(VSOut In)
+FSOut FragmentMain(VSOut In)
 {
     FSOut Out;
 

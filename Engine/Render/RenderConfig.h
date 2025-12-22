@@ -5,6 +5,11 @@
 HCLASS(ConfigPath = "Config/RenderConfig.xml")
 class FRenderConfig : public IConfig
 {
+public:
+    const TArray<FString>& GetShaderPaths() const
+    {
+        return ShaderPaths;
+    }
 
 private:
     HPROPERTY()
