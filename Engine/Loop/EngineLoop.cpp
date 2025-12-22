@@ -10,6 +10,7 @@
 #include "LoopData.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIWindow.h"
+#include "Render/Shader/SlangCompiler.h"
 
 void FEngineLoop::Init()
 {
@@ -39,6 +40,14 @@ void FEngineLoop::Init()
     GLoopData.DeltaTime = FTimeDuration();
 
     HK_LOG_INFO(ELogcat::Engine, "引擎循环初始化完成");
+
+    FShaderCompileRequest CompileRequest;
+    CompileRequest.ShaderPath = "F:/Project/HK/Builtin/Shader/SimpleShading.slang";
+    CompileRequest.Target = EShaderCompileTarget::GLSL;
+    CompileRequest.DebugOutputTarget = EShaderCompileTarget::HLSL;
+    CompileRequest.DebugOutputPath = "F:/Project/HK/Builtin/Shader/SimpleShading.debug.hlsl";
+    FShaderCompileResult CompileResult;
+    FSlangCompiler::GetRef().RequestCompileGraphicsShader(CompileRequest, CompileResult);
 }
 
 void FEngineLoop::UnInit()
