@@ -17,5 +17,6 @@
     {                                                                                        \
         Type->RegisterProperty(&HObject::Name, "Name");                                                                                        \
         Type->RegisterProperty(&HObject::ID, "ID");                                                                                        \
+        Type->RegisterProperty(&HObject::Flags, "Flags");                                                                                        \
     }                                                                                        \
     static inline Z_HObject_Register Z_REGISTERER_HOBJECT;
