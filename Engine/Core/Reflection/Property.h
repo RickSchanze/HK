@@ -12,32 +12,32 @@ FType TypeOf();
 struct FPropertyImpl
 {
     /**
-      * 属性名称
-      */
+     * 属性名称
+     */
     FName Name;
     /**
-      * 属性类型（对于Array/FixedArray，也指代ElementType；对于Map，也指代ValueType）
-      */
+     * 属性类型（对于Array/FixedArray，也指代ElementType；对于Map，也指代ValueType）
+     */
     FType Type;
     /**
-      * 属性标志
-      */
+     * 属性标志
+     */
     EPropertyFlags Flags;
     /**
-      * 属性在对象中的偏移量（字节），对于枚举成员，这是EnumValue
-      */
+     * 属性在对象中的偏移量（字节），对于枚举成员，这是EnumValue
+     */
     Int32 Offset;
     /**
-      * 声明此属性的类型
-      */
+     * 声明此属性的类型
+     */
     FType OwnerType;
     /**
-      * 如果是Map，Key类型（ValueType使用Type）
-      */
+     * 如果是Map，Key类型（ValueType使用Type）
+     */
     FType KeyType;
     /**
-      * 此属性的注解
-      */
+     * 此属性的注解
+     */
     FAttributeMap Attributes;
 
     FPropertyImpl()
@@ -46,40 +46,40 @@ struct FPropertyImpl
     }
 
     /**
-      * 检查是否是Enum字段
-      */
+     * 检查是否是Enum字段
+     */
     bool IsEnum() const
     {
         return (Flags & EPropertyFlags::Enum) != EPropertyFlags::None;
     }
 
     /**
-      * 检查是否是Array
-      */
+     * 检查是否是Array
+     */
     bool IsArray() const
     {
         return (Flags & EPropertyFlags::Array) != EPropertyFlags::None;
     }
 
     /**
-      * 检查是否是FixedArray
-      */
+     * 检查是否是FixedArray
+     */
     bool IsFixedArray() const
     {
         return (Flags & EPropertyFlags::FixedArray) != EPropertyFlags::None;
     }
 
     /**
-      * 检查是否是Map
-      */
+     * 检查是否是Map
+     */
     bool IsMap() const
     {
         return (Flags & EPropertyFlags::Map) != EPropertyFlags::None;
     }
 
     /**
-      * 获取ElementType（Array/FixedArray的元素类型，使用Type）
-      */
+     * 获取ElementType（Array/FixedArray的元素类型，使用Type）
+     */
     FType GetElementType() const
     {
         if (IsArray() || IsFixedArray())
@@ -90,8 +90,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取KeyType（Map的Key类型）
-      */
+     * 获取KeyType（Map的Key类型）
+     */
     FType GetKeyType() const
     {
         if (IsMap())
@@ -102,8 +102,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取ValueType（Map的Value类型，使用Type）
-      */
+     * 获取ValueType（Map的Value类型，使用Type）
+     */
     FType GetValueType() const
     {
         if (IsMap())
@@ -114,8 +114,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取枚举成员的值（如果是枚举成员）
-      */
+     * 获取枚举成员的值（如果是枚举成员）
+     */
     template <typename EnumType>
     TOptional<EnumType> GetEnumPropertyValue() const
     {
@@ -127,8 +127,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取枚举成员的值（返回Int32）
-      */
+     * 获取枚举成员的值（返回Int32）
+     */
     Int32 GetEnumValue() const
     {
         if (!IsEnum())
@@ -139,8 +139,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取属性在对象中的地址
-      */
+     * 获取属性在对象中的地址
+     */
     template <typename ObjectType>
     void* GetAddress(ObjectType* InObject) const
     {
@@ -148,8 +148,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取属性在对象中的地址（const版本）
-      */
+     * 获取属性在对象中的地址（const版本）
+     */
     template <typename ObjectType>
     const void* GetAddress(const ObjectType* InObject) const
     {
@@ -157,8 +157,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取属性值（成员函数）
-      */
+     * 获取属性值（成员函数）
+     */
     template <typename T, typename ObjectType>
     TOptional<T> GetValue(ObjectType* InObject) const
     {
@@ -177,8 +177,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 获取属性值（const版本）
-      */
+     * 获取属性值（const版本）
+     */
     template <typename T, typename ObjectType>
     TOptional<T> GetValue(const ObjectType* InObject) const
     {
@@ -197,8 +197,8 @@ struct FPropertyImpl
     }
 
     /**
-      * 设置属性值
-      */
+     * 设置属性值
+     */
     template <typename T, typename ObjectType>
     bool SetValue(ObjectType* InObject, const T& InValue) const
     {
@@ -218,21 +218,21 @@ struct FPropertyImpl
     }
 
     /**
-      * 注册属性注解（链式调用）
-      */
+     * 注册属性注解（链式调用）
+     */
     FProperty RegisterAttribute(FName InAttributeName, FStringView InAttributeValue);
 
     /**
-      * 检查是否有注解
-      */
+     * 检查是否有注解
+     */
     bool HasAttribute(FName InAttributeName) const
     {
         return Attributes.Contains(InAttributeName);
     }
 
     /**
-      * 获取注解
-      */
+     * 获取注解
+     */
     FStringView GetAttribute(const FName InAttributeName) const
     {
         const FStringView* Value = Attributes.Find(InAttributeName);
