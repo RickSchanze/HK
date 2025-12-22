@@ -181,7 +181,15 @@ public:
                           slang::IModule*& OutModule)
     {
         OutModule = CompileSession->loadModule(ShaderPath.CStr(), OutDiagnostics.writeRef());
-        return OutModule != nullptr && !OutDiagnostics;
+        if (OutModule != nullptr)
+        {
+            if (OutDiagnostics != nullptr)
+            {
+                HK_LOG_WARN(ELogcat::Shader, "编译 {} 警告: \n{}", ShaderPath, (const char*)OutDiagnostics->getBufferPointer());
+            }
+            return true;
+        }
+        return false;
     }
 
     bool FindEntryPoints(slang::IModule* Module, Slang::ComPtr<slang::IEntryPoint>& OutVertexEntry,
@@ -388,11 +396,11 @@ public:
                 DebugFile << static_cast<const char*>(DebugFragmentCode->getBufferPointer());
             }
             DebugFile.close();
-            HK_LOG_INFO(ELogcat::RHI, "调试着色器代码已写入: {}", DebugFilePath);
+            HK_LOG_INFO(ELogcat::Shader, "调试着色器代码已写入: {}", DebugFilePath);
         }
         else
         {
-            HK_LOG_WARN(ELogcat::RHI, "无法写入调试着色器文件: {}", DebugFilePath);
+            HK_LOG_WARN(ELogcat::Shader, "无法写入调试着色器文件: {}", DebugFilePath);
         }
     }
 

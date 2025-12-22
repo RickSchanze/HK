@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_TOOLCHAIN_FILE "C:/Users/Admin/Software/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(CMAKE_TOOLCHAIN_FILE "F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 # ==========================================
 # [新增] Slang 路径配置
 # ==========================================
-set(SLANG_ROOT "C:/Users/Admin/Software/slang")
+set(SLANG_ROOT "F:/slang")
 
 # 在项目定义前执行代码生成脚本
 find_program(PYTHON_EXECUTABLE python python3)
