@@ -6,6 +6,7 @@
 #if HK_ENABLE_PROFILING
 // 启用性能分析
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <tracy/Tracy.hpp>
 #include <utility>
@@ -48,6 +49,27 @@
 
 // 内存释放跟踪
 #define HK_PROFILE_FREE(Ptr) TracyFree(Ptr)
+
+// Malloc 内存分配跟踪
+inline void* Malloc(size_t Size)
+{
+    void* Ptr = std::malloc(Size);
+    if (Ptr != nullptr)
+    {
+        TracyAlloc(Ptr, Size);
+    }
+    return Ptr;
+}
+
+// Free 内存释放跟踪
+inline void Free(void* Ptr)
+{
+    if (Ptr != nullptr)
+    {
+        TracyFree(Ptr);
+        std::free(Ptr);
+    }
+}
 
 // 设置线程名称
 #define HK_PROFILE_SET_THREAD_NAME(Name) tracy::SetThreadName(Name)
@@ -102,6 +124,7 @@ void DeleteArray(T* Ptr)
 #else
 // 禁用性能分析 - 所有宏都展开为空操作
 #include <cstddef>
+#include <cstdlib>
 #include <utility>
 
 #define HK_PROFILE_SCOPE() ((void)0)
@@ -118,6 +141,18 @@ void DeleteArray(T* Ptr)
 #define HK_PROFILE_ALLOC(Ptr, Size) ((void)0)
 #define HK_PROFILE_FREE(Ptr) ((void)0)
 #define HK_PROFILE_SET_THREAD_NAME(Name) ((void)0)
+
+// Malloc 内存分配（禁用性能分析时）
+inline void* Malloc(size_t Size)
+{
+    return std::malloc(Size);
+}
+
+// Free 内存释放（禁用性能分析时）
+inline void Free(void* Ptr)
+{
+    std::free(Ptr);
+}
 
 // 禁用性能分析时的内存分配函数 - 直接使用标准new
 template <typename T, typename... Args>

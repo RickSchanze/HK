@@ -11,7 +11,8 @@
     HK_LOGCAT_ITEM(TaskGraph)                                                                                          \
     HK_LOGCAT_ITEM(RHI)                                                                                                \
     HK_LOGCAT_ITEM(Config)                                                                                             \
-    HK_LOGCAT_ITEM(Shader)
+    HK_LOGCAT_ITEM(Shader)                                                                                             \
+    HK_LOGCAT_ITEM(Uuid)
 
 enum class ELogcat
 {

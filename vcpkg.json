@@ -12,6 +12,7 @@
         "vulkan"
       ]
     },
-    "tracy"
+    "tracy",
+    "stduuid"
   ]
 }

@@ -1,0 +1,23 @@
+#pragma once
+
+#include "Core/Utility/Macros.h"
+
+#define GENERATED_HEADER_FEngineConfig                                                                                        \
+    struct Z_EngineConfig_Register                                                                                            \
+    {                                                                                                                  \
+        Z_EngineConfig_Register()                                                                                             \
+        {                                                                                                              \
+            Register_FEngineConfig();                                                                                         \
+        }                                                                                                              \
+        static HK_API void Register_FEngineConfig();                                                                                 \
+    };                                                                                                                 \
+    typedef IConfig::ThisClass Super;                                                                                        \
+    typedef FEngineConfig ThisClass;                                                                                        \
+    HK_DECL_CLASS_SERIALIZATION(FEngineConfig)                                                                                        \
+    static void Register_FEngineConfig_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FEngineConfig::DefaultObjectCount, "DefaultObjectCount");                                                                                        \
+    }                                                                                        \
+    Int32 GetDefaultObjectCount() const { return DefaultObjectCount; }                                                                                        \
+    void SetDefaultObjectCount(Int32 InValue) { DefaultObjectCount = InValue; }                                                                                        \
+    static inline Z_EngineConfig_Register Z_REGISTERER_ENGINECONFIG;

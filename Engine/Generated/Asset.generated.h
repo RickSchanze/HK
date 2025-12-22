@@ -14,4 +14,20 @@
     typedef HObject::ThisClass Super;                                                                                        \
     typedef HAsset ThisClass;                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HAsset)                                                                                        \
+    static void Register_HAsset_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&HAsset::Uuid, "Uuid");                                                                                        \
+        Type->RegisterProperty(&HAsset::AssetPath, "AssetPath");                                                                                        \
+        Type->RegisterProperty(&HAsset::AssetType, "AssetType");                                                                                        \
+    }                                                                                        \
     static inline Z_HAsset_Register Z_REGISTERER_HASSET;
+
+HK_API void Z_Register_EAssetType();
+struct F_Z_Register_EAssetType
+{
+    F_Z_Register_EAssetType()
+    {
+        Z_Register_EAssetType();
+    }
+};
+static inline F_Z_Register_EAssetType Z_REGISTERER_EASSETTYPE;

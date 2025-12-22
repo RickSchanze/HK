@@ -4,7 +4,7 @@ set(CMAKE_TOOLCHAIN_FILE "F:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 # ==========================================
 # [新增] Slang 路径配置
 # ==========================================
-set(SLANG_ROOT "F:/slang")
+set(SLANG_ROOT "C:/Users/Admin/Software/slang")
 
 # 在项目定义前执行代码生成脚本
 find_program(PYTHON_EXECUTABLE python python3)
