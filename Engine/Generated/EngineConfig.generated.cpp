@@ -31,7 +31,8 @@ HK_API void FEngineConfig::Z_EngineConfig_Register::Register_FEngineConfig()
 #define FEngineConfig_SERIALIZATION_CODE \
         Super::Serialize(Ar); \
         Ar( \
-        MakeNamedPair("DefaultObjectCount", DefaultObjectCount) \
+        MakeNamedPair("DefaultObjectCount", DefaultObjectCount), \
+        MakeNamedPair("DefaultObjectIncreaseCount", DefaultObjectIncreaseCount) \
         ); \
 
 

@@ -10,4 +10,7 @@ class HK_API FEngineConfig : public IConfig
 
     HPROPERTY(DefaultProperty)
     Int32 DefaultObjectCount = 1024;
+
+    HPROPERTY(DefaultProperty)
+    Int32 DefaultObjectIncreaseCount = 1024;
 };

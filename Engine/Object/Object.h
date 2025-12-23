@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Container/Bitmap.h"
 #include "Core/Reflection/Reflection.h"
 #include "Core/Utility/Profiler.h"
 #include <mutex>
 #include <type_traits>
 
+#include "Core/Singleton/Singleton.h"
 #include "Object.generated.h"
 
 typedef UInt32 FObjectID;
@@ -48,9 +48,12 @@ private:
     EObjectFlags Flags = EObjectFlags::None;
 };
 
-class HK_API FObjectArray
+class HK_API FObjectArray : public FSingleton<FObjectArray>
 {
 public:
+    void StartUp() override;
+    void ShutDown() override;
+
     HObject* CreateObject(FType ObjectType, FName NewName = FName("New Object"));
 
     template <typename T>
@@ -96,7 +99,6 @@ private:
 
     mutable std::mutex Mutex;
     TArray<HObject*> AllObjects;
-    FDynamicBitmap OccupiedObjects;
 
     Int32 NumObjects = 0;
 };

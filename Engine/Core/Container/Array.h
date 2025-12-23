@@ -167,10 +167,12 @@ public:
     {
         MyData.resize(NewSize);
     }
+
     void Resize(SizeType NewSize, const T& Value)
     {
         MyData.resize(NewSize, Value);
     }
+
     void Clear() noexcept
     {
         MyData.clear();

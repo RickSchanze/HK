@@ -17,7 +17,10 @@
     static void Register_FEngineConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
         Type->RegisterProperty(&FEngineConfig::DefaultObjectCount, "DefaultObjectCount");                                                                                        \
+        Type->RegisterProperty(&FEngineConfig::DefaultObjectIncreaseCount, "DefaultObjectIncreaseCount");                                                                                        \
     }                                                                                        \
     Int32 GetDefaultObjectCount() const { return DefaultObjectCount; }                                                                                        \
     void SetDefaultObjectCount(Int32 InValue) { DefaultObjectCount = InValue; }                                                                                        \
+    Int32 GetDefaultObjectIncreaseCount() const { return DefaultObjectIncreaseCount; }                                                                                        \
+    void SetDefaultObjectIncreaseCount(Int32 InValue) { DefaultObjectIncreaseCount = InValue; }                                                                                        \
     static inline Z_EngineConfig_Register Z_REGISTERER_ENGINECONFIG;
