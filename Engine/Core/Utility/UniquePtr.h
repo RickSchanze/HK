@@ -1,9 +1,32 @@
 #pragma once
 
+#include "Core/String/Name.h"
+#include "Core/Utility/Profiler.h"
+#include "Core/Reflection/Reflection.h"
+
 #include <memory>
 #include <type_traits>
 
-template <typename T, typename Deleter = std::default_delete<T>>
+// 无状态的删除器，使用 Delete 进行内存跟踪
+// 空类，零开销，内存最小化
+template <typename T>
+struct TDefaultDelete
+{
+    constexpr TDefaultDelete() noexcept = default;
+    
+    template <typename U>
+    constexpr TDefaultDelete(const TDefaultDelete<U>&) noexcept
+    {
+        static_assert(std::is_convertible_v<U*, T*>, "U* must be convertible to T*");
+    }
+    
+    void operator()(T* Ptr) const noexcept
+    {
+        Delete(Ptr);
+    }
+};
+
+template <typename T, typename Deleter = TDefaultDelete<T>>
 class TUniquePtr
 {
 public:
@@ -36,8 +59,8 @@ public:
 
     // 从派生类移动构造
     template <typename U, typename E = Deleter,
-              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && (std::is_same_v<E, std::default_delete<T>> ||
-                                                                            std::is_same_v<E, std::default_delete<U>>)>>
+              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && (std::is_same_v<E, TDefaultDelete<T>> ||
+                                                                            std::is_same_v<E, TDefaultDelete<U>>)>>
     TUniquePtr(TUniquePtr<U, E>&& Other) noexcept : MyPtr(std::move(Other.MyPtr))
     {
     }
@@ -57,7 +80,7 @@ public:
 
     // 从派生类移动赋值
     template <typename U, typename E = Deleter,
-              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && std::is_same_v<E, std::default_delete<T>>>>
+              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && std::is_same_v<E, TDefaultDelete<T>>>>
     TUniquePtr& operator=(TUniquePtr<U, E>&& Other) noexcept
     {
         MyPtr = std::move(Other.MyPtr);
@@ -173,6 +196,39 @@ public:
         return MyPtr < Other.MyPtr;
     }
 
+    template <typename Archive>
+    void Read(Archive& Ar)
+    {
+        if (MyPtr)
+        {
+            Ar(MakeNamedPair("TypeName", MyPtr->GetType()->Name));
+            Ar(MakeNamedPair("Data", *MyPtr));
+        }
+        else
+        {
+            Ar(MakeNamedPair("TypeName", Names::None));
+        }
+    }
+
+    template <typename Archive>
+    void Write(Archive& Ar)
+    {
+        FName TypeName;
+        Ar(MakeNamedPair("TypeName", TypeName));
+        if (TypeName != Names::None)
+        {
+            if (const FType Type = FTypeManager::FindTypeByName(TypeName); !Type)
+            {
+                HK_LOG_ERROR(ELogcat::Serialize, "Can't find type {}", TypeName);
+            }
+            else
+            {
+                T* Ptr = static_cast<T*>(Type->CreateInstance());
+                MyPtr.reset(Ptr);
+            }
+        }
+    }
+
 private:
     std::unique_ptr<T, Deleter> MyPtr;
 
@@ -180,11 +236,15 @@ private:
     friend class TUniquePtr;
 };
 
-// MakeUnique 函数
+// MakeUnique 函数 - 使用 New/Delete 进行内存跟踪
+// 使用默认删除器 TDefaultDelete，无状态，零开销
 template <typename T, typename... Args>
 TUniquePtr<T> MakeUnique(Args&&... InArgs)
 {
-    return TUniquePtr<T>(std::make_unique<T>(std::forward<Args>(InArgs)...));
+    // 使用 New 分配内存（会加入 Profiler 跟踪）
+    T* Ptr = New<T>(std::forward<Args>(InArgs)...);
+    // 使用默认删除器（无状态，零开销）
+    return TUniquePtr<T>(Ptr);
 }
 
 // 从原始指针创建（使用自定义删除器）

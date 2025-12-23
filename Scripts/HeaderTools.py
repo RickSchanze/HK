@@ -687,25 +687,27 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
         # 检查是否有被标注的父类
         has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
 
-        if struct_info.macro_type == "HCLASS":
+        # 根据实际的 C++ 类型（struct_info.type）而不是宏类型来决定生成什么
+        if struct_info.type == "class":
             # class: 总是使用宏声明六个Serialize函数，即使没有属性
             serialize_code = f"    HK_DECL_CLASS_SERIALIZATION({struct_name})                                                                                        \\\n"
-        elif serializable_properties:
-            # struct: 只有有属性时才生成模板函数
-            serialize_pairs = []
-            for i, prop in enumerate(serializable_properties):
-                # 最后一个不需要逗号
-                if i < len(serializable_properties) - 1:
-                    serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name}),                                                                                     \\')
-                else:
-                    serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name})                                                                                      \\')
+        elif struct_info.type == "struct":
+            # struct: 生成模板函数（只有有属性时才生成）
+            if serializable_properties:
+                serialize_pairs = []
+                for i, prop in enumerate(serializable_properties):
+                    # 最后一个不需要逗号
+                    if i < len(serializable_properties) - 1:
+                        serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name}),                                                                                     \\')
+                    else:
+                        serialize_pairs.append(f'            MakeNamedPair("{prop.name}", {prop.name})                                                                                      \\')
 
-            # struct: 生成模板函数
-            super_call = ""
-            if has_annotated_parent:
-                super_call = "        Super::Serialize(Ar);                                                                                        \\\n"
+                # struct: 生成模板函数
+                super_call = ""
+                if has_annotated_parent:
+                    super_call = "        Super::Serialize(Ar);                                                                                        \\\n"
 
-            serialize_code = f"""    template <typename Archive>                                                                                        \\
+                serialize_code = f"""    template <typename Archive>                                                                                        \\
     void Serialize(Archive& Ar)                                                                                        \\
     {{                                                                                                                  \\
 {super_call}        Ar(                                                                                                            \\
@@ -714,11 +716,10 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
     }}                                                                                                                  \\
 """
     
-    # 生成 typedef 代码
+    # 生成 typedef 代码（根据实际的 C++ 类型）
     typedef_code = ""
-    # 根据宏类型决定使用 ThisStruct 还是 ThisClass
-    if struct_info.macro_type == "HCLASS":
-        # HCLASS 使用 ThisClass
+    if struct_info.type == "class":
+        # class 使用 ThisClass
         if struct_info.base_class is None:
             # 没有父类
             typedef_code = f"    typedef {struct_name} ThisClass;                                                                                        \\\n"
@@ -726,15 +727,15 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
             # 有父类，检查父类是否被标注
             if struct_info.base_class in struct_cache:
                 # 父类被标注，生成 Super 和 ThisClass
-                # 需要检查父类的宏类型来决定使用 ThisStruct 还是 ThisClass
+                # 根据父类的宏类型来决定使用 ThisStruct 还是 ThisClass
                 parent_macro_type = struct_cache.get(struct_info.base_class, "")
                 if parent_macro_type == "HCLASS":
                     typedef_code = f"    typedef {struct_info.base_class}::ThisClass Super;                                                                                        \\\n"
                 else:
                     typedef_code = f"    typedef {struct_info.base_class}::ThisStruct Super;                                                                                        \\\n"
                 typedef_code += f"    typedef {struct_name} ThisClass;                                                                                        \\\n"
-    else:
-        # HSTRUCT 使用 ThisStruct
+    elif struct_info.type == "struct":
+        # struct 使用 ThisStruct
         if struct_info.base_class is None:
             # 没有父类
             typedef_code = f"    typedef {struct_name} ThisStruct;                                                                                        \\\n"
@@ -742,7 +743,7 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
             # 有父类，检查父类是否被标注
             if struct_info.base_class in struct_cache:
                 # 父类被标注，生成 Super 和 ThisStruct
-                # 需要检查父类的宏类型来决定使用 ThisStruct 还是 ThisClass
+                # 根据父类的宏类型来决定使用 ThisStruct 还是 ThisClass
                 parent_macro_type = struct_cache.get(struct_info.base_class, "")
                 if parent_macro_type == "HCLASS":
                     typedef_code = f"    typedef {struct_info.base_class}::ThisClass Super;                                                                                        \\\n"
@@ -760,6 +761,22 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
 
     # 生成属性注册函数（在类内部，这样就能访问私有成员）
     property_registration_code = generate_property_registration(struct_info)
+    
+    # 生成 GetType 函数（根据实际的 C++ 类型）
+    gettype_code = ""
+    if struct_info.type == "class":
+        # class: 虚函数，可以 override
+        # 检查是否有被标注的父类（父类可能有 GetType 虚函数）
+        has_annotated_parent = struct_info.base_class is not None and struct_info.base_class in struct_cache
+        if has_annotated_parent:
+            # 有被标注的父类，使用 override
+            gettype_code = f"    virtual FType GetType() const override {{ return TypeOf<{struct_name}>(); }}                                                                                        \\\n"
+        else:
+            # 没有被标注的父类，直接定义 virtual（不使用 override）
+            gettype_code = f"    virtual FType GetType() const {{ return TypeOf<{struct_name}>(); }}                                                                                        \\\n"
+    elif struct_info.type == "struct":
+        # struct: 静态函数
+        gettype_code = f"    static FType GetType() {{ return TypeOf<{struct_name}>(); }}                                                                                        \\\n"
 
     header_content = f"""#pragma once
 
@@ -772,7 +789,7 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
         }}                                                                                                              \\
         {register_func_decl}                                                                                 \\
     }};                                                                                                                 \\
-{typedef_code}{serialize_code}{property_registration_code}{getter_setter_decls}    static inline {registerer_struct_name} {registerer_var_name};
+{typedef_code}{gettype_code}{serialize_code}{property_registration_code}{getter_setter_decls}    static inline {registerer_struct_name} {registerer_var_name};
 """
 
     return header_content
@@ -956,7 +973,7 @@ def generate_cpp_file(struct_info: StructInfo, header_path: str, output_dir: str
     
     # 生成序列化代码（如果是class且有属性需要序列化）
     serialize_impl_code = ""
-    if struct_info.macro_type == "HCLASS":
+    if struct_info.type == "class":
         # 检查是否有 CustomReadWrite 属性
         has_custom_read_write = "CustomReadWrite" in struct_info.attributes
 
@@ -1133,6 +1150,26 @@ def process_file(file_path: str, engine_dir: str, generated_dir: str, cache: Dic
         if not struct_infos and not enum_info:
             return (True, f"跳过 {rel_path}：未找到 HSTRUCT/HCLASS 或 HENUM 宏", None, None)
         
+        # 检查宏类型和 C++ 类型是否匹配
+        for struct_info in struct_infos:
+            # 检查 class 是否错误地使用了 HSTRUCT
+            if struct_info.type == "class" and struct_info.macro_type == "HSTRUCT":
+                error_msg = (
+                    f"错误：类 {struct_info.name} 使用了 HSTRUCT 宏，但应该使用 HCLASS 宏。\n"
+                    f"请将 HSTRUCT 改为 HCLASS。\n"
+                    f"文件：{rel_path}:{struct_info.line}"
+                )
+                return (False, error_msg, None, None)
+            
+            # 检查 struct 是否错误地使用了 HCLASS
+            if struct_info.type == "struct" and struct_info.macro_type == "HCLASS":
+                error_msg = (
+                    f"错误：结构体 {struct_info.name} 使用了 HCLASS 宏，但应该使用 HSTRUCT 宏。\n"
+                    f"请将 HCLASS 改为 HSTRUCT。\n"
+                    f"文件：{rel_path}:{struct_info.line}"
+                )
+                return (False, error_msg, None, None)
+        
         # 检查继承自 IConfig 的类是否有 ConfigPath 属性
         for struct_info in struct_infos:
             # 检查是否继承自 IConfig
@@ -1164,6 +1201,9 @@ def process_file(file_path: str, engine_dir: str, generated_dir: str, cache: Dic
         header_parts = []
         header_parts.append("#pragma once\n")
         header_parts.append('#include "Core/Utility/Macros.h"\n')
+        # 如果有结构体或类，需要包含 TypeManager.h 以使用 TypeOf
+        if struct_infos:
+            header_parts.append('#include "Core/Reflection/TypeManager.h"\n')
         
         # 生成所有结构体宏定义
         for struct_info in struct_infos:
@@ -1463,8 +1503,9 @@ def main():
             else:
                 fail_count += 1
                 print(f"[FAIL] {message}", file=sys.stderr)
-                # 检查是否是配置错误（继承自 IConfig 但缺少 ConfigPath）
-                if "继承自 IConfig" in message or "缺少必需的 ConfigPath" in message:
+                # 检查是否是配置错误（继承自 IConfig 但缺少 ConfigPath，或宏类型与 C++ 类型不匹配）
+                if ("继承自 IConfig" in message or "缺少必需的 ConfigPath" in message or 
+                    "使用了 HSTRUCT 宏" in message or "使用了 HCLASS 宏" in message):
                     config_error_occurred = True
                     config_error_message = message
                     # 取消所有未完成的任务
@@ -1475,7 +1516,10 @@ def main():
     # 如果发生配置错误，立即退出
     if config_error_occurred:
         print("\n" + "="*70, file=sys.stderr)
-        print("配置错误：继承自 IConfig 的类必须包含 ConfigPath 属性。", file=sys.stderr)
+        if "使用了 HSTRUCT 宏" in config_error_message or "使用了 HCLASS 宏" in config_error_message:
+            print("配置错误：宏类型与 C++ 类型不匹配。", file=sys.stderr)
+        elif "继承自 IConfig" in config_error_message or "缺少必需的 ConfigPath" in config_error_message:
+            print("配置错误：继承自 IConfig 的类必须包含 ConfigPath 属性。", file=sys.stderr)
         print("="*70, file=sys.stderr)
         print(config_error_message, file=sys.stderr)
         print("\nCMake 配置已中止。", file=sys.stderr)

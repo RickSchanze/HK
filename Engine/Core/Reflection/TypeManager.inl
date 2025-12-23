@@ -2,6 +2,7 @@
 
 #include "Core/Logging/Logger.h"
 #include "Core/Reflection/AnyRef.h"
+#include "Core/Utility/Profiler.h"
 #include "TypeManager.h"
 
 template <typename T>
@@ -85,14 +86,14 @@ FTypeMutable FTypeManager::RegisterType(const char* InName)
     if (!TypeImpl->IsAbstract() && !TypeImpl->IsInterface())
     {
         // 注册创建函数
-        TypeCreateMap[TypeName] = []() -> void* { return new T(); };
+        TypeCreateMap[TypeName] = []() -> void* { return New<T>(); };
 
         // 注册销毁函数
         TypeDestroyMap[TypeName] = [](void* InInstance)
         {
             if (InInstance != nullptr)
             {
-                delete static_cast<T*>(InInstance);
+                Delete(static_cast<T*>(InInstance));
             }
         };
     }

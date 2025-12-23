@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_FEngineConfig                                                                                        \
     struct Z_EngineConfig_Register                                                                                            \
     {                                                                                                                  \
@@ -13,6 +15,7 @@
     };                                                                                                                 \
     typedef IConfig::ThisClass Super;                                                                                        \
     typedef FEngineConfig ThisClass;                                                                                        \
+    virtual FType GetType() const override { return TypeOf<FEngineConfig>(); }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FEngineConfig)                                                                                        \
     static void Register_FEngineConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

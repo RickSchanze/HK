@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_FRHIConfig                                                                                        \
     struct Z_RHIConfig_Register                                                                                            \
     {                                                                                                                  \
@@ -13,6 +15,7 @@
     };                                                                                                                 \
     typedef IConfig::ThisClass Super;                                                                                        \
     typedef FRHIConfig ThisClass;                                                                                        \
+    virtual FType GetType() const override { return TypeOf<FRHIConfig>(); }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FRHIConfig)                                                                                        \
     static void Register_FRHIConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

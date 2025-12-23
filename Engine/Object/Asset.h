@@ -20,23 +20,12 @@ class HK_API HAsset : public HObject
 public:
     HAsset() : Super(EObjectFlags::Asset) {}
 
-    FUuid GetUuid() const
-    {
-        return Uuid;
-    }
-
     EAssetType GetAssetType() const
     {
         return AssetType;
     }
 
 private:
-    HPROPERTY()
-    FUuid Uuid;
-
-    HPROPERTY()
-    FString AssetPath;
-
     HPROPERTY()
     EAssetType AssetType = EAssetType::Count;
 };

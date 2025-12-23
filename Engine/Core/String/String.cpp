@@ -210,13 +210,6 @@ FString FString::operator+(const FStringView& Str) const
     return Result;
 }
 
-FString FString::operator+(const FString& Str) const
-{
-    FString Result = *this;
-    Result += Str;
-    return Result;
-}
-
 FString FString::operator+(char Ch) const
 {
     FString Result = *this;

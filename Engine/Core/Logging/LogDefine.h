@@ -12,7 +12,9 @@
     HK_LOGCAT_ITEM(RHI)                                                                                                \
     HK_LOGCAT_ITEM(Config)                                                                                             \
     HK_LOGCAT_ITEM(Shader)                                                                                             \
-    HK_LOGCAT_ITEM(Uuid)
+    HK_LOGCAT_ITEM(Uuid)                                                                                               \
+    HK_LOGCAT_ITEM(Serialize)                                                                                          \
+    HK_LOGCAT_ITEM(Asset)
 
 enum class ELogcat
 {

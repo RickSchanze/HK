@@ -225,7 +225,6 @@ public:
     FString& operator+=(const char* Str);
 
     FString operator+(const FStringView& Str) const;
-    FString operator+(const FString& Str) const;
     FString operator+(char Ch) const;
 
     bool operator==(const FString& Other) const noexcept;

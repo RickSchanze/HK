@@ -28,8 +28,6 @@ HK_API void HAsset::Z_HAsset_Register::Register_HAsset()
 #define HAsset_SERIALIZATION_CODE \
         Super::Serialize(Ar); \
         Ar( \
-        MakeNamedPair("Uuid", Uuid), \
-        MakeNamedPair("AssetPath", AssetPath), \
         MakeNamedPair("AssetType", AssetType) \
         ); \
 

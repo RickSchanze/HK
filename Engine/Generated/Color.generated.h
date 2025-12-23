@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_FColor                                                                                        \
     struct Z_Color_Register                                                                                            \
     {                                                                                                                  \
@@ -12,6 +14,7 @@
         static HK_API void Register_FColor();                                                                                 \
     };                                                                                                                 \
     typedef FColor ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FColor>(); }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

@@ -2,6 +2,7 @@
 
 #include "Property.h"
 #include "Type.h"
+#include "Core/Utility/Profiler.h"
 
 // 前向声明，避免循环依赖
 class FTypeManager;
@@ -75,7 +76,7 @@ inline T* FTypeImpl::CreateInstanceT() const
     {
         return nullptr;
     }
-    return new T();
+    return New<T>();
 }
 
 template <typename T>
@@ -85,7 +86,11 @@ inline std::unique_ptr<T> FTypeImpl::CreateUnique() const
     {
         return nullptr;
     }
-    return std::make_unique<T>();
+    // 使用 New 分配内存（会加入 Profiler 跟踪）
+    T* Ptr = New<T>();
+    // 创建自定义删除器，使用 Delete 释放内存
+    auto Deleter = [](T* P) { Delete(P); };
+    return std::unique_ptr<T>(Ptr, Deleter);
 }
 
 template <typename T>
@@ -95,5 +100,9 @@ inline std::shared_ptr<T> FTypeImpl::CreateShared() const
     {
         return nullptr;
     }
-    return std::make_shared<T>();
+    // 使用 New 分配内存（会加入 Profiler 跟踪）
+    T* Ptr = New<T>();
+    // 创建自定义删除器，使用 Delete 释放内存
+    auto Deleter = [](T* P) { Delete(P); };
+    return std::shared_ptr<T>(Ptr, Deleter);
 }

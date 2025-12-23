@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_HAsset                                                                                        \
     struct Z_HAsset_Register                                                                                            \
     {                                                                                                                  \
@@ -13,11 +15,10 @@
     };                                                                                                                 \
     typedef HObject::ThisClass Super;                                                                                        \
     typedef HAsset ThisClass;                                                                                        \
+    virtual FType GetType() const override { return TypeOf<HAsset>(); }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HAsset)                                                                                        \
     static void Register_HAsset_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
-        Type->RegisterProperty(&HAsset::Uuid, "Uuid");                                                                                        \
-        Type->RegisterProperty(&HAsset::AssetPath, "AssetPath");                                                                                        \
         Type->RegisterProperty(&HAsset::AssetType, "AssetType");                                                                                        \
     }                                                                                        \
     static inline Z_HAsset_Register Z_REGISTERER_HASSET;

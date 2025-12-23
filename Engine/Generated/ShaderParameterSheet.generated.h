@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_FShaderPushConstantItem                                                                                        \
     struct Z_ShaderPushConstantItem_Register                                                                                            \
     {                                                                                                                  \
@@ -12,6 +14,7 @@
         static void Register_FShaderPushConstantItem();                                                                                 \
     };                                                                                                                 \
     typedef FShaderPushConstantItem ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FShaderPushConstantItem>(); }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -39,6 +42,7 @@
         static void Register_FShaderParameterSheet();                                                                                 \
     };                                                                                                                 \
     typedef FShaderParameterSheet ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FShaderParameterSheet>(); }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

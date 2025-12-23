@@ -2,6 +2,8 @@
 
 #include "Core/Utility/Macros.h"
 
+#include "Core/Reflection/TypeManager.h"
+
 #define GENERATED_HEADER_HObject                                                                                        \
     struct Z_HObject_Register                                                                                            \
     {                                                                                                                  \
@@ -12,6 +14,7 @@
         static HK_API void Register_HObject();                                                                                 \
     };                                                                                                                 \
     typedef HObject ThisClass;                                                                                        \
+    virtual FType GetType() const { return TypeOf<HObject>(); }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HObject)                                                                                        \
     static void Register_HObject_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

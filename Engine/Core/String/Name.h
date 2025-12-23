@@ -14,7 +14,7 @@
 // 前向声明
 class FStringView;
 
-class FName
+class HK_API FName
 {
 public:
     using FIDType = UInt32;
@@ -109,3 +109,8 @@ private:
     static FNameTable& GetNameTableInstance();
     static FIDType GetOrCreateID(const FString& InStr);
 };
+
+namespace Names
+{
+inline auto None = FName("");
+}
