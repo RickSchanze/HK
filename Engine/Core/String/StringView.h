@@ -13,6 +13,8 @@ public:
     using SizeType = size_t;
     using ConstIterator = std::string_view::const_iterator;
     using ConstReverseIterator = std::string_view::const_reverse_iterator;
+    
+    static constexpr SizeType NPos = std::string_view::npos;
 
     constexpr FStringView() = default;
     constexpr FStringView(const char* InStr) : View(InStr) {}
@@ -201,6 +203,11 @@ public:
     const std::string_view& GetStdStringView() const noexcept
     {
         return View;
+    }
+
+    std::string GetStdString() const
+    {
+        return std::string(View);
     }
 
 private:

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Logging/Logger.h"
+#include "Core/Reflection/TypeManager.h"
 #include "Core/Utility/Profiler.h"
 
 #include <memory>
@@ -191,6 +193,39 @@ public:
     bool operator<(const TSharedPtr& Other) const noexcept
     {
         return MyPtr < Other.MyPtr;
+    }
+
+    template <typename Archive>
+    void Read(Archive& Ar)
+    {
+        if (MyPtr)
+        {
+            Ar(MakeNamedPair("TypeName", MyPtr->GetType()->Name));
+            Ar(MakeNamedPair("Data", *MyPtr));
+        }
+        else
+        {
+            Ar(MakeNamedPair("TypeName", Names::None));
+        }
+    }
+
+    template <typename Archive>
+    void Write(Archive& Ar)
+    {
+        FName TypeName;
+        Ar(MakeNamedPair("TypeName", TypeName));
+        if (TypeName != Names::None)
+        {
+            if (const FType Type = FTypeManager::FindTypeByName(TypeName); !Type)
+            {
+                HK_LOG_ERROR(ELogcat::Serialize, "Can't find type {}", TypeName);
+            }
+            else
+            {
+                T* Ptr = static_cast<T*>(Type->CreateInstance());
+                MyPtr.reset(Ptr);
+            }
+        }
     }
 
 private:

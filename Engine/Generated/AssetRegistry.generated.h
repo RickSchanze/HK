@@ -35,7 +35,8 @@
         Ar(                                                                                                            \
             MakeNamedPair("Uuid", Uuid),                                                                                     \
             MakeNamedPair("Path", Path),                                                                                     \
-            MakeNamedPair("AssetType", AssetType)                                                                                      \
+            MakeNamedPair("AssetType", AssetType),                                                                                     \
+            MakeNamedPair("FileType", FileType)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
     static void Register_FAssetMetaData_Properties(FTypeMutable Type)                                                                                        \
@@ -43,5 +44,16 @@
         Type->RegisterProperty(&FAssetMetaData::Uuid, "Uuid");                                                                                        \
         Type->RegisterProperty(&FAssetMetaData::Path, "Path");                                                                                        \
         Type->RegisterProperty(&FAssetMetaData::AssetType, "AssetType");                                                                                        \
+        Type->RegisterProperty(&FAssetMetaData::FileType, "FileType");                                                                                        \
     }                                                                                        \
     static inline Z_AssetMetaData_Register Z_REGISTERER_ASSETMETADATA;
+
+HK_API void Z_Register_EAssetFileType();
+struct F_Z_Register_EAssetFileType
+{
+    F_Z_Register_EAssetFileType()
+    {
+        Z_Register_EAssetFileType();
+    }
+};
+static inline F_Z_Register_EAssetFileType Z_REGISTERER_EASSETFILETYPE;

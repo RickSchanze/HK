@@ -338,43 +338,8 @@ private:
 };
 
 // 结构化绑定支持（C++17）
-namespace std
-{
-template <typename KeyType, typename ValueType>
-struct tuple_size<typename TLruCache<KeyType, ValueType>::KeyValueRef> : std::integral_constant<std::size_t, 2> {};
-template <typename KeyType, typename ValueType>
-struct tuple_size<typename TLruCache<KeyType, ValueType>::ConstKeyValueRef> : std::integral_constant<std::size_t, 2> {};
-
-template <std::size_t I, typename KeyType, typename ValueType>
-struct tuple_element<I, typename TLruCache<KeyType, ValueType>::KeyValueRef>;
-
-template <typename KeyType, typename ValueType>
-struct tuple_element<0, typename TLruCache<KeyType, ValueType>::KeyValueRef>
-{
-    using type = const KeyType&;
-};
-
-template <typename KeyType, typename ValueType>
-struct tuple_element<1, typename TLruCache<KeyType, ValueType>::KeyValueRef>
-{
-    using type = ValueType&;
-};
-
-template <std::size_t I, typename KeyType, typename ValueType>
-struct tuple_element<I, typename TLruCache<KeyType, ValueType>::ConstKeyValueRef>;
-
-template <typename KeyType, typename ValueType>
-struct tuple_element<0, typename TLruCache<KeyType, ValueType>::ConstKeyValueRef>
-{
-    using type = const KeyType&;
-};
-
-template <typename KeyType, typename ValueType>
-struct tuple_element<1, typename TLruCache<KeyType, ValueType>::ConstKeyValueRef>
-{
-    using type = const ValueType&;
-};
-} // namespace std
+// 注意：由于 C++ 标准限制，无法为嵌套类型提供部分特化
+// 结构化绑定会通过 ADL 查找 get 函数，所以只需要提供 get 函数重载即可
 
 // get 函数重载（用于结构化绑定）
 namespace std
