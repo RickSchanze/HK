@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Core/Reflection/Reflection.h"
 #include "Core/String/Name.h"
 #include "Core/Utility/Profiler.h"
-#include "Core/Reflection/Reflection.h"
 
 #include <memory>
 #include <type_traits>
@@ -10,23 +10,23 @@
 // 无状态的删除器，使用 Delete 进行内存跟踪
 // 空类，零开销，内存最小化
 template <typename T>
-struct TDefaultDelete
+struct TDefaultUniquePtrDeleter
 {
-    constexpr TDefaultDelete() noexcept = default;
-    
+    constexpr TDefaultUniquePtrDeleter() noexcept = default;
+
     template <typename U>
-    constexpr TDefaultDelete(const TDefaultDelete<U>&) noexcept
+    constexpr TDefaultUniquePtrDeleter(const TDefaultUniquePtrDeleter<U>&) noexcept
     {
         static_assert(std::is_convertible_v<U*, T*>, "U* must be convertible to T*");
     }
-    
+
     void operator()(T* Ptr) const noexcept
     {
         Delete(Ptr);
     }
 };
 
-template <typename T, typename Deleter = TDefaultDelete<T>>
+template <typename T, typename Deleter = TDefaultUniquePtrDeleter<T>>
 class TUniquePtr
 {
 public:
@@ -58,9 +58,10 @@ public:
     TUniquePtr(TUniquePtr&& Other) noexcept = default;
 
     // 从派生类移动构造
-    template <typename U, typename E = Deleter,
-              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && (std::is_same_v<E, TDefaultDelete<T>> ||
-                                                                            std::is_same_v<E, TDefaultDelete<U>>)>>
+    template <
+        typename U, typename E = Deleter,
+        typename = std::enable_if_t<std::is_convertible_v<U*, T*> && (std::is_same_v<E, TDefaultUniquePtrDeleter<T>> ||
+                                                                      std::is_same_v<E, TDefaultUniquePtrDeleter<U>>)>>
     TUniquePtr(TUniquePtr<U, E>&& Other) noexcept : MyPtr(std::move(Other.MyPtr))
     {
     }
@@ -80,7 +81,7 @@ public:
 
     // 从派生类移动赋值
     template <typename U, typename E = Deleter,
-              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && std::is_same_v<E, TDefaultDelete<T>>>>
+              typename = std::enable_if_t<std::is_convertible_v<U*, T*> && std::is_same_v<E, TDefaultUniquePtrDeleter<T>>>>
     TUniquePtr& operator=(TUniquePtr<U, E>&& Other) noexcept
     {
         MyPtr = std::move(Other.MyPtr);

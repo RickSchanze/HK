@@ -106,11 +106,12 @@ public:
     template <typename T>
     FName GetTypeName() const;
 
+    FTypeManager(const FTypeManager&) = delete;
+    FTypeManager& operator=(const FTypeManager&) = delete;
 private:
     FTypeManager() = default;
     ~FTypeManager() = default;
-    FTypeManager(const FTypeManager&) = delete;
-    FTypeManager& operator=(const FTypeManager&) = delete;
+
 
     // 内部实现
     template <typename T>

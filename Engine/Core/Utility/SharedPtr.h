@@ -10,12 +10,12 @@
 // 无状态的删除器，使用 Delete 进行内存跟踪
 // 空类，零开销，内存最小化
 template <typename T>
-struct TDefaultDelete
+struct TDefaultSharedPtrDeleter
 {
-    constexpr TDefaultDelete() noexcept = default;
+    constexpr TDefaultSharedPtrDeleter() noexcept = default;
     
     template <typename U>
-    constexpr TDefaultDelete(const TDefaultDelete<U>&) noexcept
+    constexpr TDefaultSharedPtrDeleter(const TDefaultSharedPtrDeleter<U>&) noexcept
     {
         static_assert(std::is_convertible_v<U*, T*>, "U* must be convertible to T*");
     }
@@ -103,7 +103,7 @@ public:
     void Reset(U* InPtr)
     {
         // 使用默认删除器（无状态，零开销）
-        MyPtr.reset(InPtr, TDefaultDelete<U>());
+        MyPtr.reset(InPtr, TDefaultSharedPtrDeleter<U>());
     }
 
     // 交换
@@ -243,7 +243,7 @@ TSharedPtr<T> MakeShared(Args&&... InArgs)
     // 使用 New 分配内存（会加入 Profiler 跟踪）
     T* Ptr = New<T>(std::forward<Args>(InArgs)...);
     // 使用默认删除器（无状态，零开销）
-    return TSharedPtr<T>(std::shared_ptr<T>(Ptr, TDefaultDelete<T>()));
+    return TSharedPtr<T>(std::shared_ptr<T>(Ptr, TDefaultSharedPtrDeleter<T>()));
 }
 
 // 从原始指针创建（使用自定义删除器）

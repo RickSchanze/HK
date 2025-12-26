@@ -4,6 +4,7 @@
 #include "Core/String/String.h"
 #include "Macros.h"
 #include "stduuid/uuid.h"
+#include <string> // 必须包含 string，因为 cereal minimal 交互通常基于 std::string
 
 struct FUuid
 {
@@ -46,20 +47,25 @@ struct FUuid
         return uuids::to_string(Uuid);
     }
 
-    template <typename Archive>
-    void Read(Archive& Ar)
+    // ------------------------------------------------------------
+    // Cereal 序列化适配接口 (Primitive模式)
+    // ------------------------------------------------------------
+
+    // 1. 返回基础类型 (std::string)
+    std::string SavePrimitive() const
     {
-        std::string UuidString;
-        Ar(UuidString);
-        const auto MyUuid = uuids::uuid::from_string(UuidString);
-        HK_ASSERT_MSG(MyUuid, "Invalid UUID: {}", UuidString);
-        Uuid = *MyUuid;
+        return uuids::to_string(Uuid);
     }
 
-    template <typename Archive>
-    void Write(Archive& Ar) const
+    // 2. 接收基础类型 (std::string)
+    void ReadPrimitive(const std::string& InStr)
     {
-        Ar(uuids::to_string(Uuid));
+        // ... (解析逻辑)
+        if (const auto MyUuid = uuids::uuid::from_string(InStr)) {
+            Uuid = *MyUuid;
+        } else {
+            Uuid = uuids::uuid();
+        }
     }
 
     uuids::uuid Uuid;

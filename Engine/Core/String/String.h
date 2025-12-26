@@ -2,11 +2,13 @@
 
 #include "Core/String/StringView.h"
 #include "Core/Utility/Macros.h"
+#include "cereal/types/string.hpp" // 必须包含，用于底层 std::string 的序列化支持
 #include <string>
 
 class HK_API FString
 {
 public:
+    static inline auto NPos = std::string::npos;
     using SizeType = size_t;
     using Iterator = std::string::iterator;
     using ConstIterator = std::string::const_iterator;
@@ -179,10 +181,20 @@ public:
     }
 
     FStringView SubStr(SizeType Pos, SizeType Count = std::string::npos) const noexcept;
+
+    // --- Find (正向查找) ---
     SizeType Find(char Ch, SizeType Pos = 0) const noexcept;
     SizeType Find(const char* Str, SizeType Pos = 0) const noexcept;
     SizeType Find(const FStringView& Str, SizeType Pos = 0) const noexcept;
     SizeType Find(const FString& Str, SizeType Pos = 0) const noexcept;
+
+    // --- FindLastOf (反向查找字符集中的任意字符) ---
+    // 查找 Ch 最后一次出现的位置
+    SizeType FindLastOf(char Ch, SizeType Pos = std::string::npos) const noexcept;
+    // 查找 Chars 中任意字符最后一次出现的位置
+    SizeType FindLastOf(const char* Chars, SizeType Pos = std::string::npos) const noexcept;
+    SizeType FindLastOf(const FStringView& Chars, SizeType Pos = std::string::npos) const noexcept;
+    SizeType FindLastOf(const FString& Chars, SizeType Pos = std::string::npos) const noexcept;
 
     bool Contains(char Ch) const noexcept
     {
@@ -233,6 +245,20 @@ public:
     bool operator>(const FString& Other) const noexcept;
     bool operator<=(const FString& Other) const noexcept;
     bool operator>=(const FString& Other) const noexcept;
+
+    // ------------------------------------------------------------------
+    // Cereal 序列化适配 (Primitive 模式)
+    // ------------------------------------------------------------------
+
+    std::string SavePrimitive() const
+    {
+        return MyData;
+    }
+
+    void ReadPrimitive(const std::string& InStr)
+    {
+        MyData = InStr;
+    }
 
 private:
     std::string MyData;
