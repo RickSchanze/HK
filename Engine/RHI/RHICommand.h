@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Core/Container/Array.h"
+#include "Core/Utility/Macros.h"
 #include "Math/Vector.h"
 #include "Math/Rect2D.h"
 #include "RHIBuffer.h"
 #include "RHIImage.h"
+#include "RHIImageView.h"
 #include "RHIPipeline.h"
 #include "RHIDescriptorSet.h"
+#include <cstring>
 
 // 前向声明
 struct FRHIViewport;
@@ -18,6 +21,16 @@ struct FRHIMemoryBarrier;
 struct FRHIBufferMemoryBarrier;
 struct FRHIImageMemoryBarrier;
 struct FRHIRenderPassBeginInfo;
+
+// 命令缓冲区使用标志（定义在这里以避免循环依赖）
+enum class ERHICommandBufferUsageFlag : UInt32
+{
+    None               = 0,
+    OneTimeSubmit      = 1 << 0, // 一次性提交（命令缓冲区只使用一次）
+    RenderPassContinue = 1 << 1, // 在渲染通道中继续（仅用于辅助命令缓冲区）
+    SimultaneousUse    = 1 << 2, // 同时使用（命令缓冲区可以多次提交）
+};
+HK_ENABLE_BITMASK_OPERATORS(ERHICommandBufferUsageFlag)
 
 // 命令类型枚举
 enum class ERHICommandType : UInt32

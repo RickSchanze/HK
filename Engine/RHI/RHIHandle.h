@@ -61,6 +61,7 @@ struct FRHIHandle
     template <typename T>
     T Cast() const
     {
+        // 移除 const 限制以允许转换（Handle 本身不是 const）
         return reinterpret_cast<T>(Handle);
     }
 

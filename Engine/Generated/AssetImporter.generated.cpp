@@ -11,8 +11,8 @@ static void Z_Register_EAssetImportOptions_Impl()
     // 注册枚举成员: None
     Type->RegisterEnumMember(EAssetImportOptions::None, "None");
 
-    // 注册枚举成员: 0
-    Type->RegisterEnumMember(EAssetImportOptions::0, "0");
+    // 注册枚举成员: ForceImport
+    Type->RegisterEnumMember(EAssetImportOptions::ForceImport, "ForceImport");
 
 }
 

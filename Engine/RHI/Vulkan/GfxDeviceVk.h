@@ -12,6 +12,7 @@
 #include "RHI/RHIImageView.h"
 #include "RHI/RHIPipeline.h"
 #include "RHI/RHISync.h"
+#include <vulkan/vulkan.h>
 #include "vulkan/vulkan.hpp"
 
 class FGfxDeviceVk : public FGfxDevice

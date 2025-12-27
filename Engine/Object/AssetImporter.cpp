@@ -41,7 +41,7 @@ void FGlobalAssetImporter::Import(FStringView Path)
             if (TextureImporter)
             {
                 HK_LOG_INFO(ELogcat::Asset, "Importing texture: {}", Path);
-                TextureImporter->Import(Path, FileType);
+                TextureImporter->Import(Path, FileType, EAssetImportOptions::None);
             }
             else
             {
@@ -62,7 +62,7 @@ void FGlobalAssetImporter::Import(FStringView Path)
             if (MeshImporter)
             {
                 HK_LOG_INFO(ELogcat::Asset, "Importing mesh: {}", Path);
-                MeshImporter->Import(Path, FileType);
+                MeshImporter->Import(Path, FileType, EAssetImportOptions::None);
             }
             else
             {

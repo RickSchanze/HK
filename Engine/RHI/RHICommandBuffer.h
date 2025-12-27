@@ -27,15 +27,7 @@ enum class ERHICommandBufferLevel : UInt32
     Secondary = 1, // 辅助命令缓冲区（只能从主命令缓冲区执行）
 };
 
-// 命令缓冲区使用标志
-enum class ERHICommandBufferUsageFlag : UInt32
-{
-    None               = 0,
-    OneTimeSubmit      = 1 << 0, // 一次性提交（命令缓冲区只使用一次）
-    RenderPassContinue = 1 << 1, // 在渲染通道中继续（仅用于辅助命令缓冲区）
-    SimultaneousUse    = 1 << 2, // 同时使用（命令缓冲区可以多次提交）
-};
-HK_ENABLE_BITMASK_OPERATORS(ERHICommandBufferUsageFlag)
+// ERHICommandBufferUsageFlag 定义在 RHICommand.h 中（避免循环依赖）
 
 // 命令缓冲区描述
 struct FRHICommandBufferDesc

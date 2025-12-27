@@ -35,8 +35,9 @@ FRHICommandPool FGfxDeviceVk::CreateCommandPool(const FRHICommandPoolDesc& PoolC
         return Pool;
     }
 
-    // 创建 RHI Handle
-    Pool.Handle           = FRHIHandleManager::GetRef().CreateRHIHandle(PoolCreateInfo.DebugName, VkPool);
+    // 创建 RHI Handle（转换为 C 类型存储）
+    Pool.Handle           = FRHIHandleManager::GetRef().CreateRHIHandle(
+        PoolCreateInfo.DebugName, reinterpret_cast<void*>(static_cast<VkCommandPool>(VkPool)));
     Pool.QueueFamilyIndex = PoolCreateInfo.QueueFamilyIndex;
 
     // 设置调试名称
@@ -55,7 +56,7 @@ void FGfxDeviceVk::DestroyCommandPool(FRHICommandPool& CommandPool)
         return;
     }
 
-    vk::CommandPool VkPool = CommandPool.Handle.Cast<vk::CommandPool>();
+    vk::CommandPool VkPool = vk::CommandPool(CommandPool.Handle.Cast<VkCommandPool>());
     Device.destroyCommandPool(VkPool);
 
     FRHIHandleManager::GetRef().DestroyRHIHandle(CommandPool.Handle);

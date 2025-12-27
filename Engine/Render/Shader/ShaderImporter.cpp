@@ -6,5 +6,5 @@
 
 bool FShaderImporter::Import(FStringView Path, EAssetFileType FileType, EAssetImportOptions Options)
 {
-
+    return true;
 }

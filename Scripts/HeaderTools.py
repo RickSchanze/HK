@@ -546,8 +546,9 @@ def extract_enum_info(file_path: str) -> Optional[EnumInfo]:
             line_no_comment = line.split('//')[0] if '//' in line else line
             
             # 匹配格式：MemberName 或 MemberName = Value
-            # 需要更精确的匹配，避免匹配到其他内容
-            member_pattern = re.compile(r'\b(\w+)(?:\s*=\s*([^,}\s]+))?\s*(?:[,}]|$)')
+            # 修改正则表达式以支持包含运算符的表达式（如 1 << 0）
+            # ([^,}]+) 匹配除了逗号和右大括号之外的所有字符，包括空格和运算符
+            member_pattern = re.compile(r'\b(\w+)(?:\s*=\s*([^,}]+))?\s*(?:[,}]|$)')
             member_matches = member_pattern.finditer(line_no_comment)
             
             for match in member_matches:

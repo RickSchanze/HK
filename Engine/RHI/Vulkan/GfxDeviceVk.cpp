@@ -1509,3 +1509,65 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
         // 忽略所有异常
     }
 }
+
+void FGfxDeviceVk::SetDebugName(const vk::CommandPool ObjectHandle, const vk::ObjectType ObjectType,
+                                const FStringView& Name) const
+{
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
+    {
+        return;
+    }
+
+    try
+    {
+        const FString NameStr(Name.Data(), Name.Size());
+
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkCommandPool>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
+
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        // 如果扩展不可用，忽略错误（不是致命错误）
+        HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
+    }
+    catch (...)
+    {
+        // 忽略所有异常
+    }
+}
+
+void FGfxDeviceVk::SetDebugName(const vk::CommandBuffer ObjectHandle, const vk::ObjectType ObjectType,
+                                const FStringView& Name) const
+{
+    if (!Device || Name.IsEmpty() || !bDebugUtilsExtensionAvailable || !vkSetDebugUtilsObjectNameEXT)
+    {
+        return;
+    }
+
+    try
+    {
+        const FString NameStr(Name.Data(), Name.Size());
+
+        VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
+        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkCommandBuffer>(ObjectHandle));
+        VkNameInfo.pObjectName = NameStr.CStr();
+
+        vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        // 如果扩展不可用，忽略错误（不是致命错误）
+        HK_LOG_DEBUG(ELogcat::RHI, "设置DebugName失败（扩展可能不可用）: {}", e.what());
+    }
+    catch (...)
+    {
+        // 忽略所有异常
+    }
+}
