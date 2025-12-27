@@ -3,3 +3,17 @@
 //
 
 #include "Texture.h"
+
+#include "RHI/GfxDevice.h"
+
+HTexture::~HTexture()
+{
+    if (ImageView)
+    {
+        GetGfxDeviceRef().DestroyImageView(ImageView);
+    }
+    if (Image)
+    {
+        GetGfxDeviceRef().DestroyImage(Image);
+    }
+}

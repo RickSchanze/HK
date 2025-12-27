@@ -36,14 +36,14 @@ public:
         return *this;
     }
 
-    void Push(const T& Value)
+    void Enqueue(const T& Value)
     {
         std::lock_guard<std::mutex> Lock(Mutex);
         Queue.push(Value);
         MySize.fetch_add(1, std::memory_order_relaxed);
     }
 
-    void Push(T&& Value)
+    void Enqueue(T&& Value)
     {
         std::lock_guard<std::mutex> Lock(Mutex);
         Queue.push(std::move(Value));
@@ -58,7 +58,7 @@ public:
         MySize.fetch_add(1, std::memory_order_relaxed);
     }
 
-    bool TryPop(T& OutValue)
+    bool TryDequeue(T& OutValue)
     {
         std::lock_guard<std::mutex> Lock(Mutex);
         if (Queue.empty())
@@ -71,9 +71,9 @@ public:
         return true;
     }
 
-    bool Pop(T& OutValue)
+    bool Dequeue(T& OutValue)
     {
-        return TryPop(OutValue);
+        return TryDequeue(OutValue);
     }
 
     bool IsEmpty() const

@@ -4,10 +4,10 @@
 #include "Core/Reflection/Reflection.h"
 #include "Core/Utility/Macros.h"
 #include "Math/Vector.h"
-
-#include "GfxDevice.generated.h"
 #include "RHIPipeline.h"
 #include "RHISync.h"
+
+#include "GfxDevice.generated.h"
 
 class FRHIWindow;
 struct FRHIBufferDesc;
@@ -30,6 +30,11 @@ struct FRHIGraphicsPipelineDesc;
 struct FRHIComputePipelineDesc;
 struct FRHIRayTracingPipelineDesc;
 class FRHIPipeline;
+struct FRHICommandPoolDesc;
+class FRHICommandPool;
+struct FRHICommandBufferDesc;
+class FRHICommandBuffer;
+struct FRHICommand;
 
 HENUM()
 enum class EGfxBackend
@@ -45,7 +50,7 @@ enum class EGfxBackend
 class HK_API FGfxDevice
 {
 public:
-    virtual void Init() = 0;
+    virtual void Init()   = 0;
     virtual void UnInit() = 0;
 
     virtual ~FGfxDevice() = default;
@@ -115,7 +120,8 @@ public:
     // @param Pool 描述符池
     // @param SetCreateInfo 描述符集创建信息
     // @return 分配的描述符集
-    virtual FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool, const FRHIDescriptorSetDesc& SetCreateInfo) = 0;
+    virtual FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool&    Pool,
+                                                    const FRHIDescriptorSetDesc& SetCreateInfo) = 0;
 
     // 释放描述符集
     // 将描述符集返回到描述符池
@@ -129,7 +135,8 @@ public:
     // @param ModuleCreateInfo 着色器模块创建信息
     // @param Stage 着色器阶段
     // @return 创建的着色器模块
-    virtual FRHIShaderModule CreateShaderModule(const FRHIShaderModuleDesc& ModuleCreateInfo, ERHIShaderStage Stage) = 0;
+    virtual FRHIShaderModule CreateShaderModule(const FRHIShaderModuleDesc& ModuleCreateInfo,
+                                                ERHIShaderStage             Stage) = 0;
 
     // 销毁着色器模块资源
     // 必须通过此方法销毁，不能直接调用 ShaderModule.Destroy()
@@ -187,6 +194,42 @@ public:
     virtual void DestroyFence(FRHIFence& Fence) = 0;
 #pragma endregion
 
+#pragma region CommandPool操作
+    // 创建命令池
+    // 命令池用于分配命令缓冲区
+    // @param PoolCreateInfo 命令池创建信息
+    // @return 创建的命令池
+    virtual FRHICommandPool CreateCommandPool(const FRHICommandPoolDesc& PoolCreateInfo) = 0;
+
+    // 销毁命令池资源
+    // 销毁命令池会自动释放所有从中分配的命令缓冲区
+    // 必须通过此方法销毁，不能直接调用 CommandPool.Destroy()
+    // @param CommandPool 要销毁的命令池
+    virtual void DestroyCommandPool(FRHICommandPool& CommandPool) = 0;
+#pragma endregion
+
+#pragma region CommandBuffer操作
+    // 创建命令缓冲区，返回的值类型包含一个 Handle
+    // 可以像普通值类型一样拷贝和移动
+    // 只有通过 CreateCommandBuffer 创建的 CommandBuffer 才是有效的
+    // @param Pool 命令池（必须有效）
+    // @param CommandBufferCreateInfo 命令缓冲区创建信息
+    // @return 创建的命令缓冲区
+    virtual FRHICommandBuffer CreateCommandBuffer(const FRHICommandPool&       Pool,
+                                                  const FRHICommandBufferDesc& CommandBufferCreateInfo) = 0;
+
+    // 销毁命令缓冲区资源
+    // 必须通过此方法销毁，不能直接调用 CommandBuffer.Destroy()
+    // @param Pool 命令池（必须有效）
+    // @param CommandBuffer 要销毁的命令缓冲区
+    virtual void DestroyCommandBuffer(const FRHICommandPool& Pool, FRHICommandBuffer& CommandBuffer) = 0;
+
+    // 执行命令（内部方法，由 FRHICommandBuffer 调用）
+    // @param CommandBuffer 命令缓冲区
+    // @param Command 要执行的命令
+    virtual void ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICommand& Command) = 0;
+#pragma endregion
+
 #pragma region "窗口操作"
     // 窗口创建相关的函数, 这块的流程是这样的
     // 以Vulkan为例, Vulkan初始化Instance -> 拿Instance初始化MainWindow
@@ -242,12 +285,13 @@ public:
 #pragma endregion
 };
 
-inline TEvent<> GOnPreRHIDeviceCreated;
+inline TEvent<>            GOnPreRHIDeviceCreated;
 inline TEvent<FGfxDevice*> GOnPostRHIDeviceCreated;
 inline TEvent<FGfxDevice*> GOnPreRHIDeviceDestroyed;
-inline TEvent<> GOnPostRHIDeviceDestroyed;
+inline TEvent<>            GOnPostRHIDeviceDestroyed;
 
 HK_API void CreateGfxDevice();
 HK_API void DestroyGfxDevice();
 
 HK_API FGfxDevice* GetGfxDevice();
+HK_API FGfxDevice& GetGfxDeviceRef();

@@ -40,3 +40,8 @@ FGfxDevice* GetGfxDevice()
 {
     return GGfxDevice;
 }
+
+FGfxDevice& GetGfxDeviceRef()
+{
+    return *GetGfxDevice();
+}

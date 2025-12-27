@@ -12,7 +12,7 @@ void FGameExecutor::SubmitTask(TSharedPtr<FTask> InTask, TDelegate<void, TShared
 {
     if (!MyShutdown.load(std::memory_order_acquire))
     {
-        TaskQueue.Push(TaskWithCallback{InTask, OnComplete});
+        TaskQueue.Enqueue(TaskWithCallback{InTask, OnComplete});
     }
 }
 
@@ -34,7 +34,7 @@ void FGameExecutor::Shutdown()
 void FGameExecutor::Tick()
 {
     TaskWithCallback Item;
-    while (TaskQueue.TryPop(Item))
+    while (TaskQueue.TryDequeue(Item))
     {
         Item.Task->Execute(
             [Item]()
@@ -66,7 +66,7 @@ void FRenderExecutor::SubmitTask(TSharedPtr<FTask> InTask, TDelegate<void, TShar
 {
     if (!MyShutdown.load(std::memory_order_acquire))
     {
-        TaskQueue.Push(TaskWithCallback{InTask, OnComplete});
+        TaskQueue.Enqueue(TaskWithCallback{InTask, OnComplete});
     }
 }
 
@@ -90,7 +90,7 @@ void FRenderExecutor::Run()
     while (!MyShutdown.load(std::memory_order_acquire))
     {
         TaskWithCallback Item;
-        if (TaskQueue.TryPop(Item))
+        if (TaskQueue.TryDequeue(Item))
         {
             Item.Task->Execute(
                 [Item]()
@@ -134,7 +134,7 @@ void FIOExecutor::SubmitTask(TSharedPtr<FTask> InTask, TDelegate<void, TSharedPt
 {
     if (!MyShutdown.load(std::memory_order_acquire))
     {
-        TaskQueue.Push(TaskWithCallback{InTask, OnComplete});
+        TaskQueue.Enqueue(TaskWithCallback{InTask, OnComplete});
     }
 }
 
@@ -158,7 +158,7 @@ void FIOExecutor::WorkerThread(size_t /*ThreadIndex*/)
     while (!MyShutdown.load(std::memory_order_acquire))
     {
         TaskWithCallback Item;
-        if (TaskQueue.TryPop(Item))
+        if (TaskQueue.TryDequeue(Item))
         {
             Item.Task->Execute(
                 [Item]()

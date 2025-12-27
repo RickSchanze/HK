@@ -3,7 +3,7 @@
 #include "Core/Container/Array.h"
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
-#include "Math/Vector.h"
+#include "Math/Rect2D.h"
 #include "RHIDescriptorSet.h"
 #include "RHIHandle.h"
 #include "RHIImage.h"
@@ -328,13 +328,8 @@ struct FRHIViewport
     float MaxDepth = 1.0f;
 };
 
-struct FRHIRect2D
-{
-    Int32 X = 0;
-    Int32 Y = 0;
-    UInt32 Width = 0;
-    UInt32 Height = 0;
-};
+// 使用 Math 中的 FRect2Di 作为 RHI 的矩形类型
+typedef FRect2Di FRHIRect2D;
 
 struct FRHIStencilOpState
 {

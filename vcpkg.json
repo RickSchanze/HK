@@ -13,6 +13,8 @@
       ]
     },
     "tracy",
-    "stduuid"
+    "stduuid",
+    "stb",
+    "assimp"
   ]
 }

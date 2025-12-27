@@ -3,3 +3,8 @@
 //
 
 #include "TextureImporter.h"
+
+bool FTextureImporter::Import(FStringView Path, EAssetFileType FileType, EAssetImportOptions Options)
+{
+
+}

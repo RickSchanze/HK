@@ -4,6 +4,9 @@
 #include "Core/String/String.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIBuffer.h"
+#include "RHI/RHICommand.h"
+#include "RHI/RHICommandBuffer.h"
+#include "RHI/RHICommandPool.h"
 #include "RHI/RHIDescriptorSet.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
@@ -57,6 +60,18 @@ public:
     void DestroySemaphore(FRHISemaphore& Semaphore) override;
     FRHIFence CreateFence(const FRHIFenceDesc& FenceCreateInfo) override;
     void DestroyFence(FRHIFence& Fence) override;
+#pragma endregion
+
+#pragma region CommandPool操作
+    FRHICommandPool CreateCommandPool(const FRHICommandPoolDesc& PoolCreateInfo) override;
+    void DestroyCommandPool(FRHICommandPool& CommandPool) override;
+#pragma endregion
+
+#pragma region CommandBuffer操作
+    FRHICommandBuffer CreateCommandBuffer(const FRHICommandPool& Pool,
+                                           const FRHICommandBufferDesc& CommandBufferCreateInfo) override;
+    void DestroyCommandBuffer(const FRHICommandPool& Pool, FRHICommandBuffer& CommandBuffer) override;
+    void ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICommand& Command) override;
 #pragma endregion
 
 #pragma region 窗口操作
@@ -320,6 +335,13 @@ private:
     void SetDebugName(vk::Pipeline ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Semaphore ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Fence ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::CommandPool ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::CommandBuffer ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+
+    /**
+     * 转换命令缓冲区使用标志到 Vulkan 标志
+     */
+    static vk::CommandBufferUsageFlags ConvertCommandBufferUsageFlags(ERHICommandBufferUsageFlag Flags);
 
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;

@@ -174,6 +174,12 @@ target_link_libraries(HK PRIVATE SDL3::SDL3)
 find_package(Tracy CONFIG REQUIRED)
 target_link_libraries(HK PRIVATE Tracy::TracyClient)
 
+find_package(Stb REQUIRED)
+target_include_directories(HK PRIVATE ${Stb_INCLUDE_DIR})
+
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(HK PRIVATE assimp::assimp)
+
 # ==========================================
 # [新增] 链接 Slang 到 HK 核心库
 # ==========================================
