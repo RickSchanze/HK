@@ -16,7 +16,7 @@ void FGlobalAssetImporter::Import(FStringView Path)
 
     // 推断文件类型
     const EAssetFileType FileType = FAssetRegistry::InferFileTypeFromPath(Path);
-    
+
     if (FileType == EAssetFileType::Unknown)
     {
         HK_LOG_WARN(ELogcat::Asset, "Unknown file type for path: {}", Path);

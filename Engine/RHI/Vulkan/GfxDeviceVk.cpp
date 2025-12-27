@@ -28,16 +28,16 @@ void FGfxDeviceVk::Init()
         if (!SDL_WasInit(SDL_INIT_VIDEO))
         {
             // 打印SDL版本信息
-            const int Version = SDL_GetVersion();
-            int LinkedMajor = SDL_VERSIONNUM_MAJOR(Version);
-            int LinkedMinor = SDL_VERSIONNUM_MINOR(Version);
-            int LinkedPatch = SDL_VERSIONNUM_MICRO(Version);
+            const int Version     = SDL_GetVersion();
+            int       LinkedMajor = SDL_VERSIONNUM_MAJOR(Version);
+            int       LinkedMinor = SDL_VERSIONNUM_MINOR(Version);
+            int       LinkedPatch = SDL_VERSIONNUM_MICRO(Version);
 
             HK_LOG_INFO(ELogcat::RHI, "SDL版本 - 运行时: {}.{}.{}", LinkedMajor, LinkedMinor, LinkedPatch);
 
             if (const auto Success = SDL_Init(SDL_INIT_VIDEO); !Success)
             {
-                const auto ErrMsg = SDL_GetError();
+                const auto    ErrMsg   = SDL_GetError();
                 const FString ErrorMsg = std::format("SDL初始化失败! ErrMsg={}.", ErrMsg);
                 HK_LOG_FATAL(ELogcat::RHI, "SDL初始化失败: {}", SDL_GetError());
                 throw std::runtime_error(ErrorMsg.CStr());
@@ -49,8 +49,8 @@ void FGfxDeviceVk::Init()
 
         // 3. 创建主窗口和Surface（使用默认参数）
         // 注意：这里使用默认值，如果需要自定义，应该在调用 Initialize 之前设置
-        const auto* Config = FConfigManager::GetRef().GetConfig<FRHIConfig>();
-        const FName DefaultMainWindowName("HKEngine");
+        const auto*     Config = FConfigManager::GetRef().GetConfig<FRHIConfig>();
+        const FName     DefaultMainWindowName("HKEngine");
         const FVector2i DefaultMainWindowSize = Config->GetDefaultWindowSize();
         CreateMainWindowAndSurface(DefaultMainWindowName, DefaultMainWindowSize);
 
@@ -82,7 +82,7 @@ void FGfxDeviceVk::UnInit()
     {
         Device.waitIdle();
         Device.destroy();
-        Device = nullptr;
+        Device                       = nullptr;
         vkSetDebugUtilsObjectNameEXT = nullptr; // 重置函数指针
         HK_LOG_INFO(ELogcat::RHI, "Vulkan逻辑设备已销毁");
     }
@@ -141,7 +141,7 @@ void FGfxDeviceVk::CreateMainWindowAndSurface(const FName MainWindowName, FVecto
     MainWindowSurface = vk::SurfaceKHR(SurfaceHandle);
 
     // 创建RHI Handle
-    auto& HandleManager = FRHIHandleManager::GetRef();
+    auto&            HandleManager    = FRHIHandleManager::GetRef();
     const FRHIHandle SurfaceRHIHandle = HandleManager.CreateRHIHandle("MainWindowSurface", (SurfaceHandle));
 
     // 设置窗口信息（通过窗口管理器访问）
@@ -309,13 +309,13 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
 
     // 创建交换链
     vk::SwapchainCreateInfoKHR SwapChainCreateInfo;
-    SwapChainCreateInfo.surface = MainWindowSurface;
-    SwapChainCreateInfo.minImageCount = ImageCount;
-    SwapChainCreateInfo.imageFormat = SurfaceFormat.format;
-    SwapChainCreateInfo.imageColorSpace = SurfaceFormat.colorSpace;
-    SwapChainCreateInfo.imageExtent = Capabilities.currentExtent;
+    SwapChainCreateInfo.surface          = MainWindowSurface;
+    SwapChainCreateInfo.minImageCount    = ImageCount;
+    SwapChainCreateInfo.imageFormat      = SurfaceFormat.format;
+    SwapChainCreateInfo.imageColorSpace  = SurfaceFormat.colorSpace;
+    SwapChainCreateInfo.imageExtent      = Capabilities.currentExtent;
     SwapChainCreateInfo.imageArrayLayers = 1;
-    SwapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+    SwapChainCreateInfo.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
 
     // 设置队列族索引
     uint32_t QueueFamilyIndicesArray[] = {static_cast<uint32_t>(QueueFamilyIndices.GraphicsFamily),
@@ -323,22 +323,22 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
 
     if (QueueFamilyIndices.GraphicsFamily != QueueFamilyIndices.PresentFamily)
     {
-        SwapChainCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+        SwapChainCreateInfo.imageSharingMode      = vk::SharingMode::eConcurrent;
         SwapChainCreateInfo.queueFamilyIndexCount = 2;
-        SwapChainCreateInfo.pQueueFamilyIndices = QueueFamilyIndicesArray;
+        SwapChainCreateInfo.pQueueFamilyIndices   = QueueFamilyIndicesArray;
     }
     else
     {
-        SwapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+        SwapChainCreateInfo.imageSharingMode      = vk::SharingMode::eExclusive;
         SwapChainCreateInfo.queueFamilyIndexCount = 0;
-        SwapChainCreateInfo.pQueueFamilyIndices = nullptr;
+        SwapChainCreateInfo.pQueueFamilyIndices   = nullptr;
     }
 
-    SwapChainCreateInfo.preTransform = Capabilities.currentTransform;
+    SwapChainCreateInfo.preTransform   = Capabilities.currentTransform;
     SwapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-    SwapChainCreateInfo.presentMode = PresentMode;
-    SwapChainCreateInfo.clipped = VK_TRUE;
-    SwapChainCreateInfo.oldSwapchain = nullptr;
+    SwapChainCreateInfo.presentMode    = PresentMode;
+    SwapChainCreateInfo.clipped        = VK_TRUE;
+    SwapChainCreateInfo.oldSwapchain   = nullptr;
 
     vk::SwapchainKHR SwapChain;
     try
@@ -362,7 +362,7 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     }
 
     // 创建RHI Handle
-    auto& HandleManager = FRHIHandleManager::GetRef();
+    auto&      HandleManager      = FRHIHandleManager::GetRef();
     FRHIHandle SwapChainRHIHandle = HandleManager.CreateRHIHandle(
         "MainWindowSwapChain", reinterpret_cast<void*>(static_cast<VkSwapchainKHR>(SwapChain)));
 
@@ -431,14 +431,14 @@ void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIW
     vk::SurfaceKHR Surface = vk::SurfaceKHR(SurfaceHandle);
 
     // 创建RHI Handle
-    auto& HandleManager = FRHIHandleManager::GetRef();
-    FString SurfaceDebugName = FString("WindowSurface_") + FString(std::to_string(FreeIndex).c_str());
+    auto&      HandleManager    = FRHIHandleManager::GetRef();
+    FString    SurfaceDebugName = FString("WindowSurface_") + FString(std::to_string(FreeIndex).c_str());
     FRHIHandle SurfaceRHIHandle =
         HandleManager.CreateRHIHandle(SurfaceDebugName.CStr(), reinterpret_cast<void*>(SurfaceHandle));
 
     // 创建窗口对象
     WindowManager.Windows[FreeIndex] = MakeUnique<FRHIWindow>();
-    FRHIWindow* Window = WindowManager.Windows[FreeIndex].Get();
+    FRHIWindow* Window               = WindowManager.Windows[FreeIndex].Get();
     Window->SetSurface(FRHISurface{SurfaceRHIHandle});
     Window->SetHandle(SDLWindow);
     Window->SetWindowName(Name);
@@ -579,13 +579,13 @@ void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIW
 
     // 创建交换链
     vk::SwapchainCreateInfoKHR SwapChainCreateInfo;
-    SwapChainCreateInfo.surface = Surface;
-    SwapChainCreateInfo.minImageCount = ImageCount;
-    SwapChainCreateInfo.imageFormat = SurfaceFormat.format;
-    SwapChainCreateInfo.imageColorSpace = SurfaceFormat.colorSpace;
-    SwapChainCreateInfo.imageExtent = Capabilities.currentExtent;
+    SwapChainCreateInfo.surface          = Surface;
+    SwapChainCreateInfo.minImageCount    = ImageCount;
+    SwapChainCreateInfo.imageFormat      = SurfaceFormat.format;
+    SwapChainCreateInfo.imageColorSpace  = SurfaceFormat.colorSpace;
+    SwapChainCreateInfo.imageExtent      = Capabilities.currentExtent;
     SwapChainCreateInfo.imageArrayLayers = 1;
-    SwapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+    SwapChainCreateInfo.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
 
     // 设置队列族索引
     uint32_t QueueFamilyIndicesArray[] = {static_cast<uint32_t>(QueueFamilyIndices.GraphicsFamily),
@@ -593,22 +593,22 @@ void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIW
 
     if (QueueFamilyIndices.GraphicsFamily != QueueFamilyIndices.PresentFamily)
     {
-        SwapChainCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+        SwapChainCreateInfo.imageSharingMode      = vk::SharingMode::eConcurrent;
         SwapChainCreateInfo.queueFamilyIndexCount = 2;
-        SwapChainCreateInfo.pQueueFamilyIndices = QueueFamilyIndicesArray;
+        SwapChainCreateInfo.pQueueFamilyIndices   = QueueFamilyIndicesArray;
     }
     else
     {
-        SwapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+        SwapChainCreateInfo.imageSharingMode      = vk::SharingMode::eExclusive;
         SwapChainCreateInfo.queueFamilyIndexCount = 0;
-        SwapChainCreateInfo.pQueueFamilyIndices = nullptr;
+        SwapChainCreateInfo.pQueueFamilyIndices   = nullptr;
     }
 
-    SwapChainCreateInfo.preTransform = Capabilities.currentTransform;
+    SwapChainCreateInfo.preTransform   = Capabilities.currentTransform;
     SwapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-    SwapChainCreateInfo.presentMode = PresentMode;
-    SwapChainCreateInfo.clipped = VK_TRUE;
-    SwapChainCreateInfo.oldSwapchain = nullptr;
+    SwapChainCreateInfo.presentMode    = PresentMode;
+    SwapChainCreateInfo.clipped        = VK_TRUE;
+    SwapChainCreateInfo.oldSwapchain   = nullptr;
 
     vk::SwapchainKHR SwapChain;
     try
@@ -641,7 +641,7 @@ void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIW
     }
 
     // 创建SwapChain RHI Handle
-    FString SwapChainDebugName = FString("WindowSwapChain_") + FString(std::to_string(FreeIndex).c_str());
+    FString    SwapChainDebugName = FString("WindowSwapChain_") + FString(std::to_string(FreeIndex).c_str());
     FRHIHandle SwapChainRHIHandle = HandleManager.CreateRHIHandle(
         SwapChainDebugName.CStr(), reinterpret_cast<void*>(static_cast<VkSwapchainKHR>(SwapChain)));
 
@@ -856,7 +856,7 @@ void FGfxDeviceVk::CreateInstance()
 
     // 获取验证层列表
     TArray<const char*> ValidationLayers = GetRequiredValidationLayers();
-    bValidationLayersEnabled = !ValidationLayers.IsEmpty() && CheckValidationLayerSupport(ValidationLayers);
+    bValidationLayersEnabled             = !ValidationLayers.IsEmpty() && CheckValidationLayerSupport(ValidationLayers);
 
     if (!bValidationLayersEnabled && !ValidationLayers.IsEmpty())
     {
@@ -865,24 +865,24 @@ void FGfxDeviceVk::CreateInstance()
 
     // 创建应用信息
     vk::ApplicationInfo AppInfo;
-    AppInfo.pApplicationName = "HKEngine";
+    AppInfo.pApplicationName   = "HKEngine";
     AppInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    AppInfo.pEngineName = "HKEngine";
-    AppInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    AppInfo.apiVersion = VK_API_VERSION_1_4;
+    AppInfo.pEngineName        = "HKEngine";
+    AppInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
+    AppInfo.apiVersion         = VK_API_VERSION_1_4;
 
     // 创建实例创建信息
     vk::InstanceCreateInfo CreateInfo;
     CreateInfo.pApplicationInfo = &AppInfo;
 
     // 设置扩展
-    CreateInfo.enabledExtensionCount = static_cast<uint32_t>(RequiredExtensions.Size());
+    CreateInfo.enabledExtensionCount   = static_cast<uint32_t>(RequiredExtensions.Size());
     CreateInfo.ppEnabledExtensionNames = RequiredExtensions.Data();
 
     // 设置验证层
     if (bValidationLayersEnabled)
     {
-        CreateInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.Size());
+        CreateInfo.enabledLayerCount   = static_cast<uint32_t>(ValidationLayers.Size());
         CreateInfo.ppEnabledLayerNames = ValidationLayers.Data();
     }
     else
@@ -1034,7 +1034,7 @@ void FGfxDeviceVk::CreateDevice()
     {
         vk::DeviceQueueCreateInfo QueueCreateInfo;
         QueueCreateInfo.queueFamilyIndex = static_cast<uint32_t>(QueueFamily);
-        QueueCreateInfo.queueCount = 1;
+        QueueCreateInfo.queueCount       = 1;
         QueueCreateInfo.pQueuePriorities = &QueuePriority;
         QueueCreateInfos.Add(QueueCreateInfo);
     }
@@ -1109,8 +1109,8 @@ void FGfxDeviceVk::CreateDevice()
 
     // 描述符索引特性（用于bindless）
     vk::PhysicalDeviceDescriptorIndexingFeatures DescriptorIndexingFeatures;
-    DescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
-    DescriptorIndexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+    DescriptorIndexingFeatures.runtimeDescriptorArray                   = VK_TRUE;
+    DescriptorIndexingFeatures.descriptorBindingPartiallyBound          = VK_TRUE;
     DescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
     // 网格着色器特性
@@ -1135,21 +1135,21 @@ void FGfxDeviceVk::CreateDevice()
     DynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 
     // 链式连接特性结构体
-    DeviceFeatures2.pNext = &Synchronization2Features;
-    Synchronization2Features.pNext = &BufferDeviceAddressFeatures;
+    DeviceFeatures2.pNext             = &Synchronization2Features;
+    Synchronization2Features.pNext    = &BufferDeviceAddressFeatures;
     BufferDeviceAddressFeatures.pNext = &DescriptorIndexingFeatures;
-    DescriptorIndexingFeatures.pNext = &MeshShaderFeatures;
-    MeshShaderFeatures.pNext = &RayTracingFeatures;
-    RayTracingFeatures.pNext = &TimelineSemaphoreFeatures;
-    TimelineSemaphoreFeatures.pNext = &DynamicRenderingFeatures;
+    DescriptorIndexingFeatures.pNext  = &MeshShaderFeatures;
+    MeshShaderFeatures.pNext          = &RayTracingFeatures;
+    RayTracingFeatures.pNext          = &TimelineSemaphoreFeatures;
+    TimelineSemaphoreFeatures.pNext   = &DynamicRenderingFeatures;
 
     // 创建设备创建信息
     vk::DeviceCreateInfo CreateInfo;
-    CreateInfo.pNext = &DeviceFeatures2;
-    CreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfos.Size());
-    CreateInfo.pQueueCreateInfos = QueueCreateInfos.Data();
-    CreateInfo.pEnabledFeatures = nullptr; // 使用Features2时设为nullptr
-    CreateInfo.enabledExtensionCount = static_cast<uint32_t>(DeviceExtensions.Size());
+    CreateInfo.pNext                   = &DeviceFeatures2;
+    CreateInfo.queueCreateInfoCount    = static_cast<uint32_t>(QueueCreateInfos.Size());
+    CreateInfo.pQueueCreateInfos       = QueueCreateInfos.Data();
+    CreateInfo.pEnabledFeatures        = nullptr; // 使用Features2时设为nullptr
+    CreateInfo.enabledExtensionCount   = static_cast<uint32_t>(DeviceExtensions.Size());
     CreateInfo.ppEnabledExtensionNames = DeviceExtensions.Data();
 
     // 注意：在 Vulkan 1.3+ 中，设备级别的验证层已被弃用并被忽略
@@ -1163,7 +1163,7 @@ void FGfxDeviceVk::CreateDevice()
 
         // 获取队列
         GraphicsQueue = Device.getQueue(static_cast<uint32_t>(QueueFamilyIndices.GraphicsFamily), 0);
-        PresentQueue = Device.getQueue(static_cast<uint32_t>(QueueFamilyIndices.PresentFamily), 0);
+        PresentQueue  = Device.getQueue(static_cast<uint32_t>(QueueFamilyIndices.PresentFamily), 0);
 
         // 初始化 Debug Utils 函数指针
         if (bDebugUtilsExtensionAvailable)
@@ -1238,7 +1238,7 @@ void FGfxDeviceVk::SelectPhysicalDevice()
     {
         if (IsDeviceSuitable(MyDevice))
         {
-            PhysicalDevice = MyDevice;
+            PhysicalDevice                          = MyDevice;
             vk::PhysicalDeviceProperties Properties = MyDevice.getProperties();
             HK_LOG_INFO(ELogcat::RHI, "选择物理设备: {}", Properties.deviceName.data());
             return;
@@ -1324,7 +1324,7 @@ bool FGfxDeviceVk::IsDeviceSuitable(const vk::PhysicalDevice InPhysicalDevice) c
 
     // 检查Surface支持
     TArray<vk::SurfaceFormatKHR> SurfaceFormats;
-    TArray<vk::PresentModeKHR> PresentModes;
+    TArray<vk::PresentModeKHR>   PresentModes;
     try
     {
         const auto FormatsVector = InPhysicalDevice.getSurfaceFormatsKHR(MainWindowSurface);
@@ -1461,10 +1461,10 @@ void FGfxDeviceVk::SetDebugName(const vk::DeviceMemory ObjectHandle, const vk::O
         const FString NameStr(Name.Data(), Name.Size());
 
         VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType   = static_cast<VkObjectType>(ObjectType);
         VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkDeviceMemory>(ObjectHandle));
-        VkNameInfo.pObjectName = NameStr.CStr();
+        VkNameInfo.pObjectName  = NameStr.CStr();
 
         vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
@@ -1492,10 +1492,10 @@ void FGfxDeviceVk::SetDebugName(const vk::Buffer ObjectHandle, const vk::ObjectT
         const FString NameStr(Name.Data(), Name.Size());
 
         VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType   = static_cast<VkObjectType>(ObjectType);
         VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkBuffer>(ObjectHandle));
-        VkNameInfo.pObjectName = NameStr.CStr();
+        VkNameInfo.pObjectName  = NameStr.CStr();
 
         vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
@@ -1523,10 +1523,10 @@ void FGfxDeviceVk::SetDebugName(const vk::CommandPool ObjectHandle, const vk::Ob
         const FString NameStr(Name.Data(), Name.Size());
 
         VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType   = static_cast<VkObjectType>(ObjectType);
         VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkCommandPool>(ObjectHandle));
-        VkNameInfo.pObjectName = NameStr.CStr();
+        VkNameInfo.pObjectName  = NameStr.CStr();
 
         vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
@@ -1554,10 +1554,10 @@ void FGfxDeviceVk::SetDebugName(const vk::CommandBuffer ObjectHandle, const vk::
         const FString NameStr(Name.Data(), Name.Size());
 
         VkDebugUtilsObjectNameInfoEXT VkNameInfo{};
-        VkNameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        VkNameInfo.objectType = static_cast<VkObjectType>(ObjectType);
+        VkNameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        VkNameInfo.objectType   = static_cast<VkObjectType>(ObjectType);
         VkNameInfo.objectHandle = reinterpret_cast<uint64_t>(static_cast<VkCommandBuffer>(ObjectHandle));
-        VkNameInfo.pObjectName = NameStr.CStr();
+        VkNameInfo.pObjectName  = NameStr.CStr();
 
         vkSetDebugUtilsObjectNameEXT(static_cast<VkDevice>(Device), &VkNameInfo);
     }
