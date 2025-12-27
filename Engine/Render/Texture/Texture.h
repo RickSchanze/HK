@@ -2,16 +2,13 @@
 #include "Core/Reflection/Reflection.h"
 #include "Math/Vector.h"
 #include "Object/Asset.h"
-#include "Object/AssetRegistry.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
 
 #include "Texture.generated.h"
 
-
-
 HCLASS()
-class HTexture : HAsset
+class HTexture : public HAsset
 {
     GENERATED_BODY(HTexture)
 
