@@ -2,14 +2,15 @@
 
 #include "Core/Container/Array.h"
 #include "Core/Utility/Macros.h"
-#include "Math/Vector.h"
 #include "Math/Rect2D.h"
+#include "Math/Vector.h"
 #include "RHIBuffer.h"
+#include "RHIDescriptorSet.h"
 #include "RHIImage.h"
 #include "RHIImageView.h"
 #include "RHIPipeline.h"
-#include "RHIDescriptorSet.h"
 #include <cstring>
+#include <utility>
 
 // 前向声明
 struct FRHIViewport;
@@ -126,7 +127,7 @@ struct FRHICommand_Reset : FRHICommand
 {
     bool ReleaseResources = false;
 
-    FRHICommand_Reset(bool InReleaseResources = false) : FRHICommand(), ReleaseResources(InReleaseResources)
+    FRHICommand_Reset(const bool InReleaseResources = false) : FRHICommand(), ReleaseResources(InReleaseResources)
     {
         CommandType = ERHICommandType::Reset;
     }
@@ -140,7 +141,7 @@ struct FRHICommand_BindPipeline : FRHICommand
 {
     FRHIPipeline Pipeline;
 
-    FRHICommand_BindPipeline(const FRHIPipeline& InPipeline) : FRHICommand(), Pipeline(InPipeline)
+    FRHICommand_BindPipeline(FRHIPipeline InPipeline) : FRHICommand(), Pipeline(std::move(InPipeline))
     {
         CommandType = ERHICommandType::BindPipeline;
     }
@@ -150,7 +151,7 @@ struct FRHICommand_BindComputePipeline : FRHICommand
 {
     FRHIPipeline Pipeline;
 
-    FRHICommand_BindComputePipeline(const FRHIPipeline& InPipeline) : FRHICommand(), Pipeline(InPipeline)
+    FRHICommand_BindComputePipeline(FRHIPipeline InPipeline) : FRHICommand(), Pipeline(std::move(InPipeline))
     {
         CommandType = ERHICommandType::BindComputePipeline;
     }
@@ -162,15 +163,15 @@ struct FRHICommand_BindComputePipeline : FRHICommand
 
 struct FRHICommand_BindDescriptorSet : FRHICommand
 {
-    ERHIPipelineType      PipelineType;
-    FRHIPipelineLayout    Layout;
-    FRHIDescriptorSet     DescriptorSet;
-    UInt32                FirstSet;
+    ERHIPipelineType   PipelineType;
+    FRHIPipelineLayout Layout;
+    FRHIDescriptorSet  DescriptorSet;
+    UInt32             FirstSet;
 
-    FRHICommand_BindDescriptorSet(ERHIPipelineType InPipelineType, const FRHIPipelineLayout& InLayout,
-                                  const FRHIDescriptorSet& InDescriptorSet, UInt32 InFirstSet)
-        : FRHICommand(), PipelineType(InPipelineType), Layout(InLayout), DescriptorSet(InDescriptorSet),
-          FirstSet(InFirstSet)
+    FRHICommand_BindDescriptorSet(const ERHIPipelineType InPipelineType, FRHIPipelineLayout InLayout,
+                                  FRHIDescriptorSet InDescriptorSet, const UInt32 InFirstSet)
+        : FRHICommand(), PipelineType(InPipelineType), Layout(std::move(InLayout)),
+          DescriptorSet(std::move(InDescriptorSet)), FirstSet(InFirstSet)
     {
         CommandType = ERHICommandType::BindDescriptorSet;
     }
@@ -178,14 +179,14 @@ struct FRHICommand_BindDescriptorSet : FRHICommand
 
 struct FRHICommand_BindDescriptorSets : FRHICommand
 {
-    ERHIPipelineType           PipelineType;
-    FRHIPipelineLayout         Layout;
-    TArray<FRHIDescriptorSet>  DescriptorSets;
-    UInt32                     FirstSet;
+    ERHIPipelineType          PipelineType;
+    FRHIPipelineLayout        Layout;
+    TArray<FRHIDescriptorSet> DescriptorSets;
+    UInt32                    FirstSet;
 
-    FRHICommand_BindDescriptorSets(ERHIPipelineType InPipelineType, const FRHIPipelineLayout& InLayout,
-                                   const TArray<FRHIDescriptorSet>& InDescriptorSets, UInt32 InFirstSet)
-        : FRHICommand(), PipelineType(InPipelineType), Layout(InLayout), DescriptorSets(InDescriptorSets),
+    FRHICommand_BindDescriptorSets(const ERHIPipelineType InPipelineType, FRHIPipelineLayout InLayout,
+                                   const TArray<FRHIDescriptorSet>& InDescriptorSets, const UInt32 InFirstSet)
+        : FRHICommand(), PipelineType(InPipelineType), Layout(std::move(InLayout)), DescriptorSets(InDescriptorSets),
           FirstSet(InFirstSet)
     {
         CommandType = ERHICommandType::BindDescriptorSets;
@@ -202,8 +203,8 @@ struct FRHICommand_BindVertexBuffer : FRHICommand
     FRHIBuffer Buffer;
     UInt64     Offset;
 
-    FRHICommand_BindVertexBuffer(UInt32 InBinding, const FRHIBuffer& InBuffer, UInt64 InOffset = 0)
-        : FRHICommand(), Binding(InBinding), Buffer(InBuffer), Offset(InOffset)
+    FRHICommand_BindVertexBuffer(const UInt32 InBinding, FRHIBuffer InBuffer, const UInt64 InOffset = 0)
+        : FRHICommand(), Binding(InBinding), Buffer(std::move(InBuffer)), Offset(InOffset)
     {
         CommandType = ERHICommandType::BindVertexBuffer;
     }
@@ -211,12 +212,12 @@ struct FRHICommand_BindVertexBuffer : FRHICommand
 
 struct FRHICommand_BindVertexBuffers : FRHICommand
 {
-    UInt32                FirstBinding;
-    TArray<FRHIBuffer>    Buffers;
-    TArray<UInt64>       Offsets;
+    UInt32             FirstBinding;
+    TArray<FRHIBuffer> Buffers;
+    TArray<UInt64>     Offsets;
 
-    FRHICommand_BindVertexBuffers(UInt32 InFirstBinding, const TArray<FRHIBuffer>& InBuffers,
-                                   const TArray<UInt64>& InOffsets)
+    FRHICommand_BindVertexBuffers(const UInt32 InFirstBinding, const TArray<FRHIBuffer>& InBuffers,
+                                  const TArray<UInt64>& InOffsets)
         : FRHICommand(), FirstBinding(InFirstBinding), Buffers(InBuffers), Offsets(InOffsets)
     {
         CommandType = ERHICommandType::BindVertexBuffers;
@@ -229,8 +230,8 @@ struct FRHICommand_BindIndexBuffer : FRHICommand
     UInt64     Offset;
     bool       bIs32Bit;
 
-    FRHICommand_BindIndexBuffer(const FRHIBuffer& InBuffer, UInt64 InOffset = 0, bool InIs32Bit = false)
-        : FRHICommand(), Buffer(InBuffer), Offset(InOffset), bIs32Bit(InIs32Bit)
+    FRHICommand_BindIndexBuffer(FRHIBuffer InBuffer, const UInt64 InOffset = 0, const bool InIs32Bit = false)
+        : FRHICommand(), Buffer(std::move(InBuffer)), Offset(InOffset), bIs32Bit(InIs32Bit)
     {
         CommandType = ERHICommandType::BindIndexBuffer;
     }
@@ -247,8 +248,8 @@ struct FRHICommand_Draw : FRHICommand
     UInt32 FirstVertex;
     UInt32 FirstInstance;
 
-    FRHICommand_Draw(UInt32 InVertexCount, UInt32 InInstanceCount = 1, UInt32 InFirstVertex = 0,
-                     UInt32 InFirstInstance = 0)
+    FRHICommand_Draw(const UInt32 InVertexCount, const UInt32 InInstanceCount = 1, const UInt32 InFirstVertex = 0,
+                     const UInt32 InFirstInstance = 0)
         : FRHICommand(), VertexCount(InVertexCount), InstanceCount(InInstanceCount), FirstVertex(InFirstVertex),
           FirstInstance(InFirstInstance)
     {
@@ -264,8 +265,8 @@ struct FRHICommand_DrawIndexed : FRHICommand
     Int32  VertexOffset;
     UInt32 FirstInstance;
 
-    FRHICommand_DrawIndexed(UInt32 InIndexCount, UInt32 InInstanceCount = 1, UInt32 InFirstIndex = 0,
-                             Int32 InVertexOffset = 0, UInt32 InFirstInstance = 0)
+    FRHICommand_DrawIndexed(const UInt32 InIndexCount, const UInt32 InInstanceCount = 1, const UInt32 InFirstIndex = 0,
+                            const Int32 InVertexOffset = 0, const UInt32 InFirstInstance = 0)
         : FRHICommand(), IndexCount(InIndexCount), InstanceCount(InInstanceCount), FirstIndex(InFirstIndex),
           VertexOffset(InVertexOffset), FirstInstance(InFirstInstance)
     {
@@ -280,9 +281,9 @@ struct FRHICommand_DrawIndirect : FRHICommand
     UInt32     DrawCount;
     UInt32     Stride;
 
-    FRHICommand_DrawIndirect(const FRHIBuffer& InBuffer, UInt64 InOffset, UInt32 InDrawCount = 1,
-                              UInt32 InStride = 0)
-        : FRHICommand(), Buffer(InBuffer), Offset(InOffset), DrawCount(InDrawCount), Stride(InStride)
+    FRHICommand_DrawIndirect(FRHIBuffer InBuffer, const UInt64 InOffset, const UInt32 InDrawCount = 1,
+                             const UInt32 InStride = 0)
+        : FRHICommand(), Buffer(std::move(InBuffer)), Offset(InOffset), DrawCount(InDrawCount), Stride(InStride)
     {
         CommandType = ERHICommandType::DrawIndirect;
     }
@@ -295,9 +296,9 @@ struct FRHICommand_DrawIndexedIndirect : FRHICommand
     UInt32     DrawCount;
     UInt32     Stride;
 
-    FRHICommand_DrawIndexedIndirect(const FRHIBuffer& InBuffer, UInt64 InOffset, UInt32 InDrawCount = 1,
-                                     UInt32 InStride = 0)
-        : FRHICommand(), Buffer(InBuffer), Offset(InOffset), DrawCount(InDrawCount), Stride(InStride)
+    FRHICommand_DrawIndexedIndirect(FRHIBuffer InBuffer, const UInt64 InOffset, const UInt32 InDrawCount = 1,
+                                    const UInt32 InStride = 0)
+        : FRHICommand(), Buffer(std::move(InBuffer)), Offset(InOffset), DrawCount(InDrawCount), Stride(InStride)
     {
         CommandType = ERHICommandType::DrawIndexedIndirect;
     }
@@ -313,7 +314,7 @@ struct FRHICommand_Dispatch : FRHICommand
     UInt32 GroupCountY;
     UInt32 GroupCountZ;
 
-    FRHICommand_Dispatch(UInt32 InGroupCountX, UInt32 InGroupCountY = 1, UInt32 InGroupCountZ = 1)
+    FRHICommand_Dispatch(const UInt32 InGroupCountX, const UInt32 InGroupCountY = 1, const UInt32 InGroupCountZ = 1)
         : FRHICommand(), GroupCountX(InGroupCountX), GroupCountY(InGroupCountY), GroupCountZ(InGroupCountZ)
     {
         CommandType = ERHICommandType::Dispatch;
@@ -325,8 +326,8 @@ struct FRHICommand_DispatchIndirect : FRHICommand
     FRHIBuffer Buffer;
     UInt64     Offset;
 
-    FRHICommand_DispatchIndirect(const FRHIBuffer& InBuffer, UInt64 InOffset)
-        : FRHICommand(), Buffer(InBuffer), Offset(InOffset)
+    FRHICommand_DispatchIndirect(FRHIBuffer InBuffer, const UInt64 InOffset)
+        : FRHICommand(), Buffer(std::move(InBuffer)), Offset(InOffset)
     {
         CommandType = ERHICommandType::DispatchIndirect;
     }
@@ -338,13 +339,13 @@ struct FRHICommand_DispatchIndirect : FRHICommand
 
 struct FRHICommand_CopyBuffer : FRHICommand
 {
-    FRHIBuffer                      SrcBuffer;
-    FRHIBuffer                      DstBuffer;
-    TArray<FRHIBufferCopyRegion>    Regions;
+    FRHIBuffer                   SrcBuffer;
+    FRHIBuffer                   DstBuffer;
+    TArray<FRHIBufferCopyRegion> Regions;
 
-    FRHICommand_CopyBuffer(const FRHIBuffer& InSrcBuffer, const FRHIBuffer& InDstBuffer,
+    FRHICommand_CopyBuffer(FRHIBuffer InSrcBuffer, FRHIBuffer InDstBuffer,
                            const TArray<FRHIBufferCopyRegion>& InRegions)
-        : FRHICommand(), SrcBuffer(InSrcBuffer), DstBuffer(InDstBuffer), Regions(InRegions)
+        : FRHICommand(), SrcBuffer(std::move(InSrcBuffer)), DstBuffer(std::move(InDstBuffer)), Regions(InRegions)
     {
         CommandType = ERHICommandType::CopyBuffer;
     }
@@ -352,13 +353,12 @@ struct FRHICommand_CopyBuffer : FRHICommand
 
 struct FRHICommand_CopyImage : FRHICommand
 {
-    FRHIImage                    SrcImage;
-    FRHIImage                    DstImage;
-    TArray<FRHIImageCopyRegion>  Regions;
+    FRHIImage                   SrcImage;
+    FRHIImage                   DstImage;
+    TArray<FRHIImageCopyRegion> Regions;
 
-    FRHICommand_CopyImage(const FRHIImage& InSrcImage, const FRHIImage& InDstImage,
-                          const TArray<FRHIImageCopyRegion>& InRegions)
-        : FRHICommand(), SrcImage(InSrcImage), DstImage(InDstImage), Regions(InRegions)
+    FRHICommand_CopyImage(FRHIImage InSrcImage, FRHIImage InDstImage, const TArray<FRHIImageCopyRegion>& InRegions)
+        : FRHICommand(), SrcImage(std::move(InSrcImage)), DstImage(std::move(InDstImage)), Regions(InRegions)
     {
         CommandType = ERHICommandType::CopyImage;
     }
@@ -366,13 +366,13 @@ struct FRHICommand_CopyImage : FRHICommand
 
 struct FRHICommand_CopyBufferToImage : FRHICommand
 {
-    FRHIBuffer                          SrcBuffer;
-    FRHIImage                          DstImage;
-    TArray<FRHIBufferImageCopyRegion>   Regions;
+    FRHIBuffer                        SrcBuffer;
+    FRHIImage                         DstImage;
+    TArray<FRHIBufferImageCopyRegion> Regions;
 
-    FRHICommand_CopyBufferToImage(const FRHIBuffer& InSrcBuffer, const FRHIImage& InDstImage,
+    FRHICommand_CopyBufferToImage(FRHIBuffer InSrcBuffer, FRHIImage InDstImage,
                                   const TArray<FRHIBufferImageCopyRegion>& InRegions)
-        : FRHICommand(), SrcBuffer(InSrcBuffer), DstImage(InDstImage), Regions(InRegions)
+        : FRHICommand(), SrcBuffer(std::move(InSrcBuffer)), DstImage(std::move(InDstImage)), Regions(InRegions)
     {
         CommandType = ERHICommandType::CopyBufferToImage;
     }
@@ -380,13 +380,13 @@ struct FRHICommand_CopyBufferToImage : FRHICommand
 
 struct FRHICommand_CopyImageToBuffer : FRHICommand
 {
-    FRHIImage                          SrcImage;
-    FRHIBuffer                         DstBuffer;
-    TArray<FRHIBufferImageCopyRegion>  Regions;
+    FRHIImage                         SrcImage;
+    FRHIBuffer                        DstBuffer;
+    TArray<FRHIBufferImageCopyRegion> Regions;
 
-    FRHICommand_CopyImageToBuffer(const FRHIImage& InSrcImage, const FRHIBuffer& InDstBuffer,
+    FRHICommand_CopyImageToBuffer(FRHIImage InSrcImage, FRHIBuffer InDstBuffer,
                                   const TArray<FRHIBufferImageCopyRegion>& InRegions)
-        : FRHICommand(), SrcImage(InSrcImage), DstBuffer(InDstBuffer), Regions(InRegions)
+        : FRHICommand(), SrcImage(std::move(InSrcImage)), DstBuffer(std::move(InDstBuffer)), Regions(InRegions)
     {
         CommandType = ERHICommandType::CopyImageToBuffer;
     }
@@ -398,13 +398,13 @@ struct FRHICommand_CopyImageToBuffer : FRHICommand
 
 struct FRHICommand_ClearColorImage : FRHICommand
 {
-    FRHIImage                          Image;
-    FVector4f                          Color;
-    TArray<FRHIImageSubresourceRange>  Ranges;
+    FRHIImage                         Image;
+    FVector4f                         Color;
+    TArray<FRHIImageSubresourceRange> Ranges;
 
-    FRHICommand_ClearColorImage(const FRHIImage& InImage, const FVector4f& InColor,
+    FRHICommand_ClearColorImage(FRHIImage InImage, const FVector4f& InColor,
                                 const TArray<FRHIImageSubresourceRange>& InRanges)
-        : FRHICommand(), Image(InImage), Color(InColor), Ranges(InRanges)
+        : FRHICommand(), Image(std::move(InImage)), Color(InColor), Ranges(InRanges)
     {
         CommandType = ERHICommandType::ClearColorImage;
     }
@@ -412,14 +412,14 @@ struct FRHICommand_ClearColorImage : FRHICommand
 
 struct FRHICommand_ClearDepthStencilImage : FRHICommand
 {
-    FRHIImage                          Image;
-    float                              Depth;
-    UInt32                             Stencil;
-    TArray<FRHIImageSubresourceRange>  Ranges;
+    FRHIImage                         Image;
+    float                             Depth;
+    UInt32                            Stencil;
+    TArray<FRHIImageSubresourceRange> Ranges;
 
-    FRHICommand_ClearDepthStencilImage(const FRHIImage& InImage, float InDepth, UInt32 InStencil,
-                                        const TArray<FRHIImageSubresourceRange>& InRanges)
-        : FRHICommand(), Image(InImage), Depth(InDepth), Stencil(InStencil), Ranges(InRanges)
+    FRHICommand_ClearDepthStencilImage(FRHIImage InImage, const float InDepth, const UInt32 InStencil,
+                                       const TArray<FRHIImageSubresourceRange>& InRanges)
+        : FRHICommand(), Image(std::move(InImage)), Depth(InDepth), Stencil(InStencil), Ranges(InRanges)
     {
         CommandType = ERHICommandType::ClearDepthStencilImage;
     }
@@ -431,20 +431,20 @@ struct FRHICommand_ClearDepthStencilImage : FRHICommand
 
 struct FRHICommand_PipelineBarrier : FRHICommand
 {
-    UInt32                              SrcStageMask;
-    UInt32                              DstStageMask;
-    UInt32                              DependencyFlags;
-    TArray<FRHIMemoryBarrier>           MemoryBarriers;
-    TArray<FRHIBufferMemoryBarrier>     BufferMemoryBarriers;
-    TArray<FRHIImageMemoryBarrier>      ImageMemoryBarriers;
+    UInt32                          SrcStageMask;
+    UInt32                          DstStageMask;
+    UInt32                          DependencyFlags;
+    TArray<FRHIMemoryBarrier>       MemoryBarriers;
+    TArray<FRHIBufferMemoryBarrier> BufferMemoryBarriers;
+    TArray<FRHIImageMemoryBarrier>  ImageMemoryBarriers;
 
-    FRHICommand_PipelineBarrier(UInt32 InSrcStageMask, UInt32 InDstStageMask, UInt32 InDependencyFlags,
-                                 const TArray<FRHIMemoryBarrier>& InMemoryBarriers,
-                                 const TArray<FRHIBufferMemoryBarrier>& InBufferMemoryBarriers,
-                                 const TArray<FRHIImageMemoryBarrier>& InImageMemoryBarriers)
-        : FRHICommand(), SrcStageMask(InSrcStageMask), DstStageMask(InDstStageMask),
-          DependencyFlags(InDependencyFlags), MemoryBarriers(InMemoryBarriers),
-          BufferMemoryBarriers(InBufferMemoryBarriers), ImageMemoryBarriers(InImageMemoryBarriers)
+    FRHICommand_PipelineBarrier(const UInt32 InSrcStageMask, const UInt32 InDstStageMask,
+                                const UInt32 InDependencyFlags, const TArray<FRHIMemoryBarrier>& InMemoryBarriers,
+                                const TArray<FRHIBufferMemoryBarrier>& InBufferMemoryBarriers,
+                                const TArray<FRHIImageMemoryBarrier>&  InImageMemoryBarriers)
+        : FRHICommand(), SrcStageMask(InSrcStageMask), DstStageMask(InDstStageMask), DependencyFlags(InDependencyFlags),
+          MemoryBarriers(InMemoryBarriers), BufferMemoryBarriers(InBufferMemoryBarriers),
+          ImageMemoryBarriers(InImageMemoryBarriers)
     {
         CommandType = ERHICommandType::PipelineBarrier;
     }
@@ -456,10 +456,10 @@ struct FRHICommand_PipelineBarrier : FRHICommand
 
 struct FRHICommand_SetViewport : FRHICommand
 {
-    UInt32                  FirstViewport;
-    TArray<FRHIViewport>    Viewports;
+    UInt32               FirstViewport;
+    TArray<FRHIViewport> Viewports;
 
-    FRHICommand_SetViewport(UInt32 InFirstViewport, const TArray<FRHIViewport>& InViewports)
+    FRHICommand_SetViewport(const UInt32 InFirstViewport, const TArray<FRHIViewport>& InViewports)
         : FRHICommand(), FirstViewport(InFirstViewport), Viewports(InViewports)
     {
         CommandType = ERHICommandType::SetViewport;
@@ -468,10 +468,10 @@ struct FRHICommand_SetViewport : FRHICommand
 
 struct FRHICommand_SetScissor : FRHICommand
 {
-    UInt32              FirstScissor;
-    TArray<FRHIRect2D>  Scissors;
+    UInt32             FirstScissor;
+    TArray<FRHIRect2D> Scissors;
 
-    FRHICommand_SetScissor(UInt32 InFirstScissor, const TArray<FRHIRect2D>& InScissors)
+    FRHICommand_SetScissor(const UInt32 InFirstScissor, const TArray<FRHIRect2D>& InScissors)
         : FRHICommand(), FirstScissor(InFirstScissor), Scissors(InScissors)
     {
         CommandType = ERHICommandType::SetScissor;
@@ -490,9 +490,9 @@ struct FRHICommand_PushConstants : FRHICommand
     UInt32             Size;
     TArray<UInt8>      Data; // 存储推送常量的数据
 
-    FRHICommand_PushConstants(const FRHIPipelineLayout& InLayout, UInt32 InStageFlags, UInt32 InOffset,
-                              UInt32 InSize, const void* InData)
-        : FRHICommand(), Layout(InLayout), StageFlags(InStageFlags), Offset(InOffset), Size(InSize)
+    FRHICommand_PushConstants(FRHIPipelineLayout InLayout, const UInt32 InStageFlags, const UInt32 InOffset,
+                              const UInt32 InSize, const void* InData)
+        : FRHICommand(), Layout(std::move(InLayout)), StageFlags(InStageFlags), Offset(InOffset), Size(InSize)
     {
         CommandType = ERHICommandType::PushConstants;
         Data.Resize(Size);
@@ -510,13 +510,13 @@ struct FRHICommand_PushConstants : FRHICommand
 struct FRHICommand_BeginRendering : FRHICommand
 {
     // Dynamic Rendering 相关信息
-    TArray<FRHIImageView>    ColorAttachments;      // 颜色附件
-    FRHIImageView            DepthAttachment;        // 深度附件（可选）
-    FRHIImageView            StencilAttachment;      // 模板附件（可选）
-    FRHIRect2D               RenderArea;             // 渲染区域
-    ERHIImageLayout          DepthAttachmentLayout = ERHIImageLayout::Undefined;
-    ERHIImageLayout          StencilAttachmentLayout = ERHIImageLayout::Undefined;
-    bool                     bResolveAttachments = false; // 是否使用解析附件
+    TArray<FRHIImageView> ColorAttachments;  // 颜色附件
+    FRHIImageView         DepthAttachment;   // 深度附件（可选）
+    FRHIImageView         StencilAttachment; // 模板附件（可选）
+    FRHIRect2D            RenderArea;        // 渲染区域
+    ERHIImageLayout       DepthAttachmentLayout   = ERHIImageLayout::Undefined;
+    ERHIImageLayout       StencilAttachmentLayout = ERHIImageLayout::Undefined;
+    bool                  bResolveAttachments     = false; // 是否使用解析附件
 
     FRHICommand_BeginRendering() : FRHICommand()
     {
@@ -531,4 +531,3 @@ struct FRHICommand_EndRendering : FRHICommand
         CommandType = ERHICommandType::EndRendering;
     }
 };
-
