@@ -7,12 +7,12 @@
 #include "Core/Singleton/Singleton.h"
 #include "Object.generated.h"
 
-typedef UInt32 FObjectID;
+typedef UInt32             FObjectID;
 constexpr inline FObjectID INVALID_OBJECT_ID = 0;
 
 enum class EObjectFlags
 {
-    None = 0,
+    None  = 0,
     Asset = 1 << 0,
 };
 HK_ENABLE_BITMASK_OPERATORS(EObjectFlags)
@@ -78,7 +78,7 @@ public:
         }
 
         // 直接设置对象ID（通过友元访问）
-        Object->ID = NewID;
+        Object->ID   = NewID;
         Object->Name = Name;
 
         // 将对象存储到数组中（ID即是索引，索引0不使用）
@@ -95,10 +95,21 @@ public:
 
 private:
     FObjectID AllocateID();
-    void ReleaseID(FObjectID ID);
+    void      ReleaseID(FObjectID ID);
 
     mutable std::mutex Mutex;
-    TArray<HObject*> AllObjects;
+    TArray<HObject*>   AllObjects;
 
     Int32 NumObjects = 0;
 };
+
+template <typename T>
+T* CreateObject(const FName Name = FName("New Object"))
+{
+    return FObjectArray::GetRef().CreateObject<T>(Name);
+}
+
+inline HObject* CreateObject(const FType ObjectType, const FName Name = FName("New Object"))
+{
+    return FObjectArray::GetRef().CreateObject(ObjectType, Name);
+}

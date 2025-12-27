@@ -31,6 +31,13 @@ void CreateGfxDevice()
 void DestroyGfxDevice()
 {
     GOnPreRHIDeviceDestroyed.Invoke(GGfxDevice);
+    
+    // 等待设备空闲，确保所有命令完成
+    if (GGfxDevice)
+    {
+        GGfxDevice->WaitIdle();
+    }
+    
     Delete(GGfxDevice);
     GGfxDevice = nullptr;
     GOnPostRHIDeviceDestroyed.Invoke();

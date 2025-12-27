@@ -20,6 +20,7 @@ class FGfxDeviceVk : public FGfxDevice
 public:
     void Init() override;
     void UnInit() override;
+    void WaitIdle() override;
 
 #pragma region Buffer操作
     FRHIBuffer CreateBuffer(const FRHIBufferDesc& BufferCreateInfo) override;

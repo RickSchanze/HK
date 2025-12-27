@@ -6,6 +6,11 @@
 
 #include "RHI/GfxDevice.h"
 
+HTexture::HTexture()
+{
+    AssetType = EAssetType::Texture;
+}
+
 HTexture::~HTexture()
 {
     if (ImageView)

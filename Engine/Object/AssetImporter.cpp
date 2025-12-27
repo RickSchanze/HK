@@ -5,6 +5,57 @@
 #include "AssetImporter.h"
 #include "AssetRegistry.h"
 #include "Core/Logging/Logger.h"
+#include "RHI/GfxDevice.h"
+#include "RHI/RHICommandPool.h"
+
+void FGlobalAssetImporter::StartUp()
+{
+    FGfxDevice& GfxDevice = GetGfxDeviceRef();
+
+    FRHICommandPoolDesc PoolDesc;
+    PoolDesc.Flags            = ERHICommandPoolCreateFlag::ResetCommandBuffer; // 允许重置 CommandBuffer
+    PoolDesc.QueueFamilyIndex = 0;                                             // 使用图形队列
+    PoolDesc.DebugName        = "GlobalAssetUploadCommandPool";
+
+    UploadCommandPool = GfxDevice.CreateCommandPool(PoolDesc);
+    if (!UploadCommandPool.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create global upload command pool");
+    }
+    else
+    {
+        HK_LOG_INFO(ELogcat::Asset, "Global asset upload command pool created");
+    }
+
+    // 注册 GfxDevice 销毁前的回调，确保在设备销毁前清理 CommandPool
+    PreDestroyCallbackHandle = GOnPreRHIDeviceDestroyed.AddBind(
+        [this](FGfxDevice*)
+        {
+            if (UploadCommandPool.IsValid())
+            {
+                GetGfxDeviceRef().DestroyCommandPool(UploadCommandPool);
+                HK_LOG_INFO(ELogcat::Asset,
+                            "Global asset upload command pool destroyed in PreRHIDeviceDestroyed callback");
+            }
+        });
+}
+
+void FGlobalAssetImporter::ShutDown()
+{
+    // 清理回调
+    if (PreDestroyCallbackHandle != 0)
+    {
+        GOnPreRHIDeviceDestroyed.RemoveBind(PreDestroyCallbackHandle);
+        PreDestroyCallbackHandle = 0;
+    }
+
+    // 清理 CommandPool（如果还存在）
+    if (UploadCommandPool.IsValid())
+    {
+        GetGfxDeviceRef().DestroyCommandPool(UploadCommandPool);
+        HK_LOG_INFO(ELogcat::Asset, "Global asset upload command pool destroyed");
+    }
+}
 
 void FGlobalAssetImporter::Import(FStringView Path)
 {

@@ -25,7 +25,7 @@ public:
         return AssetType;
     }
 
-private:
+protected:
     HPROPERTY()
     EAssetType AssetType = EAssetType::Count;
 };

@@ -75,12 +75,20 @@ void FGfxDeviceVk::Init()
     }
 }
 
+void FGfxDeviceVk::WaitIdle()
+{
+    if (Device)
+    {
+        Device.waitIdle();
+    }
+}
+
 void FGfxDeviceVk::UnInit()
 {
     // 1. 先销毁Device（对称操作：与Initialize相反的顺序）
     if (Device)
     {
-        Device.waitIdle();
+        WaitIdle(); // 确保所有命令完成
         Device.destroy();
         Device                       = nullptr;
         vkSetDebugUtilsObjectNameEXT = nullptr; // 重置函数指针

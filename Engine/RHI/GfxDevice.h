@@ -53,6 +53,12 @@ public:
     virtual void Init()   = 0;
     virtual void UnInit() = 0;
 
+    /**
+     * 等待设备空闲（等待所有队列中的命令完成）
+     * 在销毁设备前应该调用此函数确保所有命令已完成
+     */
+    virtual void WaitIdle() = 0;
+
     virtual ~FGfxDevice() = default;
 
 #pragma region Buffer操作

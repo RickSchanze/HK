@@ -252,3 +252,10 @@ TSharedPtr<T> MakeShared(T* InPtr, Deleter InDeleter)
 {
     return TSharedPtr<T>(std::shared_ptr<T>(InPtr, InDeleter));
 }
+
+// DynamicPointerCast - 类型安全的动态转换
+template <typename T, typename U>
+TSharedPtr<T> DynamicPointerCast(const TSharedPtr<U>& InPtr)
+{
+    return TSharedPtr<T>(std::dynamic_pointer_cast<T>(InPtr.GetSharedPtr()));
+}
