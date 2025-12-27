@@ -26,8 +26,8 @@ FRHICommandBuffer FGfxDeviceVk::CreateCommandBuffer(const FRHICommandPool&      
         return CmdBuffer;
     }
 
-    VkCommandPool PoolHandle = Pool.Handle.Cast<VkCommandPool>();
-    vk::CommandPool VkPool = vk::CommandPool(PoolHandle);
+    auto PoolHandle = Pool.Handle.Cast<VkCommandPool>();
+    auto VkPool     = vk::CommandPool(PoolHandle);
 
     // 转换级别
     vk::CommandBufferLevel VkLevel = (CommandBufferCreateInfo.Level == ERHICommandBufferLevel::Primary)
@@ -49,7 +49,7 @@ FRHICommandBuffer FGfxDeviceVk::CreateCommandBuffer(const FRHICommandPool&      
     // 创建 RHI Handle（转换为 C 类型存储）
     CmdBuffer.Handle = FRHIHandleManager::GetRef().CreateRHIHandle(
         CommandBufferCreateInfo.DebugName, reinterpret_cast<void*>(static_cast<VkCommandBuffer>(VkCmdBuffer)));
-    CmdBuffer.Level  = CommandBufferCreateInfo.Level;
+    CmdBuffer.Level = CommandBufferCreateInfo.Level;
 
     // 设置调试名称
     if (bDebugUtilsExtensionAvailable && !CommandBufferCreateInfo.DebugName.IsEmpty())
@@ -67,10 +67,10 @@ void FGfxDeviceVk::DestroyCommandBuffer(const FRHICommandPool& Pool, FRHICommand
         return;
     }
 
-    VkCommandPool PoolHandle = Pool.Handle.Cast<VkCommandPool>();
-    vk::CommandPool   VkPool      = vk::CommandPool(PoolHandle);
-    VkCommandBuffer CmdBufferHandle = CommandBuffer.Handle.Cast<VkCommandBuffer>();
-    vk::CommandBuffer VkCmdBuffer = vk::CommandBuffer(CmdBufferHandle);
+    auto PoolHandle      = Pool.Handle.Cast<VkCommandPool>();
+    auto VkPool          = vk::CommandPool(PoolHandle);
+    auto CmdBufferHandle = CommandBuffer.Handle.Cast<VkCommandBuffer>();
+    auto VkCmdBuffer     = vk::CommandBuffer(CmdBufferHandle);
 
     // 释放命令缓冲区
     Device.freeCommandBuffers(VkPool, {VkCmdBuffer});
@@ -91,8 +91,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         return;
     }
 
-    VkCommandBuffer CmdBufferHandle = CommandBuffer.Handle.Cast<VkCommandBuffer>();
-    vk::CommandBuffer VkCmdBuffer = vk::CommandBuffer(CmdBufferHandle);
+    auto CmdBufferHandle = CommandBuffer.Handle.Cast<VkCommandBuffer>();
+    auto VkCmdBuffer     = vk::CommandBuffer(CmdBufferHandle);
     if (!VkCmdBuffer)
     {
         HK_LOG_ERROR(ELogcat::RHI, "Invalid Vulkan command buffer");
@@ -131,18 +131,18 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
 
         case ERHICommandType::BindPipeline:
         {
-            const auto&  Cmd        = static_cast<const FRHICommand_BindPipeline&>(Command);
-            VkPipeline Pipeline = Cmd.Pipeline.GetHandle().Cast<VkPipeline>();
-            vk::Pipeline VkPipeline = vk::Pipeline(Pipeline);
+            const auto& Cmd        = static_cast<const FRHICommand_BindPipeline&>(Command);
+            auto        Pipeline   = Cmd.Pipeline.GetHandle().Cast<VkPipeline>();
+            auto        VkPipeline = vk::Pipeline(Pipeline);
             VkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, VkPipeline);
             break;
         }
 
         case ERHICommandType::BindComputePipeline:
         {
-            const auto&  Cmd        = static_cast<const FRHICommand_BindComputePipeline&>(Command);
-            VkPipeline Pipeline = Cmd.Pipeline.GetHandle().Cast<VkPipeline>();
-            vk::Pipeline VkPipeline = vk::Pipeline(Pipeline);
+            const auto& Cmd        = static_cast<const FRHICommand_BindComputePipeline&>(Command);
+            auto        Pipeline   = Cmd.Pipeline.GetHandle().Cast<VkPipeline>();
+            auto        VkPipeline = vk::Pipeline(Pipeline);
             VkCmdBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, VkPipeline);
             break;
         }
@@ -150,10 +150,10 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::BindDescriptorSet:
         {
             const auto&           Cmd       = static_cast<const FRHICommand_BindDescriptorSet&>(Command);
-            VkPipelineLayout Layout = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
-            vk::PipelineLayout    VkLayout  = vk::PipelineLayout(Layout);
-            VkDescriptorSet Set = Cmd.DescriptorSet.GetHandle().Cast<VkDescriptorSet>();
-            vk::DescriptorSet     VkSet     = vk::DescriptorSet(Set);
+            auto                  Layout    = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
+            auto                  VkLayout  = vk::PipelineLayout(Layout);
+            auto                  Set       = Cmd.DescriptorSet.GetHandle().Cast<VkDescriptorSet>();
+            auto                  VkSet     = vk::DescriptorSet(Set);
             vk::PipelineBindPoint BindPoint = (Cmd.PipelineType == ERHIPipelineType::Graphics)
                                                   ? vk::PipelineBindPoint::eGraphics
                                                   : vk::PipelineBindPoint::eCompute;
@@ -164,13 +164,13 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::BindDescriptorSets:
         {
             const auto&               Cmd      = static_cast<const FRHICommand_BindDescriptorSets&>(Command);
-            VkPipelineLayout Layout = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
-            vk::PipelineLayout        VkLayout = vk::PipelineLayout(Layout);
+            auto                      Layout   = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
+            auto                      VkLayout = vk::PipelineLayout(Layout);
             TArray<vk::DescriptorSet> VkSets;
             VkSets.Reserve(Cmd.DescriptorSets.Size());
             for (const auto& Set : Cmd.DescriptorSets)
             {
-                VkDescriptorSet DescriptorSet = Set.GetHandle().Cast<VkDescriptorSet>();
+                auto DescriptorSet = Set.GetHandle().Cast<VkDescriptorSet>();
                 VkSets.Add(vk::DescriptorSet(DescriptorSet));
             }
             vk::PipelineBindPoint BindPoint = (Cmd.PipelineType == ERHIPipelineType::Graphics)
@@ -184,8 +184,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::BindVertexBuffer:
         {
             const auto& Cmd      = static_cast<const FRHICommand_BindVertexBuffer&>(Command);
-            VkBuffer Buffer = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer  VkBuffer = vk::Buffer(Buffer);
+            auto        Buffer   = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
+            auto        VkBuffer = vk::Buffer(Buffer);
             VkCmdBuffer.bindVertexBuffers(Cmd.Binding, {VkBuffer}, {Cmd.Offset});
             break;
         }
@@ -197,7 +197,7 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             VkBuffers.Reserve(Cmd.Buffers.Size());
             for (const auto& Buffer : Cmd.Buffers)
             {
-                VkBuffer Buf = Buffer.GetHandle().Cast<VkBuffer>();
+                auto Buf = Buffer.GetHandle().Cast<VkBuffer>();
                 VkBuffers.Add(vk::Buffer(Buf));
             }
             VkCmdBuffer.bindVertexBuffers(Cmd.FirstBinding,
@@ -209,8 +209,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::BindIndexBuffer:
         {
             const auto&   Cmd       = static_cast<const FRHICommand_BindIndexBuffer&>(Command);
-            VkBuffer Buffer = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer    VkBuffer  = vk::Buffer(Buffer);
+            auto          Buffer    = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
+            auto          VkBuffer  = vk::Buffer(Buffer);
             vk::IndexType IndexType = Cmd.bIs32Bit ? vk::IndexType::eUint32 : vk::IndexType::eUint16;
             VkCmdBuffer.bindIndexBuffer(VkBuffer, Cmd.Offset, IndexType);
             break;
@@ -234,8 +234,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::DrawIndirect:
         {
             const auto& Cmd      = static_cast<const FRHICommand_DrawIndirect&>(Command);
-            VkBuffer Buffer = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer  VkBuffer = vk::Buffer(Buffer);
+            auto        Buffer   = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
+            auto        VkBuffer = vk::Buffer(Buffer);
             VkCmdBuffer.drawIndirect(VkBuffer, Cmd.Offset, Cmd.DrawCount, Cmd.Stride);
             break;
         }
@@ -243,8 +243,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::DrawIndexedIndirect:
         {
             const auto& Cmd      = static_cast<const FRHICommand_DrawIndexedIndirect&>(Command);
-            VkBuffer Buffer = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer  VkBuffer = vk::Buffer(Buffer);
+            auto        Buffer   = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
+            auto        VkBuffer = vk::Buffer(Buffer);
             VkCmdBuffer.drawIndexedIndirect(VkBuffer, Cmd.Offset, Cmd.DrawCount, Cmd.Stride);
             break;
         }
@@ -259,8 +259,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::DispatchIndirect:
         {
             const auto& Cmd      = static_cast<const FRHICommand_DispatchIndirect&>(Command);
-            VkBuffer Buffer = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer  VkBuffer = vk::Buffer(Buffer);
+            auto        Buffer   = Cmd.Buffer.GetHandle().Cast<VkBuffer>();
+            auto        VkBuffer = vk::Buffer(Buffer);
             VkCmdBuffer.dispatchIndirect(VkBuffer, Cmd.Offset);
             break;
         }
@@ -268,10 +268,10 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::CopyBuffer:
         {
             const auto&            Cmd         = static_cast<const FRHICommand_CopyBuffer&>(Command);
-            VkBuffer SrcBuffer = Cmd.SrcBuffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer             VkSrcBuffer = vk::Buffer(SrcBuffer);
-            VkBuffer DstBuffer = Cmd.DstBuffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer             VkDstBuffer = vk::Buffer(DstBuffer);
+            auto                   SrcBuffer   = Cmd.SrcBuffer.GetHandle().Cast<VkBuffer>();
+            auto                   VkSrcBuffer = vk::Buffer(SrcBuffer);
+            auto                   DstBuffer   = Cmd.DstBuffer.GetHandle().Cast<VkBuffer>();
+            auto                   VkDstBuffer = vk::Buffer(DstBuffer);
             TArray<vk::BufferCopy> VkRegions;
             VkRegions.Reserve(Cmd.Regions.Size());
             for (const auto& Region : Cmd.Regions)
@@ -316,8 +316,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::PushConstants:
         {
             const auto&          Cmd        = static_cast<const FRHICommand_PushConstants&>(Command);
-            VkPipelineLayout Layout = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
-            vk::PipelineLayout   VkLayout   = vk::PipelineLayout(Layout);
+            auto                 Layout     = Cmd.Layout.GetHandle().Cast<VkPipelineLayout>();
+            auto                 VkLayout   = vk::PipelineLayout(Layout);
             vk::ShaderStageFlags StageFlags = ConvertShaderStageFlags(static_cast<ERHIShaderStage>(Cmd.StageFlags));
             VkCmdBuffer.pushConstants(VkLayout, StageFlags, Cmd.Offset, Cmd.Size, Cmd.Data.Data());
             break;
@@ -340,8 +340,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             VkBufferBarriers.Reserve(Cmd.BufferMemoryBarriers.Size());
             for (const auto& Barrier : Cmd.BufferMemoryBarriers)
             {
-                VkBuffer Buffer = Barrier.Buffer.GetHandle().Cast<VkBuffer>();
-                vk::Buffer VkBuffer = vk::Buffer(Buffer);
+                auto Buffer   = Barrier.Buffer.GetHandle().Cast<VkBuffer>();
+                auto VkBuffer = vk::Buffer(Buffer);
                 VkBufferBarriers.Add(vk::BufferMemoryBarrier(static_cast<vk::AccessFlags>(Barrier.SrcAccessMask),
                                                              static_cast<vk::AccessFlags>(Barrier.DstAccessMask),
                                                              VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkBuffer,
@@ -354,9 +354,9 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             VkImageBarriers.Reserve(Cmd.ImageMemoryBarriers.Size());
             for (const auto& Barrier : Cmd.ImageMemoryBarriers)
             {
-                VkImage Image = Barrier.Image.GetHandle().Cast<VkImage>();
-                vk::Image            VkImage    = vk::Image(Image);
-                vk::ImageAspectFlags AspectMask = vk::ImageAspectFlags();
+                auto Image      = Barrier.Image.GetHandle().Cast<VkImage>();
+                auto VkImage    = vk::Image(Image);
+                auto AspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Barrier.SubresourceRange.AspectMask, ERHIImageAspect::Color))
                 {
                     AspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -392,16 +392,16 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::CopyImage:
         {
             const auto&           Cmd        = static_cast<const FRHICommand_CopyImage&>(Command);
-            VkImage SrcImage = Cmd.SrcImage.GetHandle().Cast<VkImage>();
-            vk::Image             VkSrcImage = vk::Image(SrcImage);
-            VkImage DstImage = Cmd.DstImage.GetHandle().Cast<VkImage>();
-            vk::Image             VkDstImage = vk::Image(DstImage);
+            auto                  SrcImage   = Cmd.SrcImage.GetHandle().Cast<VkImage>();
+            auto                  VkSrcImage = vk::Image(SrcImage);
+            auto                  DstImage   = Cmd.DstImage.GetHandle().Cast<VkImage>();
+            auto                  VkDstImage = vk::Image(DstImage);
             TArray<vk::ImageCopy> VkRegions;
             VkRegions.Reserve(Cmd.Regions.Size());
             for (const auto& Region : Cmd.Regions)
             {
                 // 转换源子资源层
-                vk::ImageAspectFlags SrcAspectMask = vk::ImageAspectFlags();
+                auto SrcAspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Region.SrcSubresource.AspectMask, ERHIImageAspect::Color))
                 {
                     SrcAspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -419,7 +419,7 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
                                                             Region.SrcSubresource.LayerCount);
 
                 // 转换目标子资源层
-                vk::ImageAspectFlags DstAspectMask = vk::ImageAspectFlags();
+                auto DstAspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Region.DstSubresource.AspectMask, ERHIImageAspect::Color))
                 {
                     DstAspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -449,16 +449,16 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::CopyBufferToImage:
         {
             const auto&                 Cmd      = static_cast<const FRHICommand_CopyBufferToImage&>(Command);
-            VkBuffer Buffer = Cmd.SrcBuffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer                  VkBuffer = vk::Buffer(Buffer);
-            VkImage Image = Cmd.DstImage.GetHandle().Cast<VkImage>();
-            vk::Image                   VkImage  = vk::Image(Image);
+            auto                        Buffer   = Cmd.SrcBuffer.GetHandle().Cast<VkBuffer>();
+            auto                        VkBuffer = vk::Buffer(Buffer);
+            auto                        Image    = Cmd.DstImage.GetHandle().Cast<VkImage>();
+            auto                        VkImage  = vk::Image(Image);
             TArray<vk::BufferImageCopy> VkRegions;
             VkRegions.Reserve(Cmd.Regions.Size());
             for (const auto& Region : Cmd.Regions)
             {
                 // 转换图像子资源层
-                vk::ImageAspectFlags AspectMask = vk::ImageAspectFlags();
+                auto AspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Region.ImageSubresource.AspectMask, ERHIImageAspect::Color))
                 {
                     AspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -489,16 +489,16 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::CopyImageToBuffer:
         {
             const auto&                 Cmd      = static_cast<const FRHICommand_CopyImageToBuffer&>(Command);
-            VkImage Image = Cmd.SrcImage.GetHandle().Cast<VkImage>();
-            vk::Image                   VkImage  = vk::Image(Image);
-            VkBuffer Buffer = Cmd.DstBuffer.GetHandle().Cast<VkBuffer>();
-            vk::Buffer                  VkBuffer = vk::Buffer(Buffer);
+            auto                        Image    = Cmd.SrcImage.GetHandle().Cast<VkImage>();
+            auto                        VkImage  = vk::Image(Image);
+            auto                        Buffer   = Cmd.DstBuffer.GetHandle().Cast<VkBuffer>();
+            auto                        VkBuffer = vk::Buffer(Buffer);
             TArray<vk::BufferImageCopy> VkRegions;
             VkRegions.Reserve(Cmd.Regions.Size());
             for (const auto& Region : Cmd.Regions)
             {
                 // 转换图像子资源层
-                vk::ImageAspectFlags AspectMask = vk::ImageAspectFlags();
+                auto AspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Region.ImageSubresource.AspectMask, ERHIImageAspect::Color))
                 {
                     AspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -528,10 +528,10 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
 
         case ERHICommandType::ClearColorImage:
         {
-            const auto&                       Cmd     = static_cast<const FRHICommand_ClearColorImage&>(Command);
-            VkImage Image = Cmd.Image.GetHandle().Cast<VkImage>();
-            vk::Image                         VkImage = vk::Image(Image);
-            vk::ClearColorValue               VkColor;
+            const auto&         Cmd     = static_cast<const FRHICommand_ClearColorImage&>(Command);
+            auto                Image   = Cmd.Image.GetHandle().Cast<VkImage>();
+            auto                VkImage = vk::Image(Image);
+            vk::ClearColorValue VkColor;
             VkColor.float32[0] = Cmd.Color.X;
             VkColor.float32[1] = Cmd.Color.Y;
             VkColor.float32[2] = Cmd.Color.Z;
@@ -540,7 +540,7 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             VkRanges.Reserve(Cmd.Ranges.Size());
             for (const auto& Range : Cmd.Ranges)
             {
-                vk::ImageAspectFlags AspectMask = vk::ImageAspectFlags();
+                auto AspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Range.AspectMask, ERHIImageAspect::Color))
                 {
                     AspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -565,14 +565,14 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::ClearDepthStencilImage:
         {
             const auto&                       Cmd     = static_cast<const FRHICommand_ClearDepthStencilImage&>(Command);
-            VkImage Image = Cmd.Image.GetHandle().Cast<VkImage>();
-            vk::Image                         VkImage = vk::Image(Image);
+            auto                              Image   = Cmd.Image.GetHandle().Cast<VkImage>();
+            auto                              VkImage = vk::Image(Image);
             vk::ClearDepthStencilValue        VkDepthStencil(Cmd.Depth, Cmd.Stencil);
             TArray<vk::ImageSubresourceRange> VkRanges;
             VkRanges.Reserve(Cmd.Ranges.Size());
             for (const auto& Range : Cmd.Ranges)
             {
-                vk::ImageAspectFlags AspectMask = vk::ImageAspectFlags();
+                auto AspectMask = vk::ImageAspectFlags();
                 if (HasFlag(Range.AspectMask, ERHIImageAspect::Color))
                 {
                     AspectMask |= vk::ImageAspectFlagBits::eColor;
@@ -604,8 +604,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             {
                 if (Attachment.IsValid())
                 {
-                    VkImageView ImageView = Attachment.GetHandle().Cast<VkImageView>();
-                    vk::ImageView VkImageView = vk::ImageView(ImageView);
+                    auto ImageView   = Attachment.GetHandle().Cast<VkImageView>();
+                    auto VkImageView = vk::ImageView(ImageView);
                     VkColorAttachments.Add(vk::RenderingAttachmentInfo(
                         VkImageView, vk::ImageLayout::eColorAttachmentOptimal, vk::ResolveModeFlagBits::eNone, nullptr,
                         vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore));
@@ -617,9 +617,9 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             vk::RenderingAttachmentInfo  VkDepthAttachmentInfo;
             if (Cmd.DepthAttachment.IsValid())
             {
-                VkImageView ImageView = Cmd.DepthAttachment.GetHandle().Cast<VkImageView>();
-                vk::ImageView VkImageView = vk::ImageView(ImageView);
-                VkDepthAttachmentInfo     = vk::RenderingAttachmentInfo(
+                auto ImageView        = Cmd.DepthAttachment.GetHandle().Cast<VkImageView>();
+                auto VkImageView      = vk::ImageView(ImageView);
+                VkDepthAttachmentInfo = vk::RenderingAttachmentInfo(
                     VkImageView, ConvertImageLayout(Cmd.DepthAttachmentLayout), vk::ResolveModeFlagBits::eNone, nullptr,
                     vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore);
                 VkDepthAttachment = &VkDepthAttachmentInfo;
@@ -630,19 +630,19 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             vk::RenderingAttachmentInfo  VkStencilAttachmentInfo;
             if (Cmd.StencilAttachment.IsValid())
             {
-                VkImageView ImageView = Cmd.StencilAttachment.GetHandle().Cast<VkImageView>();
-                vk::ImageView VkImageView = vk::ImageView(ImageView);
-                VkStencilAttachmentInfo   = vk::RenderingAttachmentInfo(
+                auto ImageView          = Cmd.StencilAttachment.GetHandle().Cast<VkImageView>();
+                auto VkImageView        = vk::ImageView(ImageView);
+                VkStencilAttachmentInfo = vk::RenderingAttachmentInfo(
                     VkImageView, ConvertImageLayout(Cmd.StencilAttachmentLayout), vk::ResolveModeFlagBits::eNone,
                     nullptr, vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore);
                 VkStencilAttachment = &VkStencilAttachmentInfo;
             }
 
-            vk::RenderingInfo RenderingInfo(
-                vk::RenderingFlags(),
-                vk::Rect2D(vk::Offset2D(Cmd.RenderArea.X, Cmd.RenderArea.Y),
-                           vk::Extent2D(Cmd.RenderArea.Width, Cmd.RenderArea.Height)),
-                1, 0, VkColorAttachments.Size(), VkColorAttachments.Data(), VkDepthAttachment, VkStencilAttachment);
+            vk::RenderingInfo RenderingInfo(vk::RenderingFlags(),
+                                            vk::Rect2D(vk::Offset2D(Cmd.RenderArea.X, Cmd.RenderArea.Y),
+                                                       vk::Extent2D(Cmd.RenderArea.Width, Cmd.RenderArea.Height)),
+                                            1, 0, VkColorAttachments.Size(), VkColorAttachments.Data(),
+                                            VkDepthAttachment, VkStencilAttachment);
 
             VkCmdBuffer.beginRendering(RenderingInfo);
             break;
@@ -668,7 +668,7 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
 
 vk::CommandBufferUsageFlags FGfxDeviceVk::ConvertCommandBufferUsageFlags(ERHICommandBufferUsageFlag Flags)
 {
-    vk::CommandBufferUsageFlags VkFlags = vk::CommandBufferUsageFlags();
+    auto VkFlags = vk::CommandBufferUsageFlags();
     if (HasFlag(Flags, ERHICommandBufferUsageFlag::OneTimeSubmit))
     {
         VkFlags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
