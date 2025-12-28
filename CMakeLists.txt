@@ -180,6 +180,9 @@ target_include_directories(HK PRIVATE ${Stb_INCLUDE_DIR})
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(HK PRIVATE assimp::assimp)
 
+find_package(xxHash CONFIG REQUIRED)
+target_link_libraries(HK PRIVATE xxHash::xxhash)
+
 # ==========================================
 # [新增] 链接 Slang 到 HK 核心库
 # ==========================================

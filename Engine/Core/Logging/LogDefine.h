@@ -14,7 +14,8 @@
     HK_LOGCAT_ITEM(Shader)                                                                                             \
     HK_LOGCAT_ITEM(Uuid)                                                                                               \
     HK_LOGCAT_ITEM(Serialize)                                                                                          \
-    HK_LOGCAT_ITEM(Asset)
+    HK_LOGCAT_ITEM(Asset)                                                                                              \
+    HK_LOGCAT_ITEM(Render)
 
 enum class ELogcat
 {
@@ -47,9 +48,9 @@ enum class ELogLevel
 
 struct FLogContent
 {
-    ELogLevel Level;
-    ELogcat Logcat;
-    FString Message;
-    UInt32 ThreadID;
+    ELogLevel  Level;
+    ELogcat    Logcat;
+    FString    Message;
+    UInt32     ThreadID;
     FTimePoint Time;
 };

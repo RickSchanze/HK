@@ -4,9 +4,14 @@
 
 #include "TextureImporter.h"
 
+#include "Core/Container/Array.h"
 #include "Core/Logging/Logger.h"
 #include "Core/String/String.h"
+#include "Core/Utility/FileUtility.h"
+#include "Core/Utility/HashUtility.h"
+#include "Core/Utility/Profiler.h"
 #include "Core/Utility/SharedPtr.h"
+#include "Core/Utility/Uuid.h"
 #include "Object/AssetImporter.h"
 #include "Object/AssetRegistry.h"
 #include "Object/Object.h"
@@ -16,9 +21,12 @@
 #include "RHI/RHICommandPool.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
+#include "Render/RenderContext.h"
 #include "Render/Texture/Texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <filesystem>
+#include <fstream>
 #include <stb_image.h>
 
 namespace
@@ -75,132 +83,6 @@ void FreeImageData(FImageData& ImageData)
     }
 }
 
-// 将图像数据上传到 GPU
-bool UploadImageDataToGPU(const FImageData& ImageData, const FRHIImage& Image, ERHIImageFormat Format)
-{
-    FGfxDevice& GfxDevice = GetGfxDeviceRef();
-
-    // 计算图像数据大小
-    const UInt64 ImageSize = static_cast<UInt64>(ImageData.Width) * ImageData.Height * 4; // RGBA = 4 bytes per pixel
-
-    // 创建 staging buffer
-    FRHIBufferDesc StagingBufferDesc;
-    StagingBufferDesc.Size           = ImageSize;
-    StagingBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
-    StagingBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-    StagingBufferDesc.DebugName      = "TextureStagingBuffer";
-
-    FRHIBuffer StagingBuffer = GfxDevice.CreateBuffer(StagingBufferDesc);
-    if (!StagingBuffer.IsValid())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to create staging buffer for texture upload");
-        return false;
-    }
-
-    // 映射 staging buffer 并复制数据
-    void* MappedData = GfxDevice.MapBuffer(StagingBuffer, 0, ImageSize);
-    if (!MappedData)
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to map staging buffer");
-        GfxDevice.DestroyBuffer(StagingBuffer);
-        return false;
-    }
-
-    memcpy(MappedData, ImageData.Data, ImageSize);
-    GfxDevice.UnmapBuffer(StagingBuffer);
-
-    // 获取共享的 CommandPool
-    FGlobalAssetImporter& GlobalImporter = FGlobalAssetImporter::GetRef();
-    FRHICommandPool       CommandPool    = GlobalImporter.GetUploadCommandPool();
-    if (!CommandPool.IsValid())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Global upload command pool is not available");
-        GfxDevice.DestroyBuffer(StagingBuffer);
-        return false;
-    }
-
-    FRHICommandBufferDesc CmdBufferDesc;
-    CmdBufferDesc.Level      = ERHICommandBufferLevel::Primary;
-    CmdBufferDesc.UsageFlags = ERHICommandBufferUsageFlag::OneTimeSubmit;
-    CmdBufferDesc.DebugName  = "TextureUploadCommandBuffer";
-
-    FRHICommandBuffer CommandBuffer = GfxDevice.CreateCommandBuffer(CommandPool, CmdBufferDesc);
-    if (!CommandBuffer.IsValid())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to create command buffer for texture upload");
-        GfxDevice.DestroyBuffer(StagingBuffer);
-        return false;
-    }
-
-    // 开始记录命令
-    CommandBuffer.Begin(ERHICommandBufferUsageFlag::OneTimeSubmit);
-
-    // 转换图像布局：Undefined -> TransferDstOptimal
-    TArray<FRHIImageMemoryBarrier> ImageBarriers;
-    FRHIImageMemoryBarrier         Barrier;
-    Barrier.OldLayout                       = ERHIImageLayout::Undefined;
-    Barrier.NewLayout                       = ERHIImageLayout::TransferDstOptimal;
-    Barrier.Image                           = Image;
-    Barrier.SrcAccessMask                   = 0;
-    Barrier.DstAccessMask                   = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
-    Barrier.SubresourceRange.AspectMask     = ERHIImageAspect::Color;
-    Barrier.SubresourceRange.BaseMipLevel   = 0;
-    Barrier.SubresourceRange.LevelCount     = 1;
-    Barrier.SubresourceRange.BaseArrayLayer = 0;
-    Barrier.SubresourceRange.LayerCount     = 1;
-    ImageBarriers.Add(Barrier);
-
-    // Pipeline barrier: Top of pipe -> Transfer
-    // VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001
-    // VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00000008
-    CommandBuffer.PipelineBarrier(0x00000001, // VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
-                                  0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
-                                  0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(), ImageBarriers);
-
-    // 复制数据从 buffer 到 image
-    TArray<FRHIBufferImageCopyRegion> CopyRegions;
-    FRHIBufferImageCopyRegion         CopyRegion;
-    CopyRegion.BufferOffset                    = 0;
-    CopyRegion.BufferRowLength                 = 0; // 紧密打包
-    CopyRegion.BufferImageHeight               = 0; // 紧密打包
-    CopyRegion.ImageSubresource.AspectMask     = ERHIImageAspect::Color;
-    CopyRegion.ImageSubresource.MipLevel       = 0;
-    CopyRegion.ImageSubresource.BaseArrayLayer = 0;
-    CopyRegion.ImageSubresource.LayerCount     = 1;
-    CopyRegion.ImageOffset                     = {0, 0, 0};
-    CopyRegion.ImageExtent = {static_cast<Int32>(ImageData.Width), static_cast<Int32>(ImageData.Height), 1};
-    CopyRegions.Add(CopyRegion);
-
-    CommandBuffer.CopyBufferToImage(StagingBuffer, Image, CopyRegions);
-
-    // 转换图像布局：TransferDstOptimal -> ShaderReadOnlyOptimal
-    ImageBarriers.Clear();
-    Barrier.OldLayout     = ERHIImageLayout::TransferDstOptimal;
-    Barrier.NewLayout     = ERHIImageLayout::ShaderReadOnlyOptimal;
-    Barrier.SrcAccessMask = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
-    Barrier.DstAccessMask = 0x00000020; // VK_ACCESS_SHADER_READ_BIT
-    ImageBarriers.Add(Barrier);
-
-    // Pipeline barrier: Transfer -> Fragment shader
-    // VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00000008
-    // VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080
-    CommandBuffer.PipelineBarrier(0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
-                                  0x00000080, // VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                                  0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(), ImageBarriers);
-
-    // 结束记录命令
-    CommandBuffer.End();
-
-    // 执行命令（立即执行模式）
-    CommandBuffer.Execute();
-
-    // 清理资源（只销毁 CommandBuffer，不销毁共享的 CommandPool）
-    GfxDevice.DestroyCommandBuffer(CommandPool, CommandBuffer);
-    GfxDevice.DestroyBuffer(StagingBuffer);
-
-    return true;
-}
-
 // 创建 RHIImage
 FRHIImage CreateRHIImage(const FImageData& ImageData, ERHIImageFormat Format)
 {
@@ -237,119 +119,325 @@ FRHIImageView CreateRHIImageView(const FRHIImage& Image, ERHIImageFormat Format)
 
     return GfxDevice.CreateImageView(Image, ViewDesc);
 }
+
+// 获取中间文件路径
+FString GetIntermediatePath(const FUuid& Guid)
+{
+    return FString("Intermediate/Textures/") + Guid.ToString() + ".bin";
+}
 } // namespace
 
-TSharedPtr<FAssetImportSetting> FTextureImporter::GetOrCreateImportSetting(FAssetMetaData& Metadata)
+void FTextureImporter::BeginImport()
 {
-    // 如果已存在导入设置
-    if (Metadata.ImportSetting)
-    {
-        // 尝试转换为 FTextureImportSetting
-        if (auto TextureSetting = DynamicPointerCast<FTextureImportSetting>(Metadata.ImportSetting))
-        {
-            // 类型匹配，返回现有设置
-            return TextureSetting;
-        }
-        else
-        {
-            // 类型不匹配，这是严重错误
-            HK_LOG_FATAL(ELogcat::Asset,
-                         "Import setting exists but is not FTextureImportSetting! This should never happen. Path: {}",
-                         Metadata.Path);
-            return nullptr;
-        }
-    }
-
-    // 不存在，创建新的设置
-    auto NewSetting        = MakeShared<FTextureImportSetting>();
-    Metadata.ImportSetting = NewSetting;
-    return NewSetting;
+    // 分配导入数据
+    ImportData = New<FImportData>();
 }
 
-bool FTextureImporter::Import(FStringView Path, EAssetFileType FileType, EAssetImportOptions Options)
+bool FTextureImporter::ProcessImport()
 {
-    // 转换路径为 FString
-    FString FilePath(Path);
-
-    // 加载 .meta 文件获取导入设置
-    FAssetRegistry& AssetRegistry = FAssetRegistry::GetRef();
-    FAssetMetaData& Metadata      = AssetRegistry.LoadAssetMetadata(FilePath);
+    if (!Metadata)
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Metadata is null in ProcessImport");
+        return false;
+    }
 
     // 获取或创建导入设置
-    auto TextureSetting = DynamicPointerCast<FTextureImportSetting>(GetOrCreateImportSetting(Metadata));
+    if (!Metadata->ImportSetting)
+    {
+        Metadata->ImportSetting = MakeShared<FTextureImportSetting>();
+    }
+
+    auto TextureSetting = DynamicPointerCast<FTextureImportSetting>(Metadata->ImportSetting);
     if (!TextureSetting)
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to get or create import setting for texture: {}", FilePath);
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to get import setting for texture: {}", Metadata->Path);
         return false;
     }
 
-    // 使用导入设置中的格式，如果不存在则使用默认值
-    ERHIImageFormat ImageFormat = TextureSetting->GPUFormat;
+    // 使用导入设置中的格式
+    ImportData->ImageFormat = TextureSetting->GPUFormat;
 
     // 加载图像数据
-    FImageData ImageData = LoadImageData(FilePath);
-    if (!ImageData.Data || ImageData.Width <= 0 || ImageData.Height <= 0)
+    ImportData->ImageData = LoadImageData(Metadata->Path);
+    if (!ImportData->ImageData.Data || ImportData->ImageData.Width <= 0 || ImportData->ImageData.Height <= 0)
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to load image: {}", FilePath);
-        FreeImageData(ImageData);
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to load image: {}", Metadata->Path);
         return false;
     }
 
-    HK_LOG_INFO(ELogcat::Asset, "Loaded image: {}x{} ({} channels)", ImageData.Width, ImageData.Height,
-                ImageData.Channels);
+    HK_LOG_INFO(ELogcat::Asset, "Loaded image: {}x{} ({} channels)", ImportData->ImageData.Width,
+                ImportData->ImageData.Height, ImportData->ImageData.Channels);
 
     // 创建 HTexture 对象
     FObjectArray& ObjectArray = FObjectArray::GetRef();
-    auto*         Texture     = ObjectArray.CreateObject<HTexture>(FName(FilePath));
-    if (!Texture)
+    ImportData->Texture       = ObjectArray.CreateObject<HTexture>(FName(Metadata->Path));
+    if (!ImportData->Texture)
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to create HTexture object");
-        FreeImageData(ImageData);
         return false;
     }
 
     // 创建 RHIImage
-    FRHIImage Image = CreateRHIImage(ImageData, ImageFormat);
-    if (!Image.IsValid())
+    ImportData->Image = CreateRHIImage(ImportData->ImageData, ImportData->ImageFormat);
+    if (!ImportData->Image.IsValid())
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to create RHIImage");
-        FreeImageData(ImageData);
         return false;
     }
 
-    // 上传图像数据到 GPU
-    if (!UploadImageDataToGPU(ImageData, Image, ImageFormat))
+    // 计算图像数据大小
+    const UInt64 ImageSize =
+        static_cast<UInt64>(ImportData->ImageData.Width) * ImportData->ImageData.Height * 4; // RGBA = 4 bytes per pixel
+
+    // 创建 staging buffer
+    FGfxDevice&    GfxDevice = GetGfxDeviceRef();
+    FRHIBufferDesc StagingBufferDesc;
+    StagingBufferDesc.Size           = ImageSize;
+    StagingBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
+    StagingBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
+    StagingBufferDesc.DebugName      = "TextureStagingBuffer";
+
+    ImportData->StagingBuffer = GfxDevice.CreateBuffer(StagingBufferDesc);
+    if (!ImportData->StagingBuffer.IsValid())
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to upload image data to GPU");
-        GetGfxDeviceRef().DestroyImage(Image);
-        FreeImageData(ImageData);
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create staging buffer for texture upload");
         return false;
     }
+
+    // 映射 staging buffer 并复制数据
+    void* MappedData = GfxDevice.MapBuffer(ImportData->StagingBuffer, 0, ImageSize);
+    if (!MappedData)
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to map staging buffer");
+        return false;
+    }
+
+    memcpy(MappedData, ImportData->ImageData.Data, ImageSize);
+    GfxDevice.UnmapBuffer(ImportData->StagingBuffer);
+
+    // 获取全局 CommandPool
+    FRenderContext& RenderContext = FRenderContext::GetRef();
+    FRHICommandPool CommandPool   = RenderContext.GetUploadCommandPool();
+    if (!CommandPool.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Global upload command pool is not available");
+        return false;
+    }
+
+    // 创建命令缓冲区
+    FRHICommandBufferDesc CmdBufferDesc;
+    CmdBufferDesc.Level      = ERHICommandBufferLevel::Primary;
+    CmdBufferDesc.UsageFlags = ERHICommandBufferUsageFlag::OneTimeSubmit;
+    CmdBufferDesc.DebugName  = "TextureUploadCommandBuffer";
+
+    ImportData->CommandBuffer = GfxDevice.CreateCommandBuffer(CommandPool, CmdBufferDesc);
+    if (!ImportData->CommandBuffer.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create command buffer for texture upload");
+        return false;
+    }
+
+    // 开始记录命令
+    ImportData->CommandBuffer.Begin(ERHICommandBufferUsageFlag::OneTimeSubmit);
+
+    // 转换图像布局：Undefined -> TransferDstOptimal
+    TArray<FRHIImageMemoryBarrier> ImageBarriers;
+    FRHIImageMemoryBarrier         Barrier;
+    Barrier.OldLayout                       = ERHIImageLayout::Undefined;
+    Barrier.NewLayout                       = ERHIImageLayout::TransferDstOptimal;
+    Barrier.Image                           = ImportData->Image;
+    Barrier.SrcAccessMask                   = 0;
+    Barrier.DstAccessMask                   = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
+    Barrier.SubresourceRange.AspectMask     = ERHIImageAspect::Color;
+    Barrier.SubresourceRange.BaseMipLevel   = 0;
+    Barrier.SubresourceRange.LevelCount     = 1;
+    Barrier.SubresourceRange.BaseArrayLayer = 0;
+    Barrier.SubresourceRange.LayerCount     = 1;
+    ImageBarriers.Add(Barrier);
+
+    // Pipeline barrier: Top of pipe -> Transfer
+    ImportData->CommandBuffer.PipelineBarrier(0x00000001, // VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
+                                              0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
+                                              0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(),
+                                              ImageBarriers);
+
+    // 复制数据从 buffer 到 image
+    TArray<FRHIBufferImageCopyRegion> CopyRegions;
+    FRHIBufferImageCopyRegion         CopyRegion;
+    CopyRegion.BufferOffset                    = 0;
+    CopyRegion.BufferRowLength                 = 0; // 紧密打包
+    CopyRegion.BufferImageHeight               = 0; // 紧密打包
+    CopyRegion.ImageSubresource.AspectMask     = ERHIImageAspect::Color;
+    CopyRegion.ImageSubresource.MipLevel       = 0;
+    CopyRegion.ImageSubresource.BaseArrayLayer = 0;
+    CopyRegion.ImageSubresource.LayerCount     = 1;
+    CopyRegion.ImageOffset                     = {0, 0, 0};
+    CopyRegion.ImageExtent                     = {static_cast<Int32>(ImportData->ImageData.Width),
+                                                  static_cast<Int32>(ImportData->ImageData.Height), 1};
+    CopyRegions.Add(CopyRegion);
+
+    ImportData->CommandBuffer.CopyBufferToImage(ImportData->StagingBuffer, ImportData->Image, CopyRegions);
+
+    // 转换图像布局：TransferDstOptimal -> ShaderReadOnlyOptimal
+    ImageBarriers.Clear();
+    Barrier.OldLayout     = ERHIImageLayout::TransferDstOptimal;
+    Barrier.NewLayout     = ERHIImageLayout::ShaderReadOnlyOptimal;
+    Barrier.SrcAccessMask = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
+    Barrier.DstAccessMask = 0x00000020; // VK_ACCESS_SHADER_READ_BIT
+    ImageBarriers.Add(Barrier);
+
+    // Pipeline barrier: Transfer -> Fragment shader
+    ImportData->CommandBuffer.PipelineBarrier(0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
+                                              0x00000080, // VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                                              0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(),
+                                              ImageBarriers);
+
+    // 结束记录命令
+    ImportData->CommandBuffer.End();
+
+    // 执行命令（立即执行模式）
+    ImportData->CommandBuffer.Execute();
 
     // 创建 RHIImageView
-    FRHIImageView ImageView = CreateRHIImageView(Image, ImageFormat);
-    if (!ImageView.IsValid())
+    ImportData->ImageView = CreateRHIImageView(ImportData->Image, ImportData->ImageFormat);
+    if (!ImportData->ImageView.IsValid())
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to create RHIImageView");
-        GetGfxDeviceRef().DestroyImage(Image);
-        FreeImageData(ImageData);
         return false;
     }
 
     // 设置 HTexture 的图像和图像视图，以及纹理参数
-    Texture->internalSetRHIImage(Image);
-    Texture->internalSetRHIImageView(ImageView);
-    Texture->internalSetWidth(ImageData.Width);
-    Texture->internalSetHeight(ImageData.Height);
-    Texture->internalSetFormat(ImageFormat);
+    ImportData->Texture->internalSetRHIImage(ImportData->Image);
+    ImportData->Texture->internalSetRHIImageView(ImportData->ImageView);
+    ImportData->Texture->internalSetWidth(ImportData->ImageData.Width);
+    ImportData->Texture->internalSetHeight(ImportData->ImageData.Height);
+    ImportData->Texture->internalSetFormat(ImportData->ImageFormat);
 
-    // 保存元数据（包含导入设置）
-    Metadata.AssetType = EAssetType::Texture;
-    AssetRegistry.SaveAssetMetadata(Metadata);
+    // 保存元数据
+    Metadata->AssetType = EAssetType::Texture;
+    FAssetRegistry::GetRef().SaveAssetMetadata(Metadata);
 
-    // 清理图像数据
-    FreeImageData(ImageData);
-
-    HK_LOG_INFO(ELogcat::Asset, "Successfully imported texture: {}", FilePath);
+    HK_LOG_INFO(ELogcat::Asset, "Successfully processed texture import: {}", Metadata->Path);
     return true;
 }
+
+bool FTextureImporter::ProcessAssetIntermediate()
+{
+    if (!Metadata || !ImportData)
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Metadata or ImportData is null in ProcessAssetIntermediate");
+        return false;
+    }
+
+    // 获取中间文件路径
+    FString IntermediatePath = GetIntermediatePath(Metadata->Uuid);
+
+    // 确保目录存在
+    std::filesystem::path Path(IntermediatePath.CStr());
+    std::filesystem::path DirPath = Path.parent_path();
+    if (!DirPath.empty() && !std::filesystem::exists(DirPath))
+    {
+        std::error_code ErrorCode;
+        if (!std::filesystem::create_directories(DirPath, ErrorCode))
+        {
+            HK_LOG_ERROR(ELogcat::Asset, "Failed to create intermediate directory: {}", DirPath.string());
+            return false;
+        }
+    }
+
+    // 计算图像数据大小
+    const UInt64 ImageSize =
+        static_cast<UInt64>(ImportData->ImageData.Width) * ImportData->ImageData.Height * 4; // RGBA = 4 bytes per pixel
+
+    // 准备要写入的数据（不包括 Hash 本身）
+    struct FIntermediateHeader
+    {
+        Int32           Width;
+        Int32           Height;
+        ERHIImageFormat Format;
+    };
+
+    FIntermediateHeader Header;
+    Header.Width  = ImportData->ImageData.Width;
+    Header.Height = ImportData->ImageData.Height;
+    Header.Format = ImportData->ImageFormat;
+
+    // 计算 Hash（包括 Header 和图像数据）
+    // 注意：Hash 计算不包括 Hash 本身，只计算实际数据
+    const size_t  TotalSize = sizeof(FIntermediateHeader) + ImageSize;
+    TArray<UInt8> DataBuffer;
+    DataBuffer.Reserve(TotalSize);
+    
+    // 使用迭代器对的方式添加数据
+    const UInt8* HeaderPtr = reinterpret_cast<const UInt8*>(&Header);
+    DataBuffer.Append(HeaderPtr, HeaderPtr + sizeof(FIntermediateHeader));
+    
+    const UInt8* ImageDataPtr = reinterpret_cast<const UInt8*>(ImportData->ImageData.Data);
+    DataBuffer.Append(ImageDataPtr, ImageDataPtr + ImageSize);
+
+    const UInt64 Hash = FHashUtility::ComputeHash(DataBuffer.Data(), TotalSize);
+
+    // 保存二进制数据到文件
+    std::ofstream File(IntermediatePath.CStr(), std::ios::binary);
+    if (!File.is_open())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to open intermediate file for writing: {}", IntermediatePath);
+        return false;
+    }
+
+    // 先写入 Hash
+    File.write(reinterpret_cast<const char*>(&Hash), sizeof(UInt64));
+
+    // 写入图像尺寸和格式信息
+    File.write(reinterpret_cast<const char*>(&Header), sizeof(FIntermediateHeader));
+
+    // 写入图像数据
+    File.write(reinterpret_cast<const char*>(ImportData->ImageData.Data), ImageSize);
+
+    if (!File.good())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to write intermediate file: {}", IntermediatePath);
+        File.close();
+        return false;
+    }
+
+    File.close();
+
+    // 更新 Metadata 中的 Hash
+    Metadata->IntermediateHash = Hash;
+    FAssetRegistry::GetRef().SaveAssetMetadata(Metadata);
+
+    HK_LOG_INFO(ELogcat::Asset, "Saved intermediate texture data to: {} (Hash: {})", IntermediatePath, Hash);
+    return true;
+}
+
+void FTextureImporter::EndImport()
+{
+    if (!ImportData)
+    {
+        return;
+    }
+
+    FGfxDevice&     GfxDevice     = GetGfxDeviceRef();
+    FRenderContext& RenderContext = FRenderContext::GetRef();
+    FRHICommandPool CommandPool   = RenderContext.GetUploadCommandPool();
+
+    // 清理资源
+    if (ImportData->CommandBuffer.IsValid())
+    {
+        GfxDevice.DestroyCommandBuffer(CommandPool, ImportData->CommandBuffer);
+    }
+
+    if (ImportData->StagingBuffer.IsValid())
+    {
+        GfxDevice.DestroyBuffer(ImportData->StagingBuffer);
+    }
+
+    // 清理图像数据
+    FreeImageData(ImportData->ImageData);
+
+    // 删除导入数据
+    Delete(ImportData);
+    ImportData = nullptr;
+}
+

@@ -15,6 +15,7 @@
     "tracy",
     "stduuid",
     "stb",
-    "assimp"
+    "assimp",
+    "xxhash"
   ]
 }

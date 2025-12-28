@@ -16,6 +16,24 @@ public:
 class FTextureImporter : public FAssetImporter
 {
 public:
-    bool Import(FStringView Path, EAssetFileType FileType, EAssetImportOptions Options) override;
-    TSharedPtr<FAssetImportSetting> GetOrCreateImportSetting(FAssetMetaData& Metadata) override;
+    // 重写基类方法
+    void BeginImport() override;
+    bool ProcessImport() override;
+    bool ProcessAssetIntermediate() override;
+    void EndImport() override;
+
+private:
+    // 导入过程中的临时数据
+    struct FImportData
+    {
+        FImageData        ImageData;
+        FRHIBuffer       StagingBuffer;
+        FRHICommandBuffer CommandBuffer;
+        FRHIImage        Image;
+        FRHIImageView    ImageView;
+        HTexture*        Texture = nullptr;
+        ERHIImageFormat  ImageFormat = ERHIImageFormat::Undefined;
+    };
+
+    FImportData* ImportData = nullptr;
 };

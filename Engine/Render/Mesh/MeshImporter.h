@@ -1,7 +1,28 @@
 #pragma once
+#include "Core/Container/Array.h"
+#include "Math/Vector.h"
+#include "Mesh.h"
 #include "Object/AssetImporter.h"
 
 #include "MeshImporter.generated.h"
+
+class FRHICommandBuffer;
+// 顶点数据结构（与 Common.slang 中的 Vertex_PNU 对应）
+struct FVertexPNU
+{
+    FVector3f Position;
+    FVector3f Normal;
+    FVector2f UV;
+};
+
+// 使用 assimp 加载模型数据
+struct FMeshData
+{
+    TArray<FVertexPNU> Vertices;
+    TArray<UInt32>     Indices;
+    UInt32             VertexCount = 0;
+    UInt32             IndexCount  = 0;
+};
 
 HENUM()
 enum class EMeshImportFlag : UInt32
@@ -43,7 +64,22 @@ public:
 class FMeshImporter : public FAssetImporter
 {
 public:
-    bool Import(FStringView Path, EAssetFileType FileType, EAssetImportOptions Options) override;
+    // 重写基类方法
+    void BeginImport() override;
+    bool ProcessImport() override;
+    bool ProcessAssetIntermediate() override;
+    void EndImport() override;
 
-    TSharedPtr<FAssetImportSetting> GetOrCreateImportSetting(FAssetMetaData& Metadata) override;
+private:
+    // 导入过程中的临时数据
+    struct FImportData
+    {
+        TArray<FMeshData> MeshDataArray;
+        TArray<FRHIBuffer> StagingBuffers;      // 所有 staging buffer
+        TArray<FRHICommandBuffer> CommandBuffers; // 所有 command buffer
+        HMesh* Mesh = nullptr;
+        EMeshImportFlag ImportFlags = EMeshImportFlag::None;
+    };
+
+    FImportData* ImportData = nullptr;
 };

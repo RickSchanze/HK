@@ -5,79 +5,61 @@
 #include "AssetImporter.h"
 #include "AssetRegistry.h"
 #include "Core/Logging/Logger.h"
+#include "Core/Utility/HashUtility.h"
+#include "Core/Utility/FileUtility.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHICommandPool.h"
+#include <fstream>
 
-void FGlobalAssetImporter::StartUp()
+bool FAssetImporter::Import(const TSharedPtr<FAssetMetadata>& Metadata, const bool AllowIntermediateFailed)
 {
-    FGfxDevice& GfxDevice = GetGfxDeviceRef();
-
-    FRHICommandPoolDesc PoolDesc;
-    PoolDesc.Flags            = ERHICommandPoolCreateFlag::ResetCommandBuffer; // 允许重置 CommandBuffer
-    PoolDesc.QueueFamilyIndex = 0;                                             // 使用图形队列
-    PoolDesc.DebugName        = "GlobalAssetUploadCommandPool";
-
-    UploadCommandPool = GfxDevice.CreateCommandPool(PoolDesc);
-    if (!UploadCommandPool.IsValid())
+    this->Metadata = Metadata;
+    
+    // Import 时不需要校验，直接重写即可
+    BeginImport();
+    if (!ProcessImport())
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to create global upload command pool");
+        EndImport();
+        return false;
     }
-    else
+    if (!ProcessAssetIntermediate())
     {
-        HK_LOG_INFO(ELogcat::Asset, "Global asset upload command pool created");
-    }
-
-    // 注册 GfxDevice 销毁前的回调，确保在设备销毁前清理 CommandPool
-    PreDestroyCallbackHandle = GOnPreRHIDeviceDestroyed.AddBind(
-        [this](FGfxDevice*)
+        if (!AllowIntermediateFailed)
         {
-            if (UploadCommandPool.IsValid())
-            {
-                GetGfxDeviceRef().DestroyCommandPool(UploadCommandPool);
-                HK_LOG_INFO(ELogcat::Asset,
-                            "Global asset upload command pool destroyed in PreRHIDeviceDestroyed callback");
-            }
-        });
+            EndImport();
+            return false;
+        }
+    }
+    EndImport();
+    return true;
 }
 
-void FGlobalAssetImporter::ShutDown()
+bool FAssetImporter::Import(const FStringView Path)
 {
-    // 清理回调
-    if (PreDestroyCallbackHandle != 0)
-    {
-        GOnPreRHIDeviceDestroyed.RemoveBind(PreDestroyCallbackHandle);
-        PreDestroyCallbackHandle = 0;
-    }
-
-    // 清理 CommandPool（如果还存在）
-    if (UploadCommandPool.IsValid())
-    {
-        GetGfxDeviceRef().DestroyCommandPool(UploadCommandPool);
-        HK_LOG_INFO(ELogcat::Asset, "Global asset upload command pool destroyed");
-    }
+    const TSharedPtr<FAssetMetadata> Meta = GetOrCreateAssetMetadata(Path);
+    return Import(Meta);
 }
 
-void FGlobalAssetImporter::Import(FStringView Path)
+TSharedPtr<FAssetMetadata> FAssetImporter::GetOrCreateAssetMetadata(const FStringView AssetPath)
 {
-    if (Path.IsEmpty())
+    FAssetRegistry& AssetRegistry = FAssetRegistry::GetRef();
+    if (AssetRegistry.IsAssetMetadataExist(AssetPath))
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Cannot import asset with empty path");
-        return;
+        return AssetRegistry.LoadAssetMetadata(AssetPath);
     }
+    return AssetRegistry.CreateAssetMetadata(AssetPath);
+}
 
-    // 推断文件类型
-    const EAssetFileType FileType = FAssetRegistry::InferFileTypeFromPath(Path);
+void FGlobalAssetMetadataFactory::StartUp() {}
 
-    if (FileType == EAssetFileType::Unknown)
-    {
-        HK_LOG_WARN(ELogcat::Asset, "Unknown file type for path: {}", Path);
-        return;
-    }
+void FGlobalAssetMetadataFactory::ShutDown() {}
 
-    // 根据文件类型调用相应的 importer
+// 根据文件类型推断资产类型
+static EAssetType InferAssetTypeFromFileType(const EAssetFileType FileType)
+{
     switch (FileType)
     {
-        // 图像格式 -> Texture Importer
+        // 图像格式 -> Texture
         case EAssetFileType::PNG:
         case EAssetFileType::JPG:
         case EAssetFileType::JPEG:
@@ -88,20 +70,9 @@ void FGlobalAssetImporter::Import(FStringView Path)
         case EAssetFileType::DDS:
         case EAssetFileType::KTX:
         case EAssetFileType::KTX2:
-        {
-            if (TextureImporter)
-            {
-                HK_LOG_INFO(ELogcat::Asset, "Importing texture: {}", Path);
-                TextureImporter->Import(Path, FileType, EAssetImportOptions::None);
-            }
-            else
-            {
-                HK_LOG_WARN(ELogcat::Asset, "Texture importer not set, cannot import: {}", Path);
-            }
-            break;
-        }
+            return EAssetType::Texture;
 
-        // 3D 模型格式 -> Mesh Importer
+        // 3D 模型格式 -> Mesh
         case EAssetFileType::FBX:
         case EAssetFileType::OBJ:
         case EAssetFileType::GLTF:
@@ -109,24 +80,122 @@ void FGlobalAssetImporter::Import(FStringView Path)
         case EAssetFileType::DAE:
         case EAssetFileType::BLEND:
         case EAssetFileType::X3D:
-        {
-            if (MeshImporter)
-            {
-                HK_LOG_INFO(ELogcat::Asset, "Importing mesh: {}", Path);
-                MeshImporter->Import(Path, FileType, EAssetImportOptions::None);
-            }
-            else
-            {
-                HK_LOG_WARN(ELogcat::Asset, "Mesh importer not set, cannot import: {}", Path);
-            }
-            break;
-        }
+            return EAssetType::Mesh;
 
-        // 其他格式暂不支持
+        // 着色器格式 -> Shader
+        case EAssetFileType::HLSL:
+        case EAssetFileType::GLSL:
+        case EAssetFileType::SLANG:
+        case EAssetFileType::SPIRV:
+            return EAssetType::Shader;
+
+        // 其他格式无法推断
         default:
-        {
-            HK_LOG_WARN(ELogcat::Asset, "File type {} not supported for import: {}", static_cast<int>(FileType), Path);
-            break;
-        }
+            return EAssetType::Count;
     }
+}
+
+TSharedPtr<FAssetMetadata> FGlobalAssetMetadataFactory::CreateAssetMetadata(FStringView Path)
+{
+    if (Path.IsEmpty())
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Cannot create asset metadata with empty path");
+        return nullptr;
+    }
+
+    // 1. 推断文件类型
+    const EAssetFileType FileType = FAssetRegistry::InferFileTypeFromPath(Path);
+    if (FileType == EAssetFileType::Unknown)
+    {
+        HK_LOG_WARN(ELogcat::Asset, "Unknown file type for path: {}", Path);
+        return nullptr;
+    }
+
+    // 2. 根据文件类型推断资产类型
+    const EAssetType AssetType = InferAssetTypeFromFileType(FileType);
+    if (AssetType == EAssetType::Count)
+    {
+        HK_LOG_WARN(ELogcat::Asset, "Cannot infer asset type from file type {} for path: {}",
+                    static_cast<int>(FileType), Path);
+        return nullptr;
+    }
+
+    // 3. 获取对应的 MetadataFactory
+    const int AssetTypeIndex = static_cast<int>(AssetType);
+    if (!AssetMetadataFactory[AssetTypeIndex])
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Asset metadata factory for asset type {} not set", static_cast<int>(AssetType));
+        return nullptr;
+    }
+
+    // 4. 使用 Factory 创建 Metadata
+    TSharedPtr<FAssetMetadata> Metadata = AssetMetadataFactory[AssetTypeIndex]->Create();
+    if (!Metadata)
+    {
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create asset metadata for asset type {}", static_cast<int>(AssetType));
+        return nullptr;
+    }
+
+    // 5. 设置 Metadata 的基本信息
+    Metadata->Path      = FString(Path);
+    Metadata->FileType  = FileType;
+    Metadata->AssetType = AssetType;
+    if (!Metadata->Uuid.IsValid())
+    {
+        Metadata->Uuid = FUuid::New();
+    }
+
+    return Metadata;
+}
+
+bool FAssetImporter::ValidateIntermediateHash(FStringView IntermediatePath) const
+{
+    if (!Metadata)
+    {
+        return false;
+    }
+
+    // 如果中间文件不存在，认为校验失败（需要重新生成）
+    if (!FFileUtility::FileExists(IntermediatePath))
+    {
+        HK_LOG_INFO(ELogcat::Asset, "Intermediate file not found: {}", IntermediatePath);
+        return false;
+    }
+
+    // 如果 Metadata 中没有 Hash，认为校验失败（需要重新生成）
+    if (Metadata->IntermediateHash == 0)
+    {
+        HK_LOG_INFO(ELogcat::Asset, "No hash stored in metadata for: {}", IntermediatePath);
+        return false;
+    }
+
+    // 读取文件中的 Hash（文件开头的前 8 字节）
+    FString IntermediatePathStr(IntermediatePath);
+    std::ifstream File(IntermediatePathStr.CStr(), std::ios::binary);
+    if (!File.is_open())
+    {
+        HK_LOG_WARN(ELogcat::Asset, "Failed to open intermediate file for hash validation: {}", IntermediatePath);
+        return false;
+    }
+
+    UInt64 FileHash = 0;
+    File.read(reinterpret_cast<char*>(&FileHash), sizeof(UInt64));
+    File.close();
+
+    // 如果读取失败或 Hash 为 0，说明文件格式不正确
+    if (FileHash == 0)
+    {
+        HK_LOG_WARN(ELogcat::Asset, "Failed to read hash from intermediate file: {}", IntermediatePath);
+        return false;
+    }
+
+    // 比较 Hash
+    if (FileHash != Metadata->IntermediateHash)
+    {
+        HK_LOG_INFO(ELogcat::Asset, "Intermediate file hash mismatch for: {} (expected: {}, got: {})", IntermediatePath,
+                    Metadata->IntermediateHash, FileHash);
+        return false;
+    }
+
+    return true;
 }

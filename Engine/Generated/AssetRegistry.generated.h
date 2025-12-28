@@ -18,17 +18,17 @@
     HK_DECL_CLASS_SERIALIZATION(FAssetImportSetting)                                                                                        \
     static inline Z_AssetImportSetting_Register Z_REGISTERER_ASSETIMPORTSETTING;
 
-#define GENERATED_HEADER_FAssetMetaData                                                                                        \
-    struct Z_AssetMetaData_Register                                                                                            \
+#define GENERATED_HEADER_FAssetMetadata                                                                                        \
+    struct Z_AssetMetadata_Register                                                                                            \
     {                                                                                                                  \
-        Z_AssetMetaData_Register()                                                                                             \
+        Z_AssetMetadata_Register()                                                                                             \
         {                                                                                                              \
-            Register_FAssetMetaData();                                                                                         \
+            Register_FAssetMetadata();                                                                                         \
         }                                                                                                              \
-        static HK_API void Register_FAssetMetaData();                                                                                 \
+        static HK_API void Register_FAssetMetadata();                                                                                 \
     };                                                                                                                 \
-    typedef FAssetMetaData ThisStruct;                                                                                        \
-    static FType GetType() { return TypeOf<FAssetMetaData>(); }                                                                                        \
+    typedef FAssetMetadata ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FAssetMetadata>(); }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -36,17 +36,19 @@
             MakeNamedPair("Uuid", Uuid),                                                                                     \
             MakeNamedPair("Path", Path),                                                                                     \
             MakeNamedPair("AssetType", AssetType),                                                                                     \
-            MakeNamedPair("FileType", FileType)                                                                                      \
+            MakeNamedPair("FileType", FileType),                                                                                     \
+            MakeNamedPair("IntermediateHash", IntermediateHash)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
-    static void Register_FAssetMetaData_Properties(FTypeMutable Type)                                                                                        \
+    static void Register_FAssetMetadata_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
-        Type->RegisterProperty(&FAssetMetaData::Uuid, "Uuid");                                                                                        \
-        Type->RegisterProperty(&FAssetMetaData::Path, "Path");                                                                                        \
-        Type->RegisterProperty(&FAssetMetaData::AssetType, "AssetType");                                                                                        \
-        Type->RegisterProperty(&FAssetMetaData::FileType, "FileType");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::Uuid, "Uuid");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::Path, "Path");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::AssetType, "AssetType");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::FileType, "FileType");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::IntermediateHash, "IntermediateHash");                                                                                        \
     }                                                                                        \
-    static inline Z_AssetMetaData_Register Z_REGISTERER_ASSETMETADATA;
+    static inline Z_AssetMetadata_Register Z_REGISTERER_ASSETMETADATA;
 
 HK_API void Z_Register_EAssetFileType();
 struct F_Z_Register_EAssetFileType
