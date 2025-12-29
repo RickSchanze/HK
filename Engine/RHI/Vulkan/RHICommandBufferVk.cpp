@@ -331,8 +331,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             VkMemoryBarriers.Reserve(Cmd.MemoryBarriers.Size());
             for (const auto& Barrier : Cmd.MemoryBarriers)
             {
-                VkMemoryBarriers.Add(vk::MemoryBarrier(static_cast<vk::AccessFlags>(Barrier.SrcAccessMask),
-                                                       static_cast<vk::AccessFlags>(Barrier.DstAccessMask)));
+                VkMemoryBarriers.Add(vk::MemoryBarrier(ConvertAccessFlags(Barrier.SrcAccessMask),
+                                                       ConvertAccessFlags(Barrier.DstAccessMask)));
             }
 
             // 转换缓冲区内存屏障
@@ -342,8 +342,8 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             {
                 auto Buffer   = Barrier.Buffer.GetHandle().Cast<VkBuffer>();
                 auto VkBuffer = vk::Buffer(Buffer);
-                VkBufferBarriers.Add(vk::BufferMemoryBarrier(static_cast<vk::AccessFlags>(Barrier.SrcAccessMask),
-                                                             static_cast<vk::AccessFlags>(Barrier.DstAccessMask),
+                VkBufferBarriers.Add(vk::BufferMemoryBarrier(ConvertAccessFlags(Barrier.SrcAccessMask),
+                                                             ConvertAccessFlags(Barrier.DstAccessMask),
                                                              VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkBuffer,
                                                              Barrier.Offset,
                                                              Barrier.Size == 0 ? VK_WHOLE_SIZE : Barrier.Size));
@@ -373,16 +373,16 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
                     AspectMask, Barrier.SubresourceRange.BaseMipLevel, Barrier.SubresourceRange.LevelCount,
                     Barrier.SubresourceRange.BaseArrayLayer, Barrier.SubresourceRange.LayerCount);
                 VkImageBarriers.Add(
-                    vk::ImageMemoryBarrier(static_cast<vk::AccessFlags>(Barrier.SrcAccessMask),
-                                           static_cast<vk::AccessFlags>(Barrier.DstAccessMask),
+                    vk::ImageMemoryBarrier(ConvertAccessFlags(Barrier.SrcAccessMask),
+                                           ConvertAccessFlags(Barrier.DstAccessMask),
                                            ConvertImageLayout(Barrier.OldLayout), ConvertImageLayout(Barrier.NewLayout),
                                            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkImage, VkRange));
             }
 
             VkCmdBuffer.pipelineBarrier(
-                static_cast<vk::PipelineStageFlags>(Cmd.SrcStageMask),
-                static_cast<vk::PipelineStageFlags>(Cmd.DstStageMask),
-                static_cast<vk::DependencyFlags>(Cmd.DependencyFlags),
+                ConvertPipelineStageFlags(Cmd.SrcStageMask),
+                ConvertPipelineStageFlags(Cmd.DstStageMask),
+                ConvertDependencyFlags(Cmd.DependencyFlags),
                 vk::ArrayProxy<const vk::MemoryBarrier>(VkMemoryBarriers.Size(), VkMemoryBarriers.Data()),
                 vk::ArrayProxy<const vk::BufferMemoryBarrier>(VkBufferBarriers.Size(), VkBufferBarriers.Data()),
                 vk::ArrayProxy<const vk::ImageMemoryBarrier>(VkImageBarriers.Size(), VkImageBarriers.Data()));

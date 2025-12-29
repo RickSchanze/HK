@@ -2,7 +2,7 @@
 #include "Core/Logging/Logger.h"
 #include <filesystem>
 
-std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
+TUniquePtr<std::ofstream> FFileUtility::CreateFileStream(
     const FStringView& FilePath,
     bool CreateDirectories,
     bool BinaryMode)
@@ -10,7 +10,7 @@ std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
     return CreateFileStream(std::filesystem::path(FilePath.GetStdStringView()), CreateDirectories, BinaryMode);
 }
 
-std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
+TUniquePtr<std::ofstream> FFileUtility::CreateFileStream(
     const FString& FilePath,
     bool CreateDirectories,
     bool BinaryMode)
@@ -18,7 +18,7 @@ std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
     return CreateFileStream(std::filesystem::path(FilePath.GetStdString()), CreateDirectories, BinaryMode);
 }
 
-std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
+TUniquePtr<std::ofstream> FFileUtility::CreateFileStream(
     const std::filesystem::path& FilePath,
     bool CreateDirectories,
     bool BinaryMode)
@@ -45,8 +45,8 @@ std::unique_ptr<std::ofstream> FFileUtility::CreateFileStream(
         Mode |= std::ios::binary;
     }
 
-    auto FileStream = std::make_unique<std::ofstream>(FilePath.string(), Mode);
-    if (!FileStream->is_open())
+    auto FileStream = MakeUnique<std::ofstream>(FilePath.string(), Mode);
+    if (!FileStream || !FileStream->is_open())
     {
         HK_LOG_ERROR(ELogcat::Engine, "Failed to open file for writing: {}", FilePath.string());
         return nullptr;

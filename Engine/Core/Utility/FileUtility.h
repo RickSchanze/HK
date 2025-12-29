@@ -2,6 +2,7 @@
 
 #include "Core/String/String.h"
 #include "Core/String/StringView.h"
+#include "Core/Utility/UniquePtr.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -19,7 +20,7 @@ public:
      * @param BinaryMode 是否以二进制模式打开
      * @return 文件流指针，失败返回 nullptr
      */
-    static std::unique_ptr<std::ofstream> CreateFileStream(
+    static TUniquePtr<std::ofstream> CreateFileStream(
         const FStringView& FilePath,
         bool CreateDirectories = true,
         bool BinaryMode = true);
@@ -31,7 +32,7 @@ public:
      * @param BinaryMode 是否以二进制模式打开
      * @return 文件流指针，失败返回 nullptr
      */
-    static std::unique_ptr<std::ofstream> CreateFileStream(
+    static TUniquePtr<std::ofstream> CreateFileStream(
         const FString& FilePath,
         bool CreateDirectories = true,
         bool BinaryMode = true);
@@ -43,7 +44,7 @@ public:
      * @param BinaryMode 是否以二进制模式打开
      * @return 文件流指针，失败返回 nullptr
      */
-    static std::unique_ptr<std::ofstream> CreateFileStream(
+    static TUniquePtr<std::ofstream> CreateFileStream(
         const std::filesystem::path& FilePath,
         bool CreateDirectories = true,
         bool BinaryMode = true);

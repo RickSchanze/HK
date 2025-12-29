@@ -152,7 +152,8 @@ void FRHICommandBuffer::ClearDepthStencilImage(const FRHIImage& Image, float Dep
     AddOrExecuteCommand(std::move(Cmd));
 }
 
-void FRHICommandBuffer::PipelineBarrier(UInt32 SrcStageMask, UInt32 DstStageMask, UInt32 DependencyFlags,
+void FRHICommandBuffer::PipelineBarrier(ERHIPipelineStageFlag SrcStageMask, ERHIPipelineStageFlag DstStageMask,
+                                        ERHIDependencyFlag                     DependencyFlags,
                                         const TArray<FRHIMemoryBarrier>&       MemoryBarriers,
                                         const TArray<FRHIBufferMemoryBarrier>& BufferMemoryBarriers,
                                         const TArray<FRHIImageMemoryBarrier>&  ImageMemoryBarriers)

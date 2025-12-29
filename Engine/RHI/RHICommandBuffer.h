@@ -29,6 +29,64 @@ enum class ERHICommandBufferLevel : UInt32
 
 // ERHICommandBufferUsageFlag 定义在 RHICommand.h 中（避免循环依赖）
 
+// 访问标志（对应 Vulkan 的 VkAccessFlags）
+enum class ERHIAccessFlag : UInt32
+{
+    None                        = 0,
+    IndirectRead                = 1 << 0,  // VK_ACCESS_INDIRECT_COMMAND_READ_BIT
+    IndexRead                   = 1 << 1,  // VK_ACCESS_INDEX_READ_BIT
+    VertexAttributeRead         = 1 << 2,  // VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT
+    UniformRead                 = 1 << 3,  // VK_ACCESS_UNIFORM_READ_BIT
+    InputAttachmentRead         = 1 << 4,  // VK_ACCESS_INPUT_ATTACHMENT_READ_BIT
+    ShaderRead                  = 1 << 5,  // VK_ACCESS_SHADER_READ_BIT
+    ShaderWrite                 = 1 << 6,  // VK_ACCESS_SHADER_WRITE_BIT
+    ColorAttachmentRead         = 1 << 7,  // VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+    ColorAttachmentWrite        = 1 << 8,  // VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+    DepthStencilAttachmentRead  = 1 << 9,  // VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+    DepthStencilAttachmentWrite = 1 << 10, // VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    TransferRead                = 1 << 11, // VK_ACCESS_TRANSFER_READ_BIT
+    TransferWrite               = 1 << 12, // VK_ACCESS_TRANSFER_WRITE_BIT
+    HostRead                    = 1 << 13, // VK_ACCESS_HOST_READ_BIT
+    HostWrite                   = 1 << 14, // VK_ACCESS_HOST_WRITE_BIT
+    MemoryRead                  = 1 << 15, // VK_ACCESS_MEMORY_READ_BIT
+    MemoryWrite                 = 1 << 16, // VK_ACCESS_MEMORY_WRITE_BIT
+};
+HK_ENABLE_BITMASK_OPERATORS(ERHIAccessFlag)
+
+// 管线阶段标志（对应 Vulkan 的 VkPipelineStageFlags）
+enum class ERHIPipelineStageFlag : UInt32
+{
+    None                         = 0,
+    TopOfPipe                    = 1 << 0,  // VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
+    DrawIndirect                 = 1 << 1,  // VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT
+    VertexInput                  = 1 << 2,  // VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
+    VertexShader                 = 1 << 3,  // VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+    TessellationControlShader    = 1 << 4,  // VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT
+    TessellationEvaluationShader = 1 << 5,  // VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
+    GeometryShader               = 1 << 6,  // VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT
+    FragmentShader               = 1 << 7,  // VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+    EarlyFragmentTests           = 1 << 8,  // VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+    LateFragmentTests            = 1 << 9,  // VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT
+    ColorAttachmentOutput        = 1 << 10, // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    ComputeShader                = 1 << 11, // VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+    Transfer                     = 1 << 12, // VK_PIPELINE_STAGE_TRANSFER_BIT
+    BottomOfPipe                 = 1 << 13, // VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT
+    Host                         = 1 << 14, // VK_PIPELINE_STAGE_HOST_BIT
+    AllGraphics                  = 1 << 15, // VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+    AllCommands                  = 1 << 16, // VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+};
+HK_ENABLE_BITMASK_OPERATORS(ERHIPipelineStageFlag)
+
+// 依赖标志（对应 Vulkan 的 VkDependencyFlags）
+enum class ERHIDependencyFlag : UInt32
+{
+    None        = 0,
+    ByRegion    = 1 << 0, // VK_DEPENDENCY_BY_REGION_BIT
+    DeviceGroup = 1 << 1, // VK_DEPENDENCY_DEVICE_GROUP_BIT
+    ViewLocal   = 1 << 2, // VK_DEPENDENCY_VIEW_LOCAL_BIT
+};
+HK_ENABLE_BITMASK_OPERATORS(ERHIDependencyFlag)
+
 // 命令缓冲区描述
 struct FRHICommandBufferDesc
 {
@@ -242,8 +300,7 @@ public:
     // @param DstImage 目标图像
     // @param RegionCount 区域数量
     // @param Regions 复制区域数组
-    void CopyImage(const FRHIImage& SrcImage, const FRHIImage& DstImage,
-                   const TArray<FRHIImageCopyRegion>& Regions);
+    void CopyImage(const FRHIImage& SrcImage, const FRHIImage& DstImage, const TArray<FRHIImageCopyRegion>& Regions);
 
     // 从缓冲区复制到图像
     // @param SrcBuffer 源缓冲区
@@ -285,8 +342,8 @@ public:
     // @param MemoryBarriers 内存屏障数组
     // @param BufferMemoryBarriers 缓冲区内存屏障数组
     // @param ImageMemoryBarriers 图像内存屏障数组
-    void PipelineBarrier(UInt32 SrcStageMask, UInt32 DstStageMask, UInt32 DependencyFlags,
-                         const TArray<FRHIMemoryBarrier>&       MemoryBarriers,
+    void PipelineBarrier(ERHIPipelineStageFlag SrcStageMask, ERHIPipelineStageFlag DstStageMask,
+                         ERHIDependencyFlag DependencyFlags, const TArray<FRHIMemoryBarrier>& MemoryBarriers,
                          const TArray<FRHIBufferMemoryBarrier>& BufferMemoryBarriers,
                          const TArray<FRHIImageMemoryBarrier>&  ImageMemoryBarriers);
 #pragma endregion
@@ -332,11 +389,11 @@ private:
     // 添加命令到队列（Deferred 模式）或立即执行（Immediate 模式）
     void AddOrExecuteCommand(TUniquePtr<FRHICommand> Command);
 
-    FRHIHandle                         Handle;
-    ERHICommandBufferLevel             Level       = ERHICommandBufferLevel::Primary;
-    ERHICommandExecuteMode             ExecuteMode = ERHICommandExecuteMode::Deferred; // 执行模式
-    TArray<TUniquePtr<FRHICommand>>    CommandQueue;                                   // 命令队列（Deferred/Threaded 模式）
-    bool                               bIsRecording = false;                           // 是否正在记录命令
+    FRHIHandle                      Handle;
+    ERHICommandBufferLevel          Level       = ERHICommandBufferLevel::Primary;
+    ERHICommandExecuteMode          ExecuteMode = ERHICommandExecuteMode::Deferred; // 执行模式
+    TArray<TUniquePtr<FRHICommand>> CommandQueue;         // 命令队列（Deferred/Threaded 模式）
+    bool                            bIsRecording = false; // 是否正在记录命令
 };
 
 // 辅助结构定义（在类外部定义，供全局使用）
@@ -385,23 +442,23 @@ struct FRHIImageSubresourceRange
 
 struct FRHIMemoryBarrier
 {
-    UInt32 SrcAccessMask = 0; // 源访问掩码
-    UInt32 DstAccessMask = 0; // 目标访问掩码
+    ERHIAccessFlag SrcAccessMask = ERHIAccessFlag::None; // 源访问掩码
+    ERHIAccessFlag DstAccessMask = ERHIAccessFlag::None; // 目标访问掩码
 };
 
 struct FRHIBufferMemoryBarrier
 {
-    UInt32     SrcAccessMask = 0; // 源访问掩码
-    UInt32     DstAccessMask = 0; // 目标访问掩码
-    FRHIBuffer Buffer;            // 缓冲区
-    UInt64     Offset = 0;        // 偏移量（字节）
-    UInt64     Size   = 0;        // 大小（字节），0表示到缓冲区末尾
+    ERHIAccessFlag SrcAccessMask = ERHIAccessFlag::None; // 源访问掩码
+    ERHIAccessFlag DstAccessMask = ERHIAccessFlag::None; // 目标访问掩码
+    FRHIBuffer     Buffer;                               // 缓冲区
+    UInt64         Offset = 0;                           // 偏移量（字节）
+    UInt64         Size   = 0;                           // 大小（字节），0表示到缓冲区末尾
 };
 
 struct FRHIImageMemoryBarrier
 {
-    UInt32                    SrcAccessMask = 0;                          // 源访问掩码
-    UInt32                    DstAccessMask = 0;                          // 目标访问掩码
+    ERHIAccessFlag            SrcAccessMask = ERHIAccessFlag::None;       // 源访问掩码
+    ERHIAccessFlag            DstAccessMask = ERHIAccessFlag::None;       // 目标访问掩码
     ERHIImageLayout           OldLayout     = ERHIImageLayout::Undefined; // 旧布局
     ERHIImageLayout           NewLayout     = ERHIImageLayout::Undefined; // 新布局
     FRHIImage                 Image;                                      // 图像

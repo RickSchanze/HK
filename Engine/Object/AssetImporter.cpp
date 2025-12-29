@@ -5,11 +5,13 @@
 #include "AssetImporter.h"
 #include "AssetRegistry.h"
 #include "Core/Logging/Logger.h"
+#include "Core/Serialization/BinaryArchive.h"
 #include "Core/Utility/HashUtility.h"
 #include "Core/Utility/FileUtility.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHICommandPool.h"
 #include <fstream>
+#include <sstream>
 
 bool FAssetImporter::Import(const TSharedPtr<FAssetMetadata>& Metadata, const bool AllowIntermediateFailed)
 {
@@ -169,27 +171,27 @@ bool FAssetImporter::ValidateIntermediateHash(FStringView IntermediatePath) cons
         return false;
     }
 
-    // 读取文件中的 Hash（文件开头的前 8 字节）
-    FString IntermediatePathStr(IntermediatePath);
-    std::ifstream File(IntermediatePathStr.CStr(), std::ios::binary);
-    if (!File.is_open())
+    // 使用 OpenFileStream 打开文件
+    auto FileStream = FFileUtility::OpenFileStream(IntermediatePath, true);
+    if (!FileStream)
     {
         HK_LOG_WARN(ELogcat::Asset, "Failed to open intermediate file for hash validation: {}", IntermediatePath);
         return false;
     }
 
+    // 读取整个 Intermediate 结构（Hash 是结构的一部分）
+    // 由于这是基类方法，无法直接知道具体的 Intermediate 类型
+    // 简化处理：直接读取文件开头的 Hash（假设 Hash 是第一个字段）
     UInt64 FileHash = 0;
-    File.read(reinterpret_cast<char*>(&FileHash), sizeof(UInt64));
-    File.close();
-
-    // 如果读取失败或 Hash 为 0，说明文件格式不正确
-    if (FileHash == 0)
+    FileStream->read(reinterpret_cast<char*>(&FileHash), sizeof(UInt64));
+    
+    if (!FileStream->good() || FileHash == 0)
     {
         HK_LOG_WARN(ELogcat::Asset, "Failed to read hash from intermediate file: {}", IntermediatePath);
         return false;
     }
-
-    // 比较 Hash
+    
+    // 比较 Metadata 中的 Hash
     if (FileHash != Metadata->IntermediateHash)
     {
         HK_LOG_INFO(ELogcat::Asset, "Intermediate file hash mismatch for: {} (expected: {}, got: {})", IntermediatePath,

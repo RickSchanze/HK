@@ -23,6 +23,11 @@ struct FRHIBufferMemoryBarrier;
 struct FRHIImageMemoryBarrier;
 struct FRHIRenderPassBeginInfo;
 
+// ERHIAccessFlag, ERHIPipelineStageFlag, ERHIDependencyFlag 定义在 RHICommandBuffer.h 中（避免循环依赖）
+enum class ERHIAccessFlag : UInt32;
+enum class ERHIPipelineStageFlag : UInt32;
+enum class ERHIDependencyFlag : UInt32;
+
 // 命令缓冲区使用标志（定义在这里以避免循环依赖）
 enum class ERHICommandBufferUsageFlag : UInt32
 {
@@ -431,15 +436,15 @@ struct FRHICommand_ClearDepthStencilImage : FRHICommand
 
 struct FRHICommand_PipelineBarrier : FRHICommand
 {
-    UInt32                          SrcStageMask;
-    UInt32                          DstStageMask;
-    UInt32                          DependencyFlags;
+    ERHIPipelineStageFlag           SrcStageMask;
+    ERHIPipelineStageFlag           DstStageMask;
+    ERHIDependencyFlag              DependencyFlags;
     TArray<FRHIMemoryBarrier>       MemoryBarriers;
     TArray<FRHIBufferMemoryBarrier> BufferMemoryBarriers;
     TArray<FRHIImageMemoryBarrier>  ImageMemoryBarriers;
 
-    FRHICommand_PipelineBarrier(const UInt32 InSrcStageMask, const UInt32 InDstStageMask,
-                                const UInt32 InDependencyFlags, const TArray<FRHIMemoryBarrier>& InMemoryBarriers,
+    FRHICommand_PipelineBarrier(const ERHIPipelineStageFlag InSrcStageMask, const ERHIPipelineStageFlag InDstStageMask,
+                                const ERHIDependencyFlag InDependencyFlags, const TArray<FRHIMemoryBarrier>& InMemoryBarriers,
                                 const TArray<FRHIBufferMemoryBarrier>& InBufferMemoryBarriers,
                                 const TArray<FRHIImageMemoryBarrier>&  InImageMemoryBarriers)
         : FRHICommand(), SrcStageMask(InSrcStageMask), DstStageMask(InDstStageMask), DependencyFlags(InDependencyFlags),

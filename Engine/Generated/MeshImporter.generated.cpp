@@ -6,6 +6,63 @@
 #pragma warning(disable: 4100)  // 禁用未使用参数警告
 
 
+static void Register_FVertexPNU_Impl()
+{
+    // 注册类型
+    FTypeMutable Type = FTypeManager::Register<FVertexPNU>("VertexPNU");
+
+    // 注册属性
+    FVertexPNU::Register_FVertexPNU_Properties(Type);
+
+}
+
+void FVertexPNU::Z_VertexPNU_Register::Register_FVertexPNU()
+{
+    // 只注册类型注册器函数，不执行注册操作
+    FTypeManager::RegisterTypeRegisterer<FVertexPNU>(Register_FVertexPNU_Impl);
+}
+
+
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+
+static void Register_FSubMeshIntermediate_Impl()
+{
+    // 注册类型
+    FTypeMutable Type = FTypeManager::Register<FSubMeshIntermediate>("SubMeshIntermediate");
+
+}
+
+void FSubMeshIntermediate::Z_SubMeshIntermediate_Register::Register_FSubMeshIntermediate()
+{
+    // 只注册类型注册器函数，不执行注册操作
+    FTypeManager::RegisterTypeRegisterer<FSubMeshIntermediate>(Register_FSubMeshIntermediate_Impl);
+}
+
+
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+
+static void Register_FMeshIntermediate_Impl()
+{
+    // 注册类型
+    FTypeMutable Type = FTypeManager::Register<FMeshIntermediate>("MeshIntermediate");
+
+    // 注册属性
+    FMeshIntermediate::Register_FMeshIntermediate_Properties(Type);
+
+}
+
+void FMeshIntermediate::Z_MeshIntermediate_Register::Register_FMeshIntermediate()
+{
+    // 只注册类型注册器函数，不执行注册操作
+    FTypeManager::RegisterTypeRegisterer<FMeshIntermediate>(Register_FMeshIntermediate_Impl);
+}
+
+
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+
 static void Register_FMeshImportSetting_Impl()
 {
     // 注册类型

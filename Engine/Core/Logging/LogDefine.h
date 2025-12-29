@@ -15,7 +15,8 @@
     HK_LOGCAT_ITEM(Uuid)                                                                                               \
     HK_LOGCAT_ITEM(Serialize)                                                                                          \
     HK_LOGCAT_ITEM(Asset)                                                                                              \
-    HK_LOGCAT_ITEM(Render)
+    HK_LOGCAT_ITEM(Render)                                                                                             \
+    HK_LOGCAT_ITEM(Utility)
 
 enum class ELogcat
 {

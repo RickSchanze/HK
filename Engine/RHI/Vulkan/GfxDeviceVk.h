@@ -203,6 +203,9 @@ private:
      * @return Vulkan 图像布局
      */
     static vk::ImageLayout ConvertImageLayout(ERHIImageLayout Layout);
+    static vk::AccessFlags ConvertAccessFlags(ERHIAccessFlag AccessFlags);
+    static vk::PipelineStageFlags ConvertPipelineStageFlags(ERHIPipelineStageFlag StageFlags);
+    static vk::DependencyFlags ConvertDependencyFlags(ERHIDependencyFlag DependencyFlags);
 
     /**
      * 转换 EImageType 到 VkImageType

@@ -6,6 +6,9 @@
 
 #include "Core/Container/Array.h"
 #include "Core/Logging/Logger.h"
+#include "Core/Reflection/Reflection.h"
+#include "Core/Serialization/BinaryArchive.h"
+#include "Core/Serialization/MemoryStream.h"
 #include "Core/String/String.h"
 #include "Core/Utility/FileUtility.h"
 #include "Core/Utility/HashUtility.h"
@@ -31,16 +34,6 @@
 
 namespace
 {
-// 使用 stb_image 加载图像数据
-struct FImageData
-{
-    UInt8* Data     = nullptr;
-    Int32  Width    = 0;
-    Int32  Height   = 0;
-    Int32  Channels = 0;
-    bool   bIsHDR   = false;
-};
-
 FImageData LoadImageData(const FString& FilePath)
 {
     FImageData Result;
@@ -246,8 +239,8 @@ bool FTextureImporter::ProcessImport()
     Barrier.OldLayout                       = ERHIImageLayout::Undefined;
     Barrier.NewLayout                       = ERHIImageLayout::TransferDstOptimal;
     Barrier.Image                           = ImportData->Image;
-    Barrier.SrcAccessMask                   = 0;
-    Barrier.DstAccessMask                   = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
+    Barrier.SrcAccessMask                   = ERHIAccessFlag::None;
+    Barrier.DstAccessMask                   = ERHIAccessFlag::TransferWrite;
     Barrier.SubresourceRange.AspectMask     = ERHIImageAspect::Color;
     Barrier.SubresourceRange.BaseMipLevel   = 0;
     Barrier.SubresourceRange.LevelCount     = 1;
@@ -256,10 +249,9 @@ bool FTextureImporter::ProcessImport()
     ImageBarriers.Add(Barrier);
 
     // Pipeline barrier: Top of pipe -> Transfer
-    ImportData->CommandBuffer.PipelineBarrier(0x00000001, // VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
-                                              0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
-                                              0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(),
-                                              ImageBarriers);
+    ImportData->CommandBuffer.PipelineBarrier(ERHIPipelineStageFlag::TopOfPipe, ERHIPipelineStageFlag::Transfer,
+                                              ERHIDependencyFlag::None, TArray<FRHIMemoryBarrier>(),
+                                              TArray<FRHIBufferMemoryBarrier>(), ImageBarriers);
 
     // 复制数据从 buffer 到 image
     TArray<FRHIBufferImageCopyRegion> CopyRegions;
@@ -282,15 +274,14 @@ bool FTextureImporter::ProcessImport()
     ImageBarriers.Clear();
     Barrier.OldLayout     = ERHIImageLayout::TransferDstOptimal;
     Barrier.NewLayout     = ERHIImageLayout::ShaderReadOnlyOptimal;
-    Barrier.SrcAccessMask = 0x00000008; // VK_ACCESS_TRANSFER_WRITE_BIT
-    Barrier.DstAccessMask = 0x00000020; // VK_ACCESS_SHADER_READ_BIT
+    Barrier.SrcAccessMask = ERHIAccessFlag::TransferWrite;
+    Barrier.DstAccessMask = ERHIAccessFlag::ShaderRead;
     ImageBarriers.Add(Barrier);
 
     // Pipeline barrier: Transfer -> Fragment shader
-    ImportData->CommandBuffer.PipelineBarrier(0x00000008, // VK_PIPELINE_STAGE_TRANSFER_BIT
-                                              0x00000080, // VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-                                              0, TArray<FRHIMemoryBarrier>(), TArray<FRHIBufferMemoryBarrier>(),
-                                              ImageBarriers);
+    ImportData->CommandBuffer.PipelineBarrier(ERHIPipelineStageFlag::Transfer, ERHIPipelineStageFlag::FragmentShader,
+                                              ERHIDependencyFlag::None, TArray<FRHIMemoryBarrier>(),
+                                              TArray<FRHIBufferMemoryBarrier>(), ImageBarriers);
 
     // 结束记录命令
     ImportData->CommandBuffer.End();
@@ -332,76 +323,41 @@ bool FTextureImporter::ProcessAssetIntermediate()
     // 获取中间文件路径
     FString IntermediatePath = GetIntermediatePath(Metadata->Uuid);
 
-    // 确保目录存在
-    std::filesystem::path Path(IntermediatePath.CStr());
-    std::filesystem::path DirPath = Path.parent_path();
-    if (!DirPath.empty() && !std::filesystem::exists(DirPath))
-    {
-        std::error_code ErrorCode;
-        if (!std::filesystem::create_directories(DirPath, ErrorCode))
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create intermediate directory: {}", DirPath.string());
-            return false;
-        }
-    }
+    // 构建中间数据结构（先不设置 Hash）
+    FTextureIntermediate Intermediate;
+    Intermediate.Width  = ImportData->ImageData.Width;
+    Intermediate.Height = ImportData->ImageData.Height;
+    Intermediate.Format = ImportData->ImageFormat;
 
-    // 计算图像数据大小
+    // 复制图像数据
     const UInt64 ImageSize =
         static_cast<UInt64>(ImportData->ImageData.Width) * ImportData->ImageData.Height * 4; // RGBA = 4 bytes per pixel
+    Intermediate.ImageData.Resize(static_cast<size_t>(ImageSize));
+    std::memcpy(Intermediate.ImageData.Data(), ImportData->ImageData.Data, ImageSize);
 
-    // 准备要写入的数据（不包括 Hash 本身）
-    struct FIntermediateHeader
+    // 先序列化以计算 Hash（此时 Hash 字段为 0），直接计算不存储
+    FHashOutputStream HashStream;
     {
-        Int32           Width;
-        Int32           Height;
-        ERHIImageFormat Format;
-    };
+        FBinaryOutputArchive HashAr(HashStream);
+        HashAr(Intermediate);
+    }
 
-    FIntermediateHeader Header;
-    Header.Width  = ImportData->ImageData.Width;
-    Header.Height = ImportData->ImageData.Height;
-    Header.Format = ImportData->ImageFormat;
+    // 获取计算出的 Hash（不包括 Hash 字段本身，因为此时 Hash 为 0）
+    const UInt64 Hash = HashStream.GetHash();
 
-    // 计算 Hash（包括 Header 和图像数据）
-    // 注意：Hash 计算不包括 Hash 本身，只计算实际数据
-    const size_t  TotalSize = sizeof(FIntermediateHeader) + ImageSize;
-    TArray<UInt8> DataBuffer;
-    DataBuffer.Reserve(TotalSize);
-    
-    // 使用迭代器对的方式添加数据
-    const UInt8* HeaderPtr = reinterpret_cast<const UInt8*>(&Header);
-    DataBuffer.Append(HeaderPtr, HeaderPtr + sizeof(FIntermediateHeader));
-    
-    const UInt8* ImageDataPtr = reinterpret_cast<const UInt8*>(ImportData->ImageData.Data);
-    DataBuffer.Append(ImageDataPtr, ImageDataPtr + ImageSize);
+    // 设置 Hash 到 Intermediate
+    Intermediate.Hash = Hash;
 
-    const UInt64 Hash = FHashUtility::ComputeHash(DataBuffer.Data(), TotalSize);
-
-    // 保存二进制数据到文件
-    std::ofstream File(IntermediatePath.CStr(), std::ios::binary);
-    if (!File.is_open())
+    // 创建文件流并序列化
+    auto Stream = FFileUtility::CreateFileStream(IntermediatePath, true, true);
+    if (!Stream)
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to open intermediate file for writing: {}", IntermediatePath);
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create file stream for intermediate file: {}", IntermediatePath);
         return false;
     }
 
-    // 先写入 Hash
-    File.write(reinterpret_cast<const char*>(&Hash), sizeof(UInt64));
-
-    // 写入图像尺寸和格式信息
-    File.write(reinterpret_cast<const char*>(&Header), sizeof(FIntermediateHeader));
-
-    // 写入图像数据
-    File.write(reinterpret_cast<const char*>(ImportData->ImageData.Data), ImageSize);
-
-    if (!File.good())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to write intermediate file: {}", IntermediatePath);
-        File.close();
-        return false;
-    }
-
-    File.close();
+    FBinaryOutputArchive Ar(*Stream);
+    Intermediate.Serialize(Ar);
 
     // 更新 Metadata 中的 Hash
     Metadata->IntermediateHash = Hash;
@@ -440,4 +396,3 @@ void FTextureImporter::EndImport()
     Delete(ImportData);
     ImportData = nullptr;
 }
-

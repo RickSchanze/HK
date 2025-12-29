@@ -314,6 +314,104 @@ vk::ImageLayout FGfxDeviceVk::ConvertImageLayout(ERHIImageLayout Layout)
     }
 }
 
+vk::AccessFlags FGfxDeviceVk::ConvertAccessFlags(ERHIAccessFlag AccessFlags)
+{
+    vk::AccessFlags Result = vk::AccessFlags();
+    
+    if (HasFlag(AccessFlags, ERHIAccessFlag::IndirectRead))
+        Result |= vk::AccessFlagBits::eIndirectCommandRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::IndexRead))
+        Result |= vk::AccessFlagBits::eIndexRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::VertexAttributeRead))
+        Result |= vk::AccessFlagBits::eVertexAttributeRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::UniformRead))
+        Result |= vk::AccessFlagBits::eUniformRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::InputAttachmentRead))
+        Result |= vk::AccessFlagBits::eInputAttachmentRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::ShaderRead))
+        Result |= vk::AccessFlagBits::eShaderRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::ShaderWrite))
+        Result |= vk::AccessFlagBits::eShaderWrite;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::ColorAttachmentRead))
+        Result |= vk::AccessFlagBits::eColorAttachmentRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::ColorAttachmentWrite))
+        Result |= vk::AccessFlagBits::eColorAttachmentWrite;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::DepthStencilAttachmentRead))
+        Result |= vk::AccessFlagBits::eDepthStencilAttachmentRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::DepthStencilAttachmentWrite))
+        Result |= vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::TransferRead))
+        Result |= vk::AccessFlagBits::eTransferRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::TransferWrite))
+        Result |= vk::AccessFlagBits::eTransferWrite;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::HostRead))
+        Result |= vk::AccessFlagBits::eHostRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::HostWrite))
+        Result |= vk::AccessFlagBits::eHostWrite;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::MemoryRead))
+        Result |= vk::AccessFlagBits::eMemoryRead;
+    if (HasFlag(AccessFlags, ERHIAccessFlag::MemoryWrite))
+        Result |= vk::AccessFlagBits::eMemoryWrite;
+    
+    return Result;
+}
+
+vk::PipelineStageFlags FGfxDeviceVk::ConvertPipelineStageFlags(ERHIPipelineStageFlag StageFlags)
+{
+    vk::PipelineStageFlags Result = vk::PipelineStageFlags();
+    
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::TopOfPipe))
+        Result |= vk::PipelineStageFlagBits::eTopOfPipe;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::DrawIndirect))
+        Result |= vk::PipelineStageFlagBits::eDrawIndirect;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::VertexInput))
+        Result |= vk::PipelineStageFlagBits::eVertexInput;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::VertexShader))
+        Result |= vk::PipelineStageFlagBits::eVertexShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::TessellationControlShader))
+        Result |= vk::PipelineStageFlagBits::eTessellationControlShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::TessellationEvaluationShader))
+        Result |= vk::PipelineStageFlagBits::eTessellationEvaluationShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::GeometryShader))
+        Result |= vk::PipelineStageFlagBits::eGeometryShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::FragmentShader))
+        Result |= vk::PipelineStageFlagBits::eFragmentShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::EarlyFragmentTests))
+        Result |= vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::LateFragmentTests))
+        Result |= vk::PipelineStageFlagBits::eLateFragmentTests;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::ColorAttachmentOutput))
+        Result |= vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::ComputeShader))
+        Result |= vk::PipelineStageFlagBits::eComputeShader;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::Transfer))
+        Result |= vk::PipelineStageFlagBits::eTransfer;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::BottomOfPipe))
+        Result |= vk::PipelineStageFlagBits::eBottomOfPipe;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::Host))
+        Result |= vk::PipelineStageFlagBits::eHost;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::AllGraphics))
+        Result |= vk::PipelineStageFlagBits::eAllGraphics;
+    if (HasFlag(StageFlags, ERHIPipelineStageFlag::AllCommands))
+        Result |= vk::PipelineStageFlagBits::eAllCommands;
+    
+    return Result;
+}
+
+vk::DependencyFlags FGfxDeviceVk::ConvertDependencyFlags(ERHIDependencyFlag DependencyFlags)
+{
+    vk::DependencyFlags Result = vk::DependencyFlags();
+    
+    if (HasFlag(DependencyFlags, ERHIDependencyFlag::ByRegion))
+        Result |= vk::DependencyFlagBits::eByRegion;
+    if (HasFlag(DependencyFlags, ERHIDependencyFlag::DeviceGroup))
+        Result |= vk::DependencyFlagBits::eDeviceGroup;
+    if (HasFlag(DependencyFlags, ERHIDependencyFlag::ViewLocal))
+        Result |= vk::DependencyFlagBits::eViewLocal;
+    
+    return Result;
+}
+
 vk::ImageType FGfxDeviceVk::ConvertImageType(ERHIImageType Type)
 {
     switch (Type)

@@ -8,10 +8,18 @@
 
 class FRHICommandBuffer;
 // 顶点数据结构（与 Common.slang 中的 Vertex_PNU 对应）
+HSTRUCT()
 struct FVertexPNU
 {
+    GENERATED_BODY(FVertexPNU)
+public:
+    HPROPERTY()
     FVector3f Position;
+
+    HPROPERTY()
     FVector3f Normal;
+
+    HPROPERTY()
     FVector2f UV;
 };
 
@@ -22,6 +30,32 @@ struct FMeshData
     TArray<UInt32>     Indices;
     UInt32             VertexCount = 0;
     UInt32             IndexCount  = 0;
+};
+
+// 子网格中间数据结构
+HSTRUCT()
+struct FSubMeshIntermediate
+{
+    GENERATED_BODY(FSubMeshIntermediate)
+public:
+    HPROPERTY()
+    TArray<FVertexPNU> Vertices;
+
+    HPROPERTY()
+    TArray<UInt32> Indices;
+};
+
+// 网格中间数据结构
+HSTRUCT()
+struct FMeshIntermediate
+{
+    GENERATED_BODY(FMeshIntermediate)
+public:
+    HPROPERTY()
+    UInt64 Hash = 0; // Hash 值（计算时排除此字段）
+
+    HPROPERTY()
+    TArray<FSubMeshIntermediate> SubMeshes;
 };
 
 HENUM()

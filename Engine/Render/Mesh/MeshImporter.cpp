@@ -6,6 +6,9 @@
 
 #include "Core/Container/Array.h"
 #include "Core/Logging/Logger.h"
+#include "Core/Reflection/Reflection.h"
+#include "Core/Serialization/BinaryArchive.h"
+#include "Core/Serialization/MemoryStream.h"
 #include "Core/String/String.h"
 #include "Core/Utility/FileUtility.h"
 #include "Core/Utility/HashUtility.h"
@@ -22,6 +25,7 @@
 #include "RHI/RHICommandPool.h"
 #include "Render/Mesh/Mesh.h"
 #include "Render/RenderContext.h"
+#include <cstring>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -453,112 +457,49 @@ bool FMeshImporter::ProcessAssetIntermediate()
     // 获取中间文件路径
     FString IntermediatePath = GetIntermediatePath(Metadata->Uuid);
 
-    // 确保目录存在
-    std::filesystem::path Path(IntermediatePath.CStr());
-    std::filesystem::path DirPath = Path.parent_path();
-    if (!DirPath.empty() && !std::filesystem::exists(DirPath))
+    // 构建中间数据结构（先不设置 Hash）
+    FMeshIntermediate Intermediate;
+    Intermediate.SubMeshes.Resize(ImportData->MeshDataArray.Size());
+
+    for (size_t I = 0; I < ImportData->MeshDataArray.Size(); ++I)
     {
-        std::error_code ErrorCode;
-        if (!std::filesystem::create_directories(DirPath, ErrorCode))
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create intermediate directory: {}", DirPath.string());
-            return false;
-        }
+        const FMeshData& MeshData = ImportData->MeshDataArray[I];
+        FSubMeshIntermediate& SubMesh = Intermediate.SubMeshes[I];
+
+        // 复制顶点数据
+        SubMesh.Vertices.Resize(MeshData.VertexCount);
+        std::memcpy(SubMesh.Vertices.Data(), MeshData.Vertices.Data(),
+                    static_cast<size_t>(MeshData.VertexCount) * sizeof(FVertexPNU));
+
+        // 复制索引数据
+        SubMesh.Indices.Resize(MeshData.IndexCount);
+        std::memcpy(SubMesh.Indices.Data(), MeshData.Indices.Data(),
+                    static_cast<size_t>(MeshData.IndexCount) * sizeof(UInt32));
     }
 
-    // 准备要写入的数据（不包括 Hash 本身）
-    // 格式：SubMeshCount, 然后每个 SubMesh: VertexCount, IndexCount, Vertices, Indices
-    struct FIntermediateHeader
+    // 先序列化以计算 Hash（此时 Hash 字段为 0），直接计算不存储
+    FHashOutputStream HashStream;
     {
-        UInt32 SubMeshCount;
-    };
-
-    FIntermediateHeader Header;
-    Header.SubMeshCount = static_cast<UInt32>(ImportData->MeshDataArray.Size());
-
-    // 计算总数据大小
-    size_t TotalSize = sizeof(FIntermediateHeader);
-    for (const FMeshData& MeshData : ImportData->MeshDataArray)
-    {
-        TotalSize += sizeof(UInt32);                                                 // VertexCount
-        TotalSize += sizeof(UInt32);                                                 // IndexCount
-        TotalSize += static_cast<size_t>(MeshData.VertexCount) * sizeof(FVertexPNU); // Vertices
-        TotalSize += static_cast<size_t>(MeshData.IndexCount) * sizeof(UInt32);      // Indices
+        FBinaryOutputArchive HashAr(HashStream);
+        HashAr(Intermediate);
     }
 
-    // 构建数据缓冲区用于 Hash 计算
-    TArray<UInt8> DataBuffer;
-    DataBuffer.Reserve(TotalSize);
+    // 获取计算出的 Hash（不包括 Hash 字段本身，因为此时 Hash 为 0）
+    const UInt64 Hash = HashStream.GetHash();
 
-    // 添加 Header
-    const UInt8* HeaderPtr = reinterpret_cast<const UInt8*>(&Header);
-    DataBuffer.Append(HeaderPtr, HeaderPtr + sizeof(FIntermediateHeader));
+    // 设置 Hash 到 Intermediate
+    Intermediate.Hash = Hash;
 
-    // 添加每个 SubMesh 的数据
-    for (const FMeshData& MeshData : ImportData->MeshDataArray)
+    // 创建文件流并序列化
+    auto Stream = FFileUtility::CreateFileStream(IntermediatePath, true, true);
+    if (!Stream)
     {
-        // VertexCount
-        const UInt8* VertexCountPtr = reinterpret_cast<const UInt8*>(&MeshData.VertexCount);
-        DataBuffer.Append(VertexCountPtr, VertexCountPtr + sizeof(UInt32));
-
-        // IndexCount
-        const UInt8* IndexCountPtr = reinterpret_cast<const UInt8*>(&MeshData.IndexCount);
-        DataBuffer.Append(IndexCountPtr, IndexCountPtr + sizeof(UInt32));
-
-        // Vertices
-        const UInt8* VerticesPtr  = reinterpret_cast<const UInt8*>(MeshData.Vertices.Data());
-        const size_t VerticesSize = static_cast<size_t>(MeshData.VertexCount) * sizeof(FVertexPNU);
-        DataBuffer.Append(VerticesPtr, VerticesPtr + VerticesSize);
-
-        // Indices
-        const UInt8* IndicesPtr  = reinterpret_cast<const UInt8*>(MeshData.Indices.Data());
-        const size_t IndicesSize = static_cast<size_t>(MeshData.IndexCount) * sizeof(UInt32);
-        DataBuffer.Append(IndicesPtr, IndicesPtr + IndicesSize);
-    }
-
-    // 计算 Hash
-    const UInt64 Hash = FHashUtility::ComputeHash(DataBuffer.Data(), TotalSize);
-
-    // 保存二进制数据到文件
-    std::ofstream File(IntermediatePath.CStr(), std::ios::binary);
-    if (!File.is_open())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to open intermediate file for writing: {}", IntermediatePath);
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create file stream for intermediate file: {}", IntermediatePath);
         return false;
     }
 
-    // 先写入 Hash
-    File.write(reinterpret_cast<const char*>(&Hash), sizeof(UInt64));
-
-    // 写入 Header
-    File.write(reinterpret_cast<const char*>(&Header), sizeof(FIntermediateHeader));
-
-    // 写入每个 SubMesh 的数据
-    for (const FMeshData& MeshData : ImportData->MeshDataArray)
-    {
-        // VertexCount
-        File.write(reinterpret_cast<const char*>(&MeshData.VertexCount), sizeof(UInt32));
-
-        // IndexCount
-        File.write(reinterpret_cast<const char*>(&MeshData.IndexCount), sizeof(UInt32));
-
-        // Vertices
-        const size_t VerticesSize = static_cast<size_t>(MeshData.VertexCount) * sizeof(FVertexPNU);
-        File.write(reinterpret_cast<const char*>(MeshData.Vertices.Data()), VerticesSize);
-
-        // Indices
-        const size_t IndicesSize = static_cast<size_t>(MeshData.IndexCount) * sizeof(UInt32);
-        File.write(reinterpret_cast<const char*>(MeshData.Indices.Data()), IndicesSize);
-    }
-
-    if (!File.good())
-    {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to write intermediate file: {}", IntermediatePath);
-        File.close();
-        return false;
-    }
-
-    File.close();
+    FBinaryOutputArchive Ar(*Stream);
+    Intermediate.Serialize(Ar);
 
     // 更新 Metadata 中的 Hash
     Metadata->IntermediateHash = Hash;

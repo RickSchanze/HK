@@ -4,6 +4,71 @@
 
 #include "Core/Reflection/TypeManager.h"
 
+#define GENERATED_HEADER_FVertexPNU                                                                                        \
+    struct Z_VertexPNU_Register                                                                                            \
+    {                                                                                                                  \
+        Z_VertexPNU_Register()                                                                                             \
+        {                                                                                                              \
+            Register_FVertexPNU();                                                                                         \
+        }                                                                                                              \
+        static void Register_FVertexPNU();                                                                                 \
+    };                                                                                                                 \
+    typedef FVertexPNU ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FVertexPNU>(); }                                                                                        \
+    template <typename Archive>                                                                                        \
+    void Serialize(Archive& Ar)                                                                                        \
+    {                                                                                                                  \
+        Ar(                                                                                                            \
+            MakeNamedPair("Position", Position),                                                                                     \
+            MakeNamedPair("Normal", Normal),                                                                                     \
+            MakeNamedPair("UV", UV)                                                                                      \
+        );                                                                                                             \
+    }                                                                                                                  \
+    static void Register_FVertexPNU_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FVertexPNU::Position, "Position");                                                                                        \
+        Type->RegisterProperty(&FVertexPNU::Normal, "Normal");                                                                                        \
+        Type->RegisterProperty(&FVertexPNU::UV, "UV");                                                                                        \
+    }                                                                                        \
+    static inline Z_VertexPNU_Register Z_REGISTERER_VERTEXPNU;
+
+#define GENERATED_HEADER_FSubMeshIntermediate                                                                                        \
+    struct Z_SubMeshIntermediate_Register                                                                                            \
+    {                                                                                                                  \
+        Z_SubMeshIntermediate_Register()                                                                                             \
+        {                                                                                                              \
+            Register_FSubMeshIntermediate();                                                                                         \
+        }                                                                                                              \
+        static void Register_FSubMeshIntermediate();                                                                                 \
+    };                                                                                                                 \
+    typedef FSubMeshIntermediate ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FSubMeshIntermediate>(); }                                                                                        \
+    static inline Z_SubMeshIntermediate_Register Z_REGISTERER_SUBMESHINTERMEDIATE;
+
+#define GENERATED_HEADER_FMeshIntermediate                                                                                        \
+    struct Z_MeshIntermediate_Register                                                                                            \
+    {                                                                                                                  \
+        Z_MeshIntermediate_Register()                                                                                             \
+        {                                                                                                              \
+            Register_FMeshIntermediate();                                                                                         \
+        }                                                                                                              \
+        static void Register_FMeshIntermediate();                                                                                 \
+    };                                                                                                                 \
+    typedef FMeshIntermediate ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FMeshIntermediate>(); }                                                                                        \
+    template <typename Archive>                                                                                        \
+    void Serialize(Archive& Ar)                                                                                        \
+    {                                                                                                                  \
+        Ar(                                                                                                            \
+            MakeNamedPair("Hash", Hash)                                                                                      \
+        );                                                                                                             \
+    }                                                                                                                  \
+    static void Register_FMeshIntermediate_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FMeshIntermediate::Hash, "Hash");                                                                                        \
+    }                                                                                        \
+    static inline Z_MeshIntermediate_Register Z_REGISTERER_MESHINTERMEDIATE;
+
 #define GENERATED_HEADER_FMeshImportSetting                                                                                        \
     struct Z_MeshImportSetting_Register                                                                                            \
     {                                                                                                                  \
