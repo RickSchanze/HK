@@ -108,11 +108,11 @@ private:
     // 导入过程中的临时数据
     struct FImportData
     {
-        TArray<FMeshData> MeshDataArray;
-        TArray<FRHIBuffer> StagingBuffers;      // 所有 staging buffer
+        TArray<FMeshData>         MeshDataArray;
+        TArray<FRHIBuffer>        StagingBuffers; // 所有 staging buffer
         TArray<FRHICommandBuffer> CommandBuffers; // 所有 command buffer
-        HMesh* Mesh = nullptr;
-        EMeshImportFlag ImportFlags = EMeshImportFlag::None;
+        HMesh*                    Mesh        = nullptr;
+        EMeshImportFlag           ImportFlags = EMeshImportFlag::None;
     };
 
     FImportData* ImportData = nullptr;

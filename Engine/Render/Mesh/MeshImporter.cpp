@@ -25,7 +25,6 @@
 #include "RHI/RHICommandPool.h"
 #include "Render/Mesh/Mesh.h"
 #include "Render/RenderContext.h"
-#include <cstring>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -463,8 +462,8 @@ bool FMeshImporter::ProcessAssetIntermediate()
 
     for (size_t I = 0; I < ImportData->MeshDataArray.Size(); ++I)
     {
-        const FMeshData& MeshData = ImportData->MeshDataArray[I];
-        FSubMeshIntermediate& SubMesh = Intermediate.SubMeshes[I];
+        const FMeshData&      MeshData = ImportData->MeshDataArray[I];
+        FSubMeshIntermediate& SubMesh  = Intermediate.SubMeshes[I];
 
         // 复制顶点数据
         SubMesh.Vertices.Resize(MeshData.VertexCount);
@@ -542,4 +541,3 @@ void FMeshImporter::EndImport()
     Delete(ImportData);
     ImportData = nullptr;
 }
-
