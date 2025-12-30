@@ -52,7 +52,7 @@ public:
         return false;
     }
 
-    virtual void EndImport() {}
+    virtual void EndImport(bool Success) {}
 
     /**
      * 校验中间文件的 Hash，如果不匹配则返回 false

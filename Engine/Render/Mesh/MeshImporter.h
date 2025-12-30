@@ -102,7 +102,7 @@ public:
     void BeginImport() override;
     bool ProcessImport() override;
     bool ProcessAssetIntermediate() override;
-    void EndImport() override;
+    void EndImport(bool Success) override;
 
 private:
     // 导入过程中的临时数据

@@ -17,6 +17,7 @@
 #include "Core/Utility/Uuid.h"
 #include "Math/Vector.h"
 #include "Object/AssetImporter.h"
+#include "Object/AssetManager.h"
 #include "Object/AssetRegistry.h"
 #include "Object/Object.h"
 #include "RHI/GfxDevice.h"
@@ -508,11 +509,15 @@ bool FMeshImporter::ProcessAssetIntermediate()
     return true;
 }
 
-void FMeshImporter::EndImport()
+void FMeshImporter::EndImport(bool Success)
 {
     if (!ImportData)
     {
         return;
+    }
+    if (Success)
+    {
+        FAssetManager::GetRef().RegisterAsset(Metadata->Uuid, Metadata->Path, ImportData->Mesh);
     }
 
     FGfxDevice&     GfxDevice     = GetGfxDeviceRef();
