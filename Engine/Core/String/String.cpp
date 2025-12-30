@@ -331,3 +331,34 @@ bool FString::operator>=(const FString& Other) const noexcept
 {
     return MyData >= Other.MyData;
 }
+
+// 与 FStringView 的比较操作符
+bool FString::operator==(const FStringView& Other) const noexcept
+{
+    return MyData == Other.GetStdStringView();
+}
+
+bool FString::operator!=(const FStringView& Other) const noexcept
+{
+    return MyData != Other.GetStdStringView();
+}
+
+bool FString::operator<(const FStringView& Other) const noexcept
+{
+    return MyData < Other.GetStdStringView();
+}
+
+bool FString::operator>(const FStringView& Other) const noexcept
+{
+    return MyData > Other.GetStdStringView();
+}
+
+bool FString::operator<=(const FStringView& Other) const noexcept
+{
+    return MyData <= Other.GetStdStringView();
+}
+
+bool FString::operator>=(const FStringView& Other) const noexcept
+{
+    return MyData >= Other.GetStdStringView();
+}

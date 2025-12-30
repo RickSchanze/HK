@@ -74,21 +74,28 @@
     inline EnumType operator++(EnumType& e, int)                                                                       \
     {                                                                                                                  \
         EnumType temp = e;                                                                                             \
-        e = static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(e) + 1);                               \
+        e             = static_cast<EnumType>(static_cast<std::underlying_type_t<EnumType>>(e) + 1);                   \
         return temp;                                                                                                   \
     }
 
-typedef int8_t Int8;
-typedef int16_t Int16;
-typedef int32_t Int32;
-typedef int64_t Int64;
-typedef uint8_t UInt8;
+#include <mutex>
+#include <shared_mutex>
+typedef int8_t   Int8;
+typedef int16_t  Int16;
+typedef int32_t  Int32;
+typedef int64_t  Int64;
+typedef uint8_t  UInt8;
 typedef uint16_t UInt16;
 typedef uint32_t UInt32;
 typedef uint64_t UInt64;
-typedef float Float;
-typedef double Double;
-typedef bool Bool;
+typedef float    Float;
+typedef double   Double;
+typedef bool     Bool;
+
+typedef std::mutex        FMutex;
+typedef std::shared_mutex FSharedMutex;
+template <typename... Args>
+using AutoLock = std::scoped_lock<Args...>;
 
 // DLL导出/导入宏
 #ifdef HK_WINDOWS

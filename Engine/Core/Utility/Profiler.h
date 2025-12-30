@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyLock.hpp>
 #include <utility>
 
 // Zone作用域宏 - 自动跟踪函数作用域
@@ -73,6 +74,21 @@ inline void Free(void* Ptr)
 
 // 设置线程名称
 #define HK_PROFILE_SET_THREAD_NAME(Name) tracy::SetThreadName(Name)
+
+// 锁支持 - 标记可锁定的类型（用于 std::mutex, std::shared_mutex 等）
+#define HK_PROFILE_LOCKABLE(Type, VarName) TracyLockable(Type, VarName)
+
+// 锁支持 - 带名称的版本
+#define HK_PROFILE_LOCKABLE_N(Type, VarName, Name) TracyLockableN(Type, VarName, Name)
+
+// 锁支持 - 基类（用于继承）
+#define HK_PROFILE_LOCKABLE_BASE(Type) LockableBase(Type)
+
+// 锁支持 - 标记锁的获取（在 lock() 调用后使用）
+#define HK_PROFILE_LOCK_MARK(VarName) LockMark(VarName)
+
+// 锁支持 - 标记共享锁的获取（在 lock_shared() 调用后使用）
+#define HK_PROFILE_LOCK_MARK_SHARED(VarName) SharedLockMark(VarName)
 
 // 内存分配函数模板 - 替代new操作符
 template <typename T, typename... Args>
@@ -141,6 +157,11 @@ void DeleteArray(T* Ptr)
 #define HK_PROFILE_ALLOC(Ptr, Size) ((void)0)
 #define HK_PROFILE_FREE(Ptr) ((void)0)
 #define HK_PROFILE_SET_THREAD_NAME(Name) ((void)0)
+#define HK_PROFILE_LOCKABLE(Type, VarName) Type VarName
+#define HK_PROFILE_LOCKABLE_N(Type, VarName, Name) Type VarName
+#define HK_PROFILE_LOCKABLE_BASE(Type) Type
+#define HK_PROFILE_LOCK_MARK(VarName) ((void)0)
+#define HK_PROFILE_LOCK_MARK_SHARED(VarName) ((void)0)
 
 // Malloc 内存分配（禁用性能分析时）
 inline void* Malloc(size_t Size)

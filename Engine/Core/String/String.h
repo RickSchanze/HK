@@ -246,6 +246,14 @@ public:
     bool operator<=(const FString& Other) const noexcept;
     bool operator>=(const FString& Other) const noexcept;
 
+    // 与 FStringView 的比较操作符
+    bool operator==(const FStringView& Other) const noexcept;
+    bool operator!=(const FStringView& Other) const noexcept;
+    bool operator<(const FStringView& Other) const noexcept;
+    bool operator>(const FStringView& Other) const noexcept;
+    bool operator<=(const FStringView& Other) const noexcept;
+    bool operator>=(const FStringView& Other) const noexcept;
+
     // ------------------------------------------------------------------
     // Cereal 序列化适配 (Primitive 模式)
     // ------------------------------------------------------------------

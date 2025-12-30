@@ -200,6 +200,14 @@ public:
         return View >= Other.View;
     }
 
+    // 与 FString 的比较操作符
+    bool operator==(const FString& Other) const noexcept;
+    bool operator!=(const FString& Other) const noexcept;
+    bool operator<(const FString& Other) const noexcept;
+    bool operator>(const FString& Other) const noexcept;
+    bool operator<=(const FString& Other) const noexcept;
+    bool operator>=(const FString& Other) const noexcept;
+
     const std::string_view& GetStdStringView() const noexcept
     {
         return View;
@@ -213,3 +221,16 @@ public:
 private:
     std::string_view View;
 };
+
+// FStringView 的哈希函数支持（用于 unordered_map）
+namespace std
+{
+template <>
+struct hash<FStringView>
+{
+    size_t operator()(const FStringView& View) const noexcept
+    {
+        return hash<std::string_view>{}(View.GetStdStringView());
+    }
+};
+} // namespace std
