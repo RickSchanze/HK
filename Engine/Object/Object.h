@@ -93,6 +93,24 @@ public:
 
     void DestroyObject(HObject* Object);
 
+    /**
+     * 通过名称查找对象
+     * @param Name 对象名称
+     * @return 找到的对象指针，如果未找到则返回 nullptr
+     */
+    HObject* FindObjectByName(FName Name) const;
+
+    template <typename T>
+    T* FindObjectByName(FName Name) const
+    {
+        HObject* Obj = FindObjectByName(Name);
+        if (Obj)
+        {
+            return dynamic_cast<T*>(Obj);
+        }
+        return nullptr;
+    }
+
 private:
     FObjectID AllocateID();
     void      ReleaseID(FObjectID ID);

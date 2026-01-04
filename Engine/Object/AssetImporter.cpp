@@ -4,6 +4,7 @@
 
 #include "AssetImporter.h"
 #include "AssetRegistry.h"
+#include "AssetUtility.h"
 #include "Core/Logging/Logger.h"
 #include "Core/Serialization/BinaryArchive.h"
 #include "Core/Utility/HashUtility.h"
@@ -38,18 +39,8 @@ bool FAssetImporter::Import(const TSharedPtr<FAssetMetadata>& Metadata, const bo
 
 bool FAssetImporter::Import(const FStringView Path)
 {
-    const TSharedPtr<FAssetMetadata> Meta = GetOrCreateAssetMetadata(Path);
+    const TSharedPtr<FAssetMetadata> Meta = FAssetUtility::GetOrCreateAssetMetadata(Path);
     return Import(Meta);
-}
-
-TSharedPtr<FAssetMetadata> FAssetImporter::GetOrCreateAssetMetadata(const FStringView AssetPath)
-{
-    FAssetRegistry& AssetRegistry = FAssetRegistry::GetRef();
-    if (AssetRegistry.IsAssetMetadataExist(AssetPath))
-    {
-        return AssetRegistry.LoadAssetMetadata(AssetPath);
-    }
-    return AssetRegistry.CreateAssetMetadata(AssetPath);
 }
 
 void FGlobalAssetMetadataFactory::StartUp() {}
@@ -148,56 +139,4 @@ TSharedPtr<FAssetMetadata> FGlobalAssetMetadataFactory::CreateAssetMetadata(FStr
     }
 
     return Metadata;
-}
-
-bool FAssetImporter::ValidateIntermediateHash(FStringView IntermediatePath) const
-{
-    if (!Metadata)
-    {
-        return false;
-    }
-
-    // 如果中间文件不存在，认为校验失败（需要重新生成）
-    if (!FFileUtility::FileExists(IntermediatePath))
-    {
-        HK_LOG_INFO(ELogcat::Asset, "Intermediate file not found: {}", IntermediatePath);
-        return false;
-    }
-
-    // 如果 Metadata 中没有 Hash，认为校验失败（需要重新生成）
-    if (Metadata->IntermediateHash == 0)
-    {
-        HK_LOG_INFO(ELogcat::Asset, "No hash stored in metadata for: {}", IntermediatePath);
-        return false;
-    }
-
-    // 使用 OpenFileStream 打开文件
-    auto FileStream = FFileUtility::OpenFileStream(IntermediatePath, true);
-    if (!FileStream)
-    {
-        HK_LOG_WARN(ELogcat::Asset, "Failed to open intermediate file for hash validation: {}", IntermediatePath);
-        return false;
-    }
-
-    // 读取整个 Intermediate 结构（Hash 是结构的一部分）
-    // 由于这是基类方法，无法直接知道具体的 Intermediate 类型
-    // 简化处理：直接读取文件开头的 Hash（假设 Hash 是第一个字段）
-    UInt64 FileHash = 0;
-    FileStream->read(reinterpret_cast<char*>(&FileHash), sizeof(UInt64));
-    
-    if (!FileStream->good() || FileHash == 0)
-    {
-        HK_LOG_WARN(ELogcat::Asset, "Failed to read hash from intermediate file: {}", IntermediatePath);
-        return false;
-    }
-    
-    // 比较 Metadata 中的 Hash
-    if (FileHash != Metadata->IntermediateHash)
-    {
-        HK_LOG_INFO(ELogcat::Asset, "Intermediate file hash mismatch for: {} (expected: {}, got: {})", IntermediatePath,
-                    Metadata->IntermediateHash, FileHash);
-        return false;
-    }
-
-    return true;
 }

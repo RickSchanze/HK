@@ -4,8 +4,8 @@
 #include "Core/String/String.h"
 #include "Core/Utility/Profiler.h"
 #include "Core/Utility/Uuid.h"
+#include "Object.h"
 
-class HObject;
 class FAssetManager : public FSingleton<FAssetManager>
 {
 public:
@@ -20,6 +20,6 @@ public:
 
 private:
     HK_PROFILE_LOCKABLE(std::mutex, AssetMapMutex);
-    TMap<FUuid, int>     AssetMap;
-    TMap<FString, FUuid> AssetPathMap;
+    TMap<FUuid, FObjectID> AssetMap;
+    TMap<FString, FUuid>   AssetPathMap;
 };

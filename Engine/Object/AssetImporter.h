@@ -26,12 +26,6 @@ public:
 
     bool Import(FStringView Path);
 
-    /**
-     * 创建或者获取资产的AssetMeta, 如果不存在则创建
-     * @param AssetPath
-     * @return
-     */
-    static TSharedPtr<FAssetMetadata> GetOrCreateAssetMetadata(FStringView AssetPath);
 
     virtual void BeginImport() {}
 
@@ -53,13 +47,6 @@ public:
     }
 
     virtual void EndImport() {}
-
-    /**
-     * 校验中间文件的 Hash，如果不匹配则返回 false
-     * @param IntermediatePath 中间文件路径
-     * @return 如果 Hash 匹配或文件不存在则返回 true，不匹配则返回 false
-     */
-    bool ValidateIntermediateHash(FStringView IntermediatePath) const;
 
 protected:
     TSharedPtr<FAssetMetadata> Metadata;

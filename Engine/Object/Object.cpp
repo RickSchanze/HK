@@ -144,3 +144,19 @@ void FObjectArray::DestroyObject(HObject* Object)
     // 销毁对象（使用模板Delete进行内存跟踪）
     Delete(Object);
 }
+
+HObject* FObjectArray::FindObjectByName(FName Name) const
+{
+    std::lock_guard<std::mutex> Lock(Mutex);
+
+    // 遍历所有对象，查找匹配的名称
+    for (HObject* Obj : AllObjects)
+    {
+        if (Obj && Obj->GetName() == Name)
+        {
+            return Obj;
+        }
+    }
+
+    return nullptr;
+}

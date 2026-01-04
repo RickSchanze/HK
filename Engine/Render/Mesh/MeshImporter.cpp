@@ -18,12 +18,14 @@
 #include "Math/Vector.h"
 #include "Object/AssetImporter.h"
 #include "Object/AssetRegistry.h"
+#include "Object/AssetUtility.h"
 #include "Object/Object.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIBuffer.h"
 #include "RHI/RHICommandBuffer.h"
 #include "RHI/RHICommandPool.h"
 #include "Render/Mesh/Mesh.h"
+#include "Render/Mesh/MeshUtility.h"
 #include "Render/RenderContext.h"
 
 #include <assimp/Importer.hpp>
@@ -259,189 +261,50 @@ bool FMeshImporter::ProcessImport()
         return false;
     }
 
-    // 处理所有 SubMesh
-    TArray<FSubMesh>& SubMeshes = ImportData->Mesh->internalGetMutableSubMeshes();
-    SubMeshes.Reserve(ImportData->MeshDataArray.Size());
-
-    FGfxDevice&     GfxDevice     = GetGfxDeviceRef();
-    FRenderContext& RenderContext = FRenderContext::GetRef();
-    FRHICommandPool CommandPool   = RenderContext.GetUploadCommandPool();
-    if (!CommandPool.IsValid())
+    // 处理所有 SubMesh - 转换为 Intermediate 格式以便使用 MeshUtility
+    FMeshIntermediate Intermediate;
+    Intermediate.SubMeshes.Resize(ImportData->MeshDataArray.Size());
+    for (size_t I = 0; I < ImportData->MeshDataArray.Size(); ++I)
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Global upload command pool is not available");
-        return false;
-    }
-
-    bool bAllSuccess = true;
-    for (UInt32 I = 0; I < ImportData->MeshDataArray.Size(); ++I)
-    {
-        const FMeshData& MeshData = ImportData->MeshDataArray[I];
-        FSubMesh         SubMesh;
-
-        // 创建顶点缓冲区
-        const UInt64 VertexBufferSize = static_cast<UInt64>(MeshData.VertexCount) * sizeof(FVertexPNU);
-
-        FRHIBufferDesc StagingVertexBufferDesc;
-        StagingVertexBufferDesc.Size  = VertexBufferSize;
-        StagingVertexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
-        StagingVertexBufferDesc.MemoryProperty =
-            ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingVertexBufferDesc.DebugName = "MeshVertexStagingBuffer";
-
-        FRHIBuffer StagingVertexBuffer = GfxDevice.CreateBuffer(StagingVertexBufferDesc);
-        if (!StagingVertexBuffer.IsValid())
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create staging vertex buffer for sub-mesh {}", I);
-            bAllSuccess = false;
-            break;
-        }
-
-        void* MappedVertexData = GfxDevice.MapBuffer(StagingVertexBuffer, 0, VertexBufferSize);
-        if (!MappedVertexData)
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to map staging vertex buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        memcpy(MappedVertexData, MeshData.Vertices.Data(), VertexBufferSize);
-        GfxDevice.UnmapBuffer(StagingVertexBuffer);
-
-        FRHIBufferDesc VertexBufferDesc;
-        VertexBufferDesc.Size           = VertexBufferSize;
-        VertexBufferDesc.Usage          = ERHIBufferUsage::VertexBuffer | ERHIBufferUsage::TransferDst;
-        VertexBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal;
-        VertexBufferDesc.DebugName      = "MeshVertexBuffer";
-
-        SubMesh.VertexBuffer = GfxDevice.CreateBuffer(VertexBufferDesc);
-        if (!SubMesh.VertexBuffer.IsValid())
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create vertex buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        // 创建索引缓冲区
-        const UInt64 IndexBufferSize = static_cast<UInt64>(MeshData.IndexCount) * sizeof(UInt32);
-
-        FRHIBufferDesc StagingIndexBufferDesc;
-        StagingIndexBufferDesc.Size  = IndexBufferSize;
-        StagingIndexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
-        StagingIndexBufferDesc.MemoryProperty =
-            ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingIndexBufferDesc.DebugName = "MeshIndexStagingBuffer";
-
-        FRHIBuffer StagingIndexBuffer = GfxDevice.CreateBuffer(StagingIndexBufferDesc);
-        if (!StagingIndexBuffer.IsValid())
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create staging index buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(SubMesh.VertexBuffer);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        void* MappedIndexData = GfxDevice.MapBuffer(StagingIndexBuffer, 0, IndexBufferSize);
-        if (!MappedIndexData)
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to map staging index buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(StagingIndexBuffer);
-            GfxDevice.DestroyBuffer(SubMesh.VertexBuffer);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        memcpy(MappedIndexData, MeshData.Indices.Data(), IndexBufferSize);
-        GfxDevice.UnmapBuffer(StagingIndexBuffer);
-
-        FRHIBufferDesc IndexBufferDesc;
-        IndexBufferDesc.Size           = IndexBufferSize;
-        IndexBufferDesc.Usage          = ERHIBufferUsage::IndexBuffer | ERHIBufferUsage::TransferDst;
-        IndexBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal;
-        IndexBufferDesc.DebugName      = "MeshIndexBuffer";
-
-        SubMesh.IndexBuffer = GfxDevice.CreateBuffer(IndexBufferDesc);
-        if (!SubMesh.IndexBuffer.IsValid())
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create index buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(StagingIndexBuffer);
-            GfxDevice.DestroyBuffer(SubMesh.VertexBuffer);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        // 创建命令缓冲区
-        FRHICommandBufferDesc CmdBufferDesc;
-        CmdBufferDesc.Level      = ERHICommandBufferLevel::Primary;
-        CmdBufferDesc.UsageFlags = ERHICommandBufferUsageFlag::OneTimeSubmit;
-        CmdBufferDesc.DebugName  = "MeshUploadCommandBuffer";
-
-        FRHICommandBuffer CommandBuffer = GfxDevice.CreateCommandBuffer(CommandPool, CmdBufferDesc);
-        if (!CommandBuffer.IsValid())
-        {
-            HK_LOG_ERROR(ELogcat::Asset, "Failed to create command buffer for sub-mesh {}", I);
-            GfxDevice.DestroyBuffer(SubMesh.IndexBuffer);
-            GfxDevice.DestroyBuffer(StagingIndexBuffer);
-            GfxDevice.DestroyBuffer(SubMesh.VertexBuffer);
-            GfxDevice.DestroyBuffer(StagingVertexBuffer);
-            bAllSuccess = false;
-            break;
-        }
-
-        // 开始记录命令
-        CommandBuffer.Begin(ERHICommandBufferUsageFlag::OneTimeSubmit);
+        const FMeshData&      MeshData = ImportData->MeshDataArray[I];
+        FSubMeshIntermediate& SubMesh  = Intermediate.SubMeshes[I];
 
         // 复制顶点数据
-        TArray<FRHIBufferCopyRegion> CopyRegions;
-        FRHIBufferCopyRegion         CopyRegion;
-        CopyRegion.SrcOffset = 0;
-        CopyRegion.DstOffset = 0;
-        CopyRegion.Size      = VertexBufferSize;
-        CopyRegions.Add(CopyRegion);
-        CommandBuffer.CopyBuffer(StagingVertexBuffer, SubMesh.VertexBuffer, CopyRegions);
+        SubMesh.Vertices.Resize(MeshData.VertexCount);
+        std::memcpy(SubMesh.Vertices.Data(), MeshData.Vertices.Data(),
+                    static_cast<size_t>(MeshData.VertexCount) * sizeof(FVertexPNU));
 
         // 复制索引数据
-        CopyRegions.Clear();
-        CopyRegion.Size = IndexBufferSize;
-        CopyRegions.Add(CopyRegion);
-        CommandBuffer.CopyBuffer(StagingIndexBuffer, SubMesh.IndexBuffer, CopyRegions);
-
-        // 结束记录命令
-        CommandBuffer.End();
-
-        // 执行命令
-        CommandBuffer.Execute();
-
-        // 保存 staging buffer 和 command buffer 以便后续清理
-        ImportData->StagingBuffers.Add(StagingVertexBuffer);
-        ImportData->StagingBuffers.Add(StagingIndexBuffer);
-        ImportData->CommandBuffers.Add(CommandBuffer);
-
-        SubMesh.VertexCount = MeshData.VertexCount;
-        SubMesh.IndexCount  = MeshData.IndexCount;
-
-        SubMeshes.Add(SubMesh);
-
-        HK_LOG_INFO(ELogcat::Asset, "Processed sub-mesh {}: {} vertices, {} indices", I, SubMesh.VertexCount,
-                    SubMesh.IndexCount);
+        SubMesh.Indices.Resize(MeshData.IndexCount);
+        std::memcpy(SubMesh.Indices.Data(), MeshData.Indices.Data(),
+                    static_cast<size_t>(MeshData.IndexCount) * sizeof(UInt32));
     }
 
-    if (!bAllSuccess)
+    // 使用 MeshUtility 创建并上传 Mesh 到 GPU
+    TArray<FSubMesh>         SubMeshes;
+    TArray<FRHIBuffer>       StagingBuffers;
+    TArray<FRHICommandBuffer> CommandBuffers;
+
+    if (!FMeshUtility::CreateAndUploadMeshFromIntermediate(Intermediate, SubMeshes, StagingBuffers, CommandBuffers))
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Failed to process all sub-meshes");
+        HK_LOG_ERROR(ELogcat::Asset, "Failed to create and upload mesh to GPU");
         return false;
     }
+
+    // 设置 Mesh 的 SubMeshes
+    TArray<FSubMesh>& MeshSubMeshes = ImportData->Mesh->internalGetMutableSubMeshes();
+    MeshSubMeshes                    = std::move(SubMeshes);
+
+    // 保存 staging buffers 和 command buffers 以便后续清理
+    ImportData->StagingBuffers  = std::move(StagingBuffers);
+    ImportData->CommandBuffers  = std::move(CommandBuffers);
 
     // 保存元数据
     Metadata->AssetType = EAssetType::Mesh;
     FAssetRegistry::GetRef().SaveAssetMetadata(Metadata);
 
     HK_LOG_INFO(ELogcat::Asset, "Successfully processed mesh import: {} ({} sub-meshes)", Metadata->Path,
-                SubMeshes.Size());
+                MeshSubMeshes.Size());
     return true;
 }
 
@@ -454,7 +317,7 @@ bool FMeshImporter::ProcessAssetIntermediate()
     }
 
     // 获取中间文件路径
-    FString IntermediatePath = GetIntermediatePath(Metadata->Uuid);
+    FString IntermediatePath = FAssetUtility::GetMeshIntermediatePath(Metadata->Uuid);
 
     // 构建中间数据结构（先不设置 Hash）
     FMeshIntermediate Intermediate;
@@ -519,16 +382,15 @@ void FMeshImporter::EndImport()
     FRenderContext& RenderContext = FRenderContext::GetRef();
     FRHICommandPool CommandPool   = RenderContext.GetUploadCommandPool();
 
-    // 清理所有 CommandBuffer
-    for (FRHICommandBuffer& CommandBuffer : ImportData->CommandBuffers)
+    // 清理资源
+    for (FRHICommandBuffer& CmdBuffer : ImportData->CommandBuffers)
     {
-        if (CommandBuffer.IsValid())
+        if (CmdBuffer.IsValid())
         {
-            GfxDevice.DestroyCommandBuffer(CommandPool, CommandBuffer);
+            GfxDevice.DestroyCommandBuffer(CommandPool, CmdBuffer);
         }
     }
 
-    // 清理所有 StagingBuffer
     for (FRHIBuffer& StagingBuffer : ImportData->StagingBuffers)
     {
         if (StagingBuffer.IsValid())
