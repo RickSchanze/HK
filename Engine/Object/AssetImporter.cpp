@@ -22,18 +22,18 @@ bool FAssetImporter::Import(const TSharedPtr<FAssetMetadata>& Metadata, const bo
     BeginImport();
     if (!ProcessImport())
     {
-        EndImport();
+        EndImport(false);
         return false;
     }
     if (!ProcessAssetIntermediate())
     {
         if (!AllowIntermediateFailed)
         {
-            EndImport();
+            EndImport(false);
             return false;
         }
     }
-    EndImport();
+    EndImport(true);
     return true;
 }
 

@@ -46,7 +46,7 @@ public:
         return false;
     }
 
-    virtual void EndImport() {}
+    virtual void EndImport(bool Success) {}
 
 protected:
     TSharedPtr<FAssetMetadata> Metadata;

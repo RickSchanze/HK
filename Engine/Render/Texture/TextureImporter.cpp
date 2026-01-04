@@ -30,6 +30,8 @@
 #include "Render/Texture/TextureUtility.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include "Object/AssetManager.h"
+
 #include <filesystem>
 #include <fstream>
 #include <stb_image.h>
@@ -222,11 +224,15 @@ bool FTextureImporter::ProcessAssetIntermediate()
     return true;
 }
 
-void FTextureImporter::EndImport()
+void FTextureImporter::EndImport(bool Success)
 {
     if (!ImportData)
     {
         return;
+    }
+    if (Success)
+    {
+        FAssetManager::GetRef().RegisterAsset(Metadata->Uuid, Metadata->Path, ImportData->Texture);
     }
 
     FGfxDevice&     GfxDevice     = GetGfxDeviceRef();
