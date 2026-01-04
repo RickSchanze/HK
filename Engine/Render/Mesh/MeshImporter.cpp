@@ -282,8 +282,8 @@ bool FMeshImporter::ProcessImport()
     }
 
     // 使用 MeshUtility 创建并上传 Mesh 到 GPU
-    TArray<FSubMesh>         SubMeshes;
-    TArray<FRHIBuffer>       StagingBuffers;
+    TArray<FSubMesh>          SubMeshes;
+    TArray<FRHIBuffer>        StagingBuffers;
     TArray<FRHICommandBuffer> CommandBuffers;
 
     if (!FMeshUtility::CreateAndUploadMeshFromIntermediate(Intermediate, SubMeshes, StagingBuffers, CommandBuffers))
@@ -294,11 +294,11 @@ bool FMeshImporter::ProcessImport()
 
     // 设置 Mesh 的 SubMeshes
     TArray<FSubMesh>& MeshSubMeshes = ImportData->Mesh->internalGetMutableSubMeshes();
-    MeshSubMeshes                    = std::move(SubMeshes);
+    MeshSubMeshes                   = std::move(SubMeshes);
 
     // 保存 staging buffers 和 command buffers 以便后续清理
-    ImportData->StagingBuffers  = std::move(StagingBuffers);
-    ImportData->CommandBuffers  = std::move(CommandBuffers);
+    ImportData->StagingBuffers = std::move(StagingBuffers);
+    ImportData->CommandBuffers = std::move(CommandBuffers);
 
     // 保存元数据
     Metadata->AssetType = EAssetType::Mesh;
