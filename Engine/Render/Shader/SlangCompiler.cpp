@@ -98,15 +98,15 @@ public:
             FStringView VarNameView(VarName);
 
             // 检查固定参数名称
-            if (VarNameView == "GCamera")
+            if (VarNameView == FStringView("GCamera"))
             {
                 OutParameterSheet.bNeedCamera = true;
             }
-            else if (VarNameView == "GModel")
+            else if (VarNameView == FStringView("GModel"))
             {
                 OutParameterSheet.bNeedModel = true;
             }
-            else if (VarNameView == "GTexturePool" || VarNameView == "GSamplerPool")
+            else if (VarNameView == FStringView("GTexturePool") || VarNameView == FStringView("GSamplerPool"))
             {
                 OutParameterSheet.bNeedResourcePool = true;
             }
@@ -296,32 +296,19 @@ public:
     }
 
     void WriteShaderCode(const Slang::ComPtr<slang::IBlob>& VertexCode, const Slang::ComPtr<slang::IBlob>& FragmentCode,
-                         EShaderCompileTarget Target, TArray<UInt32>& OutCode)
+                         EShaderCompileTarget Target, TArray<UInt32>& OutVS, TArray<UInt32>& OutFS)
     {
-        // 如果目标是 SPIRV，合并两个着色器的代码
-        if (Target == EShaderCompileTarget::Spirv)
-        {
-            const UInt32 VertexCodeSize = static_cast<UInt32>(VertexCode->getBufferSize());
-            const UInt32 FragmentCodeSize = static_cast<UInt32>(FragmentCode->getBufferSize());
+        // 写入顶点着色器代码
+        const auto VertexCodeSize = static_cast<UInt32>(VertexCode->getBufferSize());
+        const UInt32 VertexWordCount = VertexCodeSize / sizeof(UInt32);
+        const auto* VertexData = static_cast<const UInt32*>(VertexCode->getBufferPointer());
+        OutVS.Append(VertexData, VertexData + VertexWordCount);
 
-            const UInt32 VertexWordCount = VertexCodeSize / sizeof(UInt32);
-            const UInt32 FragmentWordCount = FragmentCodeSize / sizeof(UInt32);
-
-            OutCode.Reserve(VertexWordCount + FragmentWordCount);
-            const UInt32* VertexData = reinterpret_cast<const UInt32*>(VertexCode->getBufferPointer());
-            const UInt32* FragmentData = reinterpret_cast<const UInt32*>(FragmentCode->getBufferPointer());
-
-            OutCode.Append(VertexData, VertexData + VertexWordCount);
-            OutCode.Append(FragmentData, FragmentData + FragmentWordCount);
-        }
-        else
-        {
-            // 对于 GLSL/HLSL，只保存顶点着色器代码
-            const UInt32 CodeSize = static_cast<UInt32>(VertexCode->getBufferSize());
-            const UInt32 WordCount = CodeSize / sizeof(UInt32);
-            const UInt32* CodeData = reinterpret_cast<const UInt32*>(VertexCode->getBufferPointer());
-            OutCode.Append(CodeData, CodeData + WordCount);
-        }
+        // 写入片段着色器代码
+        const auto FragmentCodeSize = static_cast<UInt32>(FragmentCode->getBufferSize());
+        const UInt32 FragmentWordCount = FragmentCodeSize / sizeof(UInt32);
+        const auto* FragmentData = static_cast<const UInt32*>(FragmentCode->getBufferPointer());
+        OutFS.Append(FragmentData, FragmentData + FragmentWordCount);
     }
 
     void WriteDebugOutput(const FShaderCompileRequest& Request, slang::IComponentType* Program,
@@ -483,7 +470,7 @@ public:
         }
 
         // 10. 写入着色器代码
-        WriteShaderCode(VertexCode, FragmentCode, Request.Target, OutResult.Code);
+        WriteShaderCode(VertexCode, FragmentCode, Request.Target, OutResult.VS, OutResult.FS);
 
         // 11. 写入调试输出（如果指定）
         WriteDebugOutput(Request, Program, VertexStageIndex, FragmentStageIndex);

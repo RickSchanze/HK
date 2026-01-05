@@ -42,3 +42,23 @@ void FShaderParameterSheet::Z_ShaderParameterSheet_Register::Register_FShaderPar
     FTypeManager::RegisterTypeRegisterer<FShaderParameterSheet>(Register_FShaderParameterSheet_Impl);
 }
 
+
+#pragma warning(disable: 4100)  // 禁用未使用参数警告
+
+
+static void Register_FShaderBinaryData_Impl()
+{
+    // 注册类型
+    FTypeMutable Type = FTypeManager::Register<FShaderBinaryData>("ShaderBinaryData");
+
+    // 注册属性
+    FShaderBinaryData::Register_FShaderBinaryData_Properties(Type);
+
+}
+
+void FShaderBinaryData::Z_ShaderBinaryData_Register::Register_FShaderBinaryData()
+{
+    // 只注册类型注册器函数，不执行注册操作
+    FTypeManager::RegisterTypeRegisterer<FShaderBinaryData>(Register_FShaderBinaryData_Impl);
+}
+

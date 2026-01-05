@@ -3,6 +3,7 @@
 //
 
 #include "RHICommandBuffer.h"
+#include "Core/Logging/Logger.h"
 #include "Core/Utility/UniquePtr.h"
 #include "GfxDevice.h"
 
@@ -258,4 +259,31 @@ void FRHICommandBuffer::ExecuteCommand(const FRHICommand& Command)
         // 实际的实现在 GfxDeviceVk::ExecuteCommand 中
         Device->ExecuteCommand(*this, Command);
     }
+}
+
+// 提交命令缓冲区到 GPU 队列
+bool FRHICommandBuffer::Submit(const TArray<FRHISemaphore>& WaitSemaphores,
+                               const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence)
+{
+    // 确保命令缓冲区已经结束记录
+    if (bIsRecording)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Cannot submit command buffer that is still recording. Call End() first.");
+        return false;
+    }
+
+    // 如果是 Deferred 模式，先执行所有排队的命令
+    if (ExecuteMode == ERHICommandExecuteMode::Deferred)
+    {
+        Execute();
+    }
+
+    // 通过 GfxDevice 提交到队列
+    if (FGfxDevice* Device = GetGfxDevice())
+    {
+        return Device->SubmitCommandBuffer(*this, WaitSemaphores, SignalSemaphores, Fence);
+    }
+
+    HK_LOG_ERROR(ELogcat::RHI, "Failed to submit command buffer: GfxDevice is null");
+    return false;
 }

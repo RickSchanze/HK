@@ -198,6 +198,22 @@ public:
     // 销毁栅栏资源
     // 必须通过此方法销毁，不能直接调用 Fence.Destroy()
     virtual void DestroyFence(FRHIFence& Fence) = 0;
+
+    // 等待栅栏被信号化（内部方法，由 FRHIFence 调用）
+    // @param Fence 要等待的栅栏
+    // @param Timeout 超时时间（纳秒），std::numeric_limits<UInt64>::max() 表示无限等待
+    // @return 是否成功等待（true 表示 Fence 已被信号化，false 表示超时）
+    virtual bool WaitForFence(const FRHIFence& Fence, UInt64 Timeout = std::numeric_limits<UInt64>::max()) = 0;
+
+    // 检查栅栏是否已被信号化（内部方法，由 FRHIFence 调用）
+    // @param Fence 要检查的栅栏
+    // @return 如果 Fence 已被信号化则返回 true，否则返回 false
+    virtual bool IsFenceSignaled(const FRHIFence& Fence) const = 0;
+
+    // 重置栅栏状态（内部方法，由 FRHIFence 调用）
+    // @param Fence 要重置的栅栏
+    // @return 是否成功重置
+    virtual bool ResetFence(const FRHIFence& Fence) = 0;
 #pragma endregion
 
 #pragma region CommandPool操作
@@ -234,6 +250,15 @@ public:
     // @param CommandBuffer 命令缓冲区
     // @param Command 要执行的命令
     virtual void ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICommand& Command) = 0;
+
+    // 提交命令缓冲区到 GPU 队列（内部方法，由 FRHICommandBuffer 调用）
+    // @param CommandBuffer 命令缓冲区
+    // @param WaitSemaphores 等待的信号量数组
+    // @param SignalSemaphores 信号信号量数组
+    // @param Fence 栅栏（可选，用于等待提交完成）
+    // @return 是否提交成功
+    virtual bool SubmitCommandBuffer(FRHICommandBuffer& CommandBuffer, const TArray<FRHISemaphore>& WaitSemaphores,
+                                      const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence) = 0;
 #pragma endregion
 
 #pragma region "窗口操作"

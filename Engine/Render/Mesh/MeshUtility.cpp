@@ -11,13 +11,13 @@
 #include "Render/RenderContext.h"
 #include <cstring>
 
-bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& Intermediate,
-                                                        TArray<FSubMesh>& OutSubMeshes,
-                                                        TArray<FRHIBuffer>& OutStagingBuffers,
-                                                        TArray<FRHICommandBuffer>& OutCommandBuffers)
+bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate&   Intermediate,
+                                                       TArray<FSubMesh>&          OutSubMeshes,
+                                                       TArray<FRHIBuffer>&        OutStagingBuffers,
+                                                       TArray<FRHICommandBuffer>& OutCommandBuffers)
 {
     FGfxDevice&     GfxDevice     = GetGfxDeviceRef();
-    FRenderContext& RenderContext  = FRenderContext::GetRef();
+    FRenderContext& RenderContext = FRenderContext::GetRef();
     FRHICommandPool CommandPool   = RenderContext.GetUploadCommandPool();
     if (!CommandPool.IsValid())
     {
@@ -31,17 +31,17 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
     for (UInt32 I = 0; I < Intermediate.SubMeshes.Size(); ++I)
     {
         const FSubMeshIntermediate& SubMeshIntermediate = Intermediate.SubMeshes[I];
-        FSubMesh                     SubMesh;
+        FSubMesh                    SubMesh;
 
         // 创建顶点缓冲区
-        const UInt64 VertexBufferSize =
-            static_cast<UInt64>(SubMeshIntermediate.Vertices.Size()) * sizeof(FVertexPNU);
+        const UInt64 VertexBufferSize = static_cast<UInt64>(SubMeshIntermediate.Vertices.Size()) * sizeof(FVertexPNU);
 
         FRHIBufferDesc StagingVertexBufferDesc;
-        StagingVertexBufferDesc.Size           = VertexBufferSize;
-        StagingVertexBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
-        StagingVertexBufferDesc.MemoryProperty  = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingVertexBufferDesc.DebugName      = "MeshVertexStagingBuffer";
+        StagingVertexBufferDesc.Size  = VertexBufferSize;
+        StagingVertexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
+        StagingVertexBufferDesc.MemoryProperty =
+            ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
+        StagingVertexBufferDesc.DebugName = "MeshVertexStagingBuffer";
 
         FRHIBuffer StagingVertexBuffer = GfxDevice.CreateBuffer(StagingVertexBufferDesc);
         if (!StagingVertexBuffer.IsValid())
@@ -66,7 +66,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         FRHIBufferDesc VertexBufferDesc;
         VertexBufferDesc.Size           = VertexBufferSize;
         VertexBufferDesc.Usage          = ERHIBufferUsage::VertexBuffer | ERHIBufferUsage::TransferDst;
-        VertexBufferDesc.MemoryProperty  = ERHIBufferMemoryProperty::DeviceLocal;
+        VertexBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal;
         VertexBufferDesc.DebugName      = "MeshVertexBuffer";
 
         SubMesh.VertexBuffer = GfxDevice.CreateBuffer(VertexBufferDesc);
@@ -82,10 +82,11 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         const UInt64 IndexBufferSize = static_cast<UInt64>(SubMeshIntermediate.Indices.Size()) * sizeof(UInt32);
 
         FRHIBufferDesc StagingIndexBufferDesc;
-        StagingIndexBufferDesc.Size           = IndexBufferSize;
-        StagingIndexBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
-        StagingIndexBufferDesc.MemoryProperty  = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingIndexBufferDesc.DebugName      = "MeshIndexStagingBuffer";
+        StagingIndexBufferDesc.Size  = IndexBufferSize;
+        StagingIndexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
+        StagingIndexBufferDesc.MemoryProperty =
+            ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
+        StagingIndexBufferDesc.DebugName = "MeshIndexStagingBuffer";
 
         FRHIBuffer StagingIndexBuffer = GfxDevice.CreateBuffer(StagingIndexBufferDesc);
         if (!StagingIndexBuffer.IsValid())
@@ -167,8 +168,10 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         // 结束记录命令
         CommandBuffer.End();
 
-        // 执行命令
-        CommandBuffer.Execute();
+        {
+            FScopedRHIFence Fence;
+            CommandBuffer.Submit({}, {}, Fence.Fence);
+        }
 
         // 保存 staging buffer 和 command buffer 以便后续清理
         OutStagingBuffers.Add(StagingVertexBuffer);
@@ -192,4 +195,3 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
 
     return true;
 }
-

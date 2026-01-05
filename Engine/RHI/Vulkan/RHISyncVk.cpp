@@ -184,6 +184,103 @@ void FGfxDeviceVk::DestroyFence(FRHIFence& Fence)
     HK_LOG_INFO(ELogcat::RHI, "栅栏已销毁");
 }
 
+bool FGfxDeviceVk::WaitForFence(const FRHIFence& Fence, UInt64 Timeout)
+{
+    if (!Fence.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Cannot wait for invalid fence");
+        return false;
+    }
+
+    const auto VulkanFence = vk::Fence(Fence.GetHandle().Cast<VkFence>());
+    if (!VulkanFence)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Invalid Vulkan fence");
+        return false;
+    }
+
+    try
+    {
+        vk::Result Result = Device.waitForFences(1, &VulkanFence, VK_TRUE, Timeout);
+        if (Result == vk::Result::eSuccess)
+        {
+            return true;
+        }
+        else if (Result == vk::Result::eTimeout)
+        {
+            HK_LOG_WARN(ELogcat::RHI, "Fence wait timeout");
+            return false;
+        }
+        else
+        {
+            HK_LOG_ERROR(ELogcat::RHI, "Failed to wait for fence: {}", static_cast<int>(Result));
+            return false;
+        }
+    }
+    catch (const vk::SystemError& Err)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Vulkan error while waiting for fence: {}", Err.what());
+        return false;
+    }
+}
+
+bool FGfxDeviceVk::IsFenceSignaled(const FRHIFence& Fence) const
+{
+    if (!Fence.IsValid())
+    {
+        return false;
+    }
+
+    const auto VulkanFence = vk::Fence(Fence.GetHandle().Cast<VkFence>());
+    if (!VulkanFence)
+    {
+        return false;
+    }
+
+    try
+    {
+        vk::Result Result = Device.getFenceStatus(VulkanFence);
+        return Result == vk::Result::eSuccess;
+    }
+    catch (const vk::SystemError& Err)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Vulkan error while checking fence status: {}", Err.what());
+        return false;
+    }
+}
+
+bool FGfxDeviceVk::ResetFence(const FRHIFence& Fence)
+{
+    if (!Fence.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Cannot reset invalid fence");
+        return false;
+    }
+
+    const auto VulkanFence = vk::Fence(Fence.GetHandle().Cast<VkFence>());
+    if (!VulkanFence)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Invalid Vulkan fence");
+        return false;
+    }
+
+    try
+    {
+        vk::Result Result = Device.resetFences(1, &VulkanFence);
+        if (Result != vk::Result::eSuccess)
+        {
+            HK_LOG_ERROR(ELogcat::RHI, "Failed to reset fence: {}", static_cast<int>(Result));
+            return false;
+        }
+        return true;
+    }
+    catch (const vk::SystemError& Err)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Vulkan error while resetting fence: {}", Err.what());
+        return false;
+    }
+}
+
 #pragma endregion
 
 #pragma region SetDebugName实现

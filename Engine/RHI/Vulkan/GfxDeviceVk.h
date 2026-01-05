@@ -62,6 +62,9 @@ public:
     void DestroySemaphore(FRHISemaphore& Semaphore) override;
     FRHIFence CreateFence(const FRHIFenceDesc& FenceCreateInfo) override;
     void DestroyFence(FRHIFence& Fence) override;
+    bool WaitForFence(const FRHIFence& Fence, UInt64 Timeout = std::numeric_limits<UInt64>::max()) override;
+    bool IsFenceSignaled(const FRHIFence& Fence) const override;
+    bool ResetFence(const FRHIFence& Fence) override;
 #pragma endregion
 
 #pragma region CommandPool操作
@@ -74,6 +77,9 @@ public:
                                            const FRHICommandBufferDesc& CommandBufferCreateInfo) override;
     void DestroyCommandBuffer(const FRHICommandPool& Pool, FRHICommandBuffer& CommandBuffer) override;
     void ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICommand& Command) override;
+
+    bool SubmitCommandBuffer(FRHICommandBuffer& CommandBuffer, const TArray<FRHISemaphore>& WaitSemaphores,
+                             const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence) override;
 #pragma endregion
 
 #pragma region 窗口操作

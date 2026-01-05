@@ -3,6 +3,8 @@
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
+#include <cstdint>
+#include <limits>
 
 enum class ERHISemaphoreType : UInt32
 {
@@ -147,7 +149,35 @@ public:
         return Handle != Other.Handle;
     }
 
+    /**
+     * 等待 Fence 被信号化（阻塞）
+     * @param Timeout 超时时间（纳秒），std::numeric_limits<UInt64>::max() 表示无限等待
+     * @return 是否成功等待（true 表示 Fence 已被信号化，false 表示超时）
+     */
+    bool Wait(UInt64 Timeout = std::numeric_limits<UInt64>::max()) const;
+
+    /**
+     * 检查 Fence 是否已被信号化（非阻塞）
+     * @return 如果 Fence 已被信号化则返回 true，否则返回 false
+     */
+    bool IsSignaled() const;
+
+    /**
+     * 重置 Fence 状态（将 Fence 重置为未信号化状态）
+     * @return 是否成功重置
+     */
+    bool Reset() const;
+
 private:
     FRHIHandle Handle;
+};
+
+struct FScopedRHIFence
+{
+    FRHIFence Fence;
+
+    FScopedRHIFence();
+
+    ~FScopedRHIFence();
 };
 

@@ -47,21 +47,20 @@ FRHIImageView FTextureUtility::CreateRHIImageView(const FRHIImage& Image, ERHIIm
 }
 
 bool FTextureUtility::UploadTextureToGPU(const FImageData& ImageData, const FRHIImage& Image,
-                                          ERHIImageFormat ImageFormat, FRHIBuffer& OutStagingBuffer,
-                                          FRHICommandBuffer& OutCommandBuffer)
+                                         ERHIImageFormat ImageFormat, FRHIBuffer& OutStagingBuffer,
+                                         FRHICommandBuffer& OutCommandBuffer)
 {
     FGfxDevice& GfxDevice = GetGfxDeviceRef();
 
     // 计算图像数据大小
-    const UInt64 ImageSize =
-        static_cast<UInt64>(ImageData.Width) * ImageData.Height * 4; // RGBA = 4 bytes per pixel
+    const UInt64 ImageSize = static_cast<UInt64>(ImageData.Width) * ImageData.Height * 4; // RGBA = 4 bytes per pixel
 
     // 创建 staging buffer
     FRHIBufferDesc StagingBufferDesc;
     StagingBufferDesc.Size           = ImageSize;
     StagingBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
-    StagingBufferDesc.MemoryProperty  = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-    StagingBufferDesc.DebugName       = "TextureStagingBuffer";
+    StagingBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
+    StagingBufferDesc.DebugName      = "TextureStagingBuffer";
 
     OutStagingBuffer = GfxDevice.CreateBuffer(StagingBufferDesc);
     if (!OutStagingBuffer.IsValid())
@@ -137,8 +136,7 @@ bool FTextureUtility::UploadTextureToGPU(const FImageData& ImageData, const FRHI
     CopyRegion.ImageSubresource.BaseArrayLayer = 0;
     CopyRegion.ImageSubresource.LayerCount     = 1;
     CopyRegion.ImageOffset                     = {0, 0, 0};
-    CopyRegion.ImageExtent                     = {static_cast<Int32>(ImageData.Width),
-                                                    static_cast<Int32>(ImageData.Height), 1};
+    CopyRegion.ImageExtent = {static_cast<Int32>(ImageData.Width), static_cast<Int32>(ImageData.Height), 1};
     CopyRegions.Add(CopyRegion);
 
     OutCommandBuffer.CopyBufferToImage(OutStagingBuffer, Image, CopyRegions);
@@ -159,21 +157,23 @@ bool FTextureUtility::UploadTextureToGPU(const FImageData& ImageData, const FRHI
     // 结束记录命令
     OutCommandBuffer.End();
 
-    // 执行命令（立即执行模式）
-    OutCommandBuffer.Execute();
+    {
+        FScopedRHIFence Fence;
+        OutCommandBuffer.Submit({}, {}, Fence.Fence);
+    }
 
     return true;
 }
 
 bool FTextureUtility::CreateAndUploadTextureFromIntermediate(const FTextureIntermediate& Intermediate,
-                                                              FRHIImage& OutImage, FRHIImageView& OutImageView,
-                                                              FRHIBuffer& OutStagingBuffer,
-                                                              FRHICommandBuffer& OutCommandBuffer)
+                                                             FRHIImage& OutImage, FRHIImageView& OutImageView,
+                                                             FRHIBuffer&        OutStagingBuffer,
+                                                             FRHICommandBuffer& OutCommandBuffer)
 {
     // 创建 FImageData 用于上传
     FImageData ImageData;
     ImageData.Width    = Intermediate.Width;
-    ImageData.Height  = Intermediate.Height;
+    ImageData.Height   = Intermediate.Height;
     ImageData.Channels = 4; // RGBA
     ImageData.bIsHDR   = false;
     ImageData.Data     = const_cast<UInt8*>(Intermediate.ImageData.Data()); // 临时使用，不会修改
@@ -204,9 +204,8 @@ bool FTextureUtility::CreateAndUploadTextureFromIntermediate(const FTextureInter
     return true;
 }
 
-void FTextureUtility::SetTextureRHIResources(HTexture* Texture, const FRHIImage& Image,
-                                               const FRHIImageView& ImageView, Int32 Width, Int32 Height,
-                                               ERHIImageFormat Format)
+void FTextureUtility::SetTextureRHIResources(HTexture* Texture, const FRHIImage& Image, const FRHIImageView& ImageView,
+                                             Int32 Width, Int32 Height, ERHIImageFormat Format)
 {
     if (!Texture)
     {
@@ -220,4 +219,3 @@ void FTextureUtility::SetTextureRHIResources(HTexture* Texture, const FRHIImage&
     Texture->internalSetHeight(Height);
     Texture->internalSetFormat(Format);
 }
-

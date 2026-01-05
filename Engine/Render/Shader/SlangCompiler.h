@@ -7,7 +7,8 @@
 struct FShaderCompileResult
 {
     FString ErrorMessage;
-    TArray<UInt32> Code;
+    TArray<UInt32> VS;  // 顶点着色器代码
+    TArray<UInt32> FS;  // 片段着色器代码
     FShaderParameterSheet ParameterSheet;
 };
 

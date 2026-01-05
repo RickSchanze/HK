@@ -9,6 +9,7 @@
 #include "RHI/RHICommandBuffer.h"
 #include "RHI/RHICommandPool.h"
 #include "RHI/RHIImageView.h"
+#include "RHI/RHISync.h"
 #include <vector>
 
 // ============================================================================
@@ -342,11 +343,10 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
             {
                 auto Buffer   = Barrier.Buffer.GetHandle().Cast<VkBuffer>();
                 auto VkBuffer = vk::Buffer(Buffer);
-                VkBufferBarriers.Add(vk::BufferMemoryBarrier(ConvertAccessFlags(Barrier.SrcAccessMask),
-                                                             ConvertAccessFlags(Barrier.DstAccessMask),
-                                                             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkBuffer,
-                                                             Barrier.Offset,
-                                                             Barrier.Size == 0 ? VK_WHOLE_SIZE : Barrier.Size));
+                VkBufferBarriers.Add(vk::BufferMemoryBarrier(
+                    ConvertAccessFlags(Barrier.SrcAccessMask), ConvertAccessFlags(Barrier.DstAccessMask),
+                    VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkBuffer, Barrier.Offset,
+                    Barrier.Size == 0 ? VK_WHOLE_SIZE : Barrier.Size));
             }
 
             // 转换图像内存屏障
@@ -372,16 +372,14 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
                 vk::ImageSubresourceRange VkRange(
                     AspectMask, Barrier.SubresourceRange.BaseMipLevel, Barrier.SubresourceRange.LevelCount,
                     Barrier.SubresourceRange.BaseArrayLayer, Barrier.SubresourceRange.LayerCount);
-                VkImageBarriers.Add(
-                    vk::ImageMemoryBarrier(ConvertAccessFlags(Barrier.SrcAccessMask),
-                                           ConvertAccessFlags(Barrier.DstAccessMask),
-                                           ConvertImageLayout(Barrier.OldLayout), ConvertImageLayout(Barrier.NewLayout),
-                                           VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkImage, VkRange));
+                VkImageBarriers.Add(vk::ImageMemoryBarrier(
+                    ConvertAccessFlags(Barrier.SrcAccessMask), ConvertAccessFlags(Barrier.DstAccessMask),
+                    ConvertImageLayout(Barrier.OldLayout), ConvertImageLayout(Barrier.NewLayout),
+                    VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VkImage, VkRange));
             }
 
             VkCmdBuffer.pipelineBarrier(
-                ConvertPipelineStageFlags(Cmd.SrcStageMask),
-                ConvertPipelineStageFlags(Cmd.DstStageMask),
+                ConvertPipelineStageFlags(Cmd.SrcStageMask), ConvertPipelineStageFlags(Cmd.DstStageMask),
                 ConvertDependencyFlags(Cmd.DependencyFlags),
                 vk::ArrayProxy<const vk::MemoryBarrier>(VkMemoryBarriers.Size(), VkMemoryBarriers.Data()),
                 vk::ArrayProxy<const vk::BufferMemoryBarrier>(VkBufferBarriers.Size(), VkBufferBarriers.Data()),
@@ -682,4 +680,98 @@ vk::CommandBufferUsageFlags FGfxDeviceVk::ConvertCommandBufferUsageFlags(ERHICom
         VkFlags |= vk::CommandBufferUsageFlagBits::eSimultaneousUse;
     }
     return VkFlags;
+}
+
+// ============================================================================
+// CommandBuffer 提交
+// ============================================================================
+
+bool FGfxDeviceVk::SubmitCommandBuffer(FRHICommandBuffer& CommandBuffer, const TArray<FRHISemaphore>& WaitSemaphores,
+                                       const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence)
+{
+    if (!CommandBuffer.IsValid())
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Cannot submit invalid command buffer");
+        return false;
+    }
+
+    auto CmdBufferHandle = CommandBuffer.Handle.Cast<VkCommandBuffer>();
+    auto VkCmdBuffer     = vk::CommandBuffer(CmdBufferHandle);
+    if (!VkCmdBuffer)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Invalid Vulkan command buffer");
+        return false;
+    }
+
+    // 转换等待信号量
+    TArray<vk::Semaphore>          VkWaitSemaphores;
+    TArray<vk::PipelineStageFlags> WaitStageFlags;
+    VkWaitSemaphores.Reserve(WaitSemaphores.Size());
+    WaitStageFlags.Reserve(WaitSemaphores.Size());
+    for (const auto& Semaphore : WaitSemaphores)
+    {
+        if (Semaphore.IsValid())
+        {
+            const auto SemHandle = Semaphore.GetHandle().Cast<VkSemaphore>();
+            VkWaitSemaphores.Add(vk::Semaphore(SemHandle));
+            // 默认等待所有管线阶段（可以根据需要调整）
+            WaitStageFlags.Add(vk::PipelineStageFlagBits::eAllCommands);
+        }
+    }
+
+    // 转换信号信号量
+    TArray<vk::Semaphore> VkSignalSemaphores;
+    VkSignalSemaphores.Reserve(SignalSemaphores.Size());
+    for (const auto& Semaphore : SignalSemaphores)
+    {
+        if (Semaphore.IsValid())
+        {
+            auto SemHandle = Semaphore.GetHandle().Cast<VkSemaphore>();
+            VkSignalSemaphores.Add(vk::Semaphore(SemHandle));
+        }
+    }
+
+    // 转换 Fence
+    vk::Fence MyFence = nullptr;
+    if (Fence.IsValid())
+    {
+        auto FenceHandle = Fence.Handle.Cast<VkFence>();
+        MyFence          = vk::Fence(FenceHandle);
+    }
+
+    // 构建提交信息
+    vk::SubmitInfo SubmitInfo;
+    SubmitInfo.commandBufferCount = 1;
+    SubmitInfo.pCommandBuffers    = &VkCmdBuffer;
+
+    if (!VkWaitSemaphores.IsEmpty())
+    {
+        SubmitInfo.waitSemaphoreCount = static_cast<UInt32>(VkWaitSemaphores.Size());
+        SubmitInfo.pWaitSemaphores    = VkWaitSemaphores.Data();
+        SubmitInfo.pWaitDstStageMask  = WaitStageFlags.Data();
+    }
+
+    if (!VkSignalSemaphores.IsEmpty())
+    {
+        SubmitInfo.signalSemaphoreCount = static_cast<UInt32>(VkSignalSemaphores.Size());
+        SubmitInfo.pSignalSemaphores    = VkSignalSemaphores.Data();
+    }
+
+    // 提交到图形队列
+    try
+    {
+        vk::Result Result = GraphicsQueue.submit(1, &SubmitInfo, MyFence);
+        if (Result != vk::Result::eSuccess)
+        {
+            HK_LOG_ERROR(ELogcat::RHI, "Failed to submit command buffer to queue: {}", static_cast<int>(Result));
+            return false;
+        }
+    }
+    catch (const vk::SystemError& Err)
+    {
+        HK_LOG_ERROR(ELogcat::RHI, "Vulkan error while submitting command buffer: {}", Err.what());
+        return false;
+    }
+
+    return true;
 }

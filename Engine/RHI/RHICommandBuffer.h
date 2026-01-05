@@ -12,6 +12,7 @@
 #include "RHIHandle.h"
 #include "RHIImage.h"
 #include "RHIPipeline.h"
+#include "RHISync.h"
 
 enum class ERHICommandExecuteMode
 {
@@ -170,6 +171,15 @@ public:
     // Deferred 模式：在本线程执行所有排队的命令
     // Threaded 模式：将命令提交给渲染线程（暂时忽略）
     void Execute();
+
+    // 提交命令缓冲区到 GPU 队列
+    // @param WaitSemaphores 等待的信号量数组（可选）
+    // @param SignalSemaphores 信号信号量数组（可选）
+    // @param Fence 栅栏（可选，用于等待提交完成）
+    // @return 是否提交成功
+    bool Submit(const TArray<FRHISemaphore>& WaitSemaphores = {},
+                const TArray<FRHISemaphore>& SignalSemaphores = {},
+                const FRHIFence& Fence = FRHIFence());
 
     // 获取命令队列大小
     UInt32 GetCommandCount() const

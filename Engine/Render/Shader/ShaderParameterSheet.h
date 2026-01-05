@@ -20,8 +20,8 @@ public:
 
 struct FShaderNames
 {
-    static inline auto ModelID = FName("ModelID");
-    static inline auto MainTextureID = FName("MainTextureID");
+    static inline auto ModelID            = FName("ModelID");
+    static inline auto MainTextureID      = FName("MainTextureID");
     static inline auto MainSamplerStateID = FName("MainSamplerStateID");
 };
 
@@ -44,4 +44,17 @@ public:
 
     // Shader的PushConstant参数
     TArray<FShaderPushConstantItem> PushConstants;
+};
+
+HSTRUCT()
+struct FShaderBinaryData
+{
+    HPROPERTY()
+    FShaderParameterSheet ParameterSheet;
+
+    HPROPERTY()
+    TArray<UInt32> VS;
+
+    HPROPERTY()
+    TArray<UInt32> FS;
 };

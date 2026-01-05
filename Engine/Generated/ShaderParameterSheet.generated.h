@@ -59,3 +59,27 @@
         Type->RegisterProperty(&FShaderParameterSheet::bNeedResourcePool, "bNeedResourcePool");                                                                                        \
     }                                                                                        \
     static inline Z_ShaderParameterSheet_Register Z_REGISTERER_SHADERPARAMETERSHEET;
+
+#define GENERATED_HEADER_FShaderBinaryData                                                                                        \
+    struct Z_ShaderBinaryData_Register                                                                                            \
+    {                                                                                                                  \
+        Z_ShaderBinaryData_Register()                                                                                             \
+        {                                                                                                              \
+            Register_FShaderBinaryData();                                                                                         \
+        }                                                                                                              \
+        static void Register_FShaderBinaryData();                                                                                 \
+    };                                                                                                                 \
+    typedef FShaderBinaryData ThisStruct;                                                                                        \
+    static FType GetType() { return TypeOf<FShaderBinaryData>(); }                                                                                        \
+    template <typename Archive>                                                                                        \
+    void Serialize(Archive& Ar)                                                                                        \
+    {                                                                                                                  \
+        Ar(                                                                                                            \
+            MakeNamedPair("ParameterSheet", ParameterSheet)                                                                                      \
+        );                                                                                                             \
+    }                                                                                                                  \
+    static void Register_FShaderBinaryData_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FShaderBinaryData::ParameterSheet, "ParameterSheet");                                                                                        \
+    }                                                                                        \
+    static inline Z_ShaderBinaryData_Register Z_REGISTERER_SHADERBINARYDATA;
