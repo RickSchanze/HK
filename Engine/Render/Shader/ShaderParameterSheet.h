@@ -43,6 +43,7 @@ public:
     bool bNeedResourcePool{};
 
     // Shader的PushConstant参数
+    HPROPERTY()
     TArray<FShaderPushConstantItem> PushConstants;
 };
 

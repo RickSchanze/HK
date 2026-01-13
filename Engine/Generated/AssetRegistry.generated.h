@@ -37,6 +37,7 @@
             MakeNamedPair("Path", Path),                                                                                     \
             MakeNamedPair("AssetType", AssetType),                                                                                     \
             MakeNamedPair("FileType", FileType),                                                                                     \
+            MakeNamedPair("ImportSetting", ImportSetting),                                                                                     \
             MakeNamedPair("IntermediateHash", IntermediateHash)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
@@ -46,6 +47,7 @@
         Type->RegisterProperty(&FAssetMetadata::Path, "Path");                                                                                        \
         Type->RegisterProperty(&FAssetMetadata::AssetType, "AssetType");                                                                                        \
         Type->RegisterProperty(&FAssetMetadata::FileType, "FileType");                                                                                        \
+        Type->RegisterProperty(&FAssetMetadata::ImportSetting, "ImportSetting");                                                                                        \
         Type->RegisterProperty(&FAssetMetadata::IntermediateHash, "IntermediateHash");                                                                                        \
     }                                                                                        \
     static inline Z_AssetMetadata_Register Z_REGISTERER_ASSETMETADATA;

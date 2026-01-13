@@ -31,6 +31,9 @@ static void Register_FSubMeshIntermediate_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<FSubMeshIntermediate>("SubMeshIntermediate");
 
+    // 注册属性
+    FSubMeshIntermediate::Register_FSubMeshIntermediate_Properties(Type);
+
 }
 
 void FSubMeshIntermediate::Z_SubMeshIntermediate_Register::Register_FSubMeshIntermediate()

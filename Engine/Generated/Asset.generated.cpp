@@ -51,6 +51,9 @@ static void Z_Register_EAssetType_Impl()
     // 注册枚举成员: Texture
     Type->RegisterEnumMember(EAssetType::Texture, "Texture");
 
+    // 注册枚举成员: Material
+    Type->RegisterEnumMember(EAssetType::Material, "Material");
+
     // 注册枚举成员: Count
     Type->RegisterEnumMember(EAssetType::Count, "Count");
 

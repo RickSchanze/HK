@@ -4,12 +4,23 @@
 #include "Core/String/String.h"
 #include "ShaderParameterSheet.h"
 
+#include "SlangCompiler.generated.h"
+
+HSTRUCT()
 struct FShaderCompileResult
 {
+    GENERATED_BODY(FShaderCompileResult)
+public:
     FString ErrorMessage;
-    TArray<UInt32> VS;  // 顶点着色器代码
-    TArray<UInt32> FS;  // 片段着色器代码
+
+    HPROPERTY()
     FShaderParameterSheet ParameterSheet;
+
+    HPROPERTY()
+    TArray<UInt32> VS;  // 顶点着色器代码
+
+    HPROPERTY()
+    TArray<UInt32> FS;  // 片段着色器代码
 };
 
 enum class EShaderCompileTarget

@@ -16,18 +16,6 @@
 
 namespace
 {
-// 辅助函数：通过名称查找对象（遍历 ObjectArray）
-template <typename T>
-T* FindObjectByName(FName Name)
-{
-    // 注意：这里需要访问 ObjectArray 的内部，但由于 AllObjects 是私有的
-    // 我们无法直接访问。更好的方式是在 AssetRegistry 中维护路径到对象的映射
-    // 或者添加一个公共的查找方法到 ObjectArray
-    // 暂时使用一个简单的方法：通过反射系统查找
-    // 实际上，由于 Import 时已经创建了对象，我们可以通过其他方式查找
-    // 这里先返回 nullptr，后续可以通过 AssetRegistry 或其他方式查找
-    return nullptr;
-}
 
 // 从 Intermediate 文件加载纹理
 HTexture* LoadTextureFromIntermediate(const FAssetMetadata& Metadata)
@@ -86,7 +74,7 @@ HObject* FTextureLoader::Load(const FAssetMetadata& Metadata, FType AssetType, b
     // 校验类型
     if (AssetType != TypeOf<HTexture>())
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Invalid asset type for TextureLoader: {}", AssetType->GetName());
+        HK_LOG_ERROR(ELogcat::Asset, "Invalid asset type for TextureLoader: {}", AssetType->Name);
         return nullptr;
     }
 

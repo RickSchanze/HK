@@ -42,6 +42,13 @@ public:
     static FString GetMeshIntermediatePath(const FUuid& Guid);
 
     /**
+     * 获取中间文件路径（Shader）
+     * @param Guid 资产 UUID
+     * @return 中间文件路径
+     */
+    static FString GetShaderIntermediatePath(const FUuid& Guid);
+
+    /**
      * 通过名称查找对象（辅助函数，用于从 ObjectArray 中查找已创建的对象）
      * @param Name 对象名称
      * @return 找到的对象指针，如果未找到则返回 nullptr

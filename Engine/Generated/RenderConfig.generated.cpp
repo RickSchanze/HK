@@ -31,6 +31,7 @@ void FRenderConfig::Z_RenderConfig_Register::Register_FRenderConfig()
 #define FRenderConfig_SERIALIZATION_CODE \
         Super::Serialize(Ar); \
         Ar( \
+        MakeNamedPair("ShaderPaths", ShaderPaths), \
         MakeNamedPair("CommitStyle", CommitStyle) \
         ); \
 

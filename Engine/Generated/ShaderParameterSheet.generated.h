@@ -49,7 +49,8 @@
         Ar(                                                                                                            \
             MakeNamedPair("bNeedCamera", bNeedCamera),                                                                                     \
             MakeNamedPair("bNeedModel", bNeedModel),                                                                                     \
-            MakeNamedPair("bNeedResourcePool", bNeedResourcePool)                                                                                      \
+            MakeNamedPair("bNeedResourcePool", bNeedResourcePool),                                                                                     \
+            MakeNamedPair("PushConstants", PushConstants)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
     static void Register_FShaderParameterSheet_Properties(FTypeMutable Type)                                                                                        \
@@ -57,6 +58,7 @@
         Type->RegisterProperty(&FShaderParameterSheet::bNeedCamera, "bNeedCamera");                                                                                        \
         Type->RegisterProperty(&FShaderParameterSheet::bNeedModel, "bNeedModel");                                                                                        \
         Type->RegisterProperty(&FShaderParameterSheet::bNeedResourcePool, "bNeedResourcePool");                                                                                        \
+        Type->RegisterProperty(&FShaderParameterSheet::PushConstants, "PushConstants");                                                                                        \
     }                                                                                        \
     static inline Z_ShaderParameterSheet_Register Z_REGISTERER_SHADERPARAMETERSHEET;
 
@@ -75,11 +77,15 @@
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
         Ar(                                                                                                            \
-            MakeNamedPair("ParameterSheet", ParameterSheet)                                                                                      \
+            MakeNamedPair("ParameterSheet", ParameterSheet),                                                                                     \
+            MakeNamedPair("VS", VS),                                                                                     \
+            MakeNamedPair("FS", FS)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
     static void Register_FShaderBinaryData_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
         Type->RegisterProperty(&FShaderBinaryData::ParameterSheet, "ParameterSheet");                                                                                        \
+        Type->RegisterProperty(&FShaderBinaryData::VS, "VS");                                                                                        \
+        Type->RegisterProperty(&FShaderBinaryData::FS, "FS");                                                                                        \
     }                                                                                        \
     static inline Z_ShaderBinaryData_Register Z_REGISTERER_SHADERBINARYDATA;

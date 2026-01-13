@@ -6,7 +6,7 @@
 #include "Core/Logging/Logger.h"
 #include "Core/Utility/FileUtility.h"
 
-TSharedPtr<FAssetMetadata> FAssetUtility::GetOrCreateAssetMetadata(FStringView AssetPath)
+TSharedPtr<FAssetMetadata> FAssetUtility::GetOrCreateAssetMetadata(const FStringView AssetPath)
 {
     FAssetRegistry& AssetRegistry = FAssetRegistry::GetRef();
     if (AssetRegistry.IsAssetMetadataExist(AssetPath))
@@ -76,3 +76,7 @@ FString FAssetUtility::GetMeshIntermediatePath(const FUuid& Guid)
     return FString("Intermediate/Meshes/") + Guid.ToString() + ".bin";
 }
 
+FString FAssetUtility::GetShaderIntermediatePath(const FUuid& Guid)
+{
+    return FString("Intermediate/Shaders/") + Guid.ToString() + ".bin";
+}

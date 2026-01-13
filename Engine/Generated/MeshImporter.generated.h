@@ -43,6 +43,19 @@
     };                                                                                                                 \
     typedef FSubMeshIntermediate ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FSubMeshIntermediate>(); }                                                                                        \
+    template <typename Archive>                                                                                        \
+    void Serialize(Archive& Ar)                                                                                        \
+    {                                                                                                                  \
+        Ar(                                                                                                            \
+            MakeNamedPair("Vertices", Vertices),                                                                                     \
+            MakeNamedPair("Indices", Indices)                                                                                      \
+        );                                                                                                             \
+    }                                                                                                                  \
+    static void Register_FSubMeshIntermediate_Properties(FTypeMutable Type)                                                                                        \
+    {                                                                                        \
+        Type->RegisterProperty(&FSubMeshIntermediate::Vertices, "Vertices");                                                                                        \
+        Type->RegisterProperty(&FSubMeshIntermediate::Indices, "Indices");                                                                                        \
+    }                                                                                        \
     static inline Z_SubMeshIntermediate_Register Z_REGISTERER_SUBMESHINTERMEDIATE;
 
 #define GENERATED_HEADER_FMeshIntermediate                                                                                        \
@@ -60,12 +73,14 @@
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
         Ar(                                                                                                            \
-            MakeNamedPair("Hash", Hash)                                                                                      \
+            MakeNamedPair("Hash", Hash),                                                                                     \
+            MakeNamedPair("SubMeshes", SubMeshes)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
     static void Register_FMeshIntermediate_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
         Type->RegisterProperty(&FMeshIntermediate::Hash, "Hash");                                                                                        \
+        Type->RegisterProperty(&FMeshIntermediate::SubMeshes, "SubMeshes");                                                                                        \
     }                                                                                        \
     static inline Z_MeshIntermediate_Register Z_REGISTERER_MESHINTERMEDIATE;
 

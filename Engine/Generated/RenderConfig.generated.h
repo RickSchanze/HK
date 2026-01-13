@@ -19,6 +19,7 @@
     HK_DECL_CLASS_SERIALIZATION(FRenderConfig)                                                                                        \
     static void Register_FRenderConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
+        Type->RegisterProperty(&FRenderConfig::ShaderPaths, "ShaderPaths");                                                                                        \
         Type->RegisterProperty(&FRenderConfig::CommitStyle, "CommitStyle");                                                                                        \
     }                                                                                        \
     const ERenderCommandCommitStyle& GetCommitStyle() const { return CommitStyle; }                                                                                        \

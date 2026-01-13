@@ -56,6 +56,42 @@ class EnumInfo:
     file_path: str
 
 
+def parse_type_and_name(line: str) -> Optional[Tuple[str, str]]:
+    """
+    解析属性类型和名称，支持模板类型（如 TArray<Type>）
+    返回 (type, name) 元组，如果无法解析则返回 None
+    
+    支持的格式：
+    - Type Name;
+    - Type* Name;
+    - TArray<Type> Name;
+    - TArray<Type1, Type2> Name;
+    """
+    # 移除注释
+    line_no_comment = line.split('//')[0] if '//' in line else line
+    line_no_comment = line_no_comment.strip()
+    
+    # 匹配属性名（标识符，后面跟着 ; 或 = 或 {）
+    # 先找到属性名，然后向前查找类型
+    name_pattern = r'(\w+)\s*[;={]'
+    name_match = re.search(name_pattern, line_no_comment)
+    if not name_match:
+        return None
+    
+    prop_name = name_match.group(1)
+    name_pos = name_match.start()
+    
+    # 从属性名之前提取类型（可能包含模板）
+    type_part = line_no_comment[:name_pos].strip()
+    if not type_part:
+        return None
+    
+    # 移除多余的空格
+    prop_type = re.sub(r'\s+', ' ', type_part).strip()
+    
+    return (prop_type, prop_name)
+
+
 def parse_henum_attributes(attr_str: str) -> Dict[str, str]:
     """
     解析 HENUM 的参数（与 HSTRUCT 相同）
@@ -233,12 +269,9 @@ def extract_all_struct_info(file_path: str) -> List[StructInfo]:
                             pending_hproperty_attributes = parse_hstruct_attributes(attr_str)
                             
                             # 检查当前行是否同时包含属性定义
-                            type_name_pattern = re.compile(r'(\w+(?:\s*\*\s*)?)\s+(\w+)\s*[;={]')
-                            type_name_match = type_name_pattern.search(line_content)
-                            if type_name_match:
-                                prop_type = type_name_match.group(1).strip()
-                                prop_name = type_name_match.group(2).strip()
-                                prop_type = re.sub(r'\s+', ' ', prop_type)
+                            type_name_result = parse_type_and_name(line_content)
+                            if type_name_result:
+                                prop_type, prop_name = type_name_result
                                 properties.append(PropertyInfo(
                                     name=prop_name,
                                     type=prop_type,
@@ -251,12 +284,9 @@ def extract_all_struct_info(file_path: str) -> List[StructInfo]:
                         
                         # 如果之前找到了 HPROPERTY，检查下一行是否有属性定义
                         if found_hproperty and hproperty_line_idx > 0 and j + 1 > hproperty_line_idx:
-                            type_name_pattern = re.compile(r'(\w+(?:\s*\*\s*)?)\s+(\w+)\s*[;={]')
-                            type_name_match = type_name_pattern.search(line_content)
-                            if type_name_match:
-                                prop_type = type_name_match.group(1).strip()
-                                prop_name = type_name_match.group(2).strip()
-                                prop_type = re.sub(r'\s+', ' ', prop_type)
+                            type_name_result = parse_type_and_name(line_content)
+                            if type_name_result:
+                                prop_type, prop_name = type_name_result
                                 properties.append(PropertyInfo(
                                     name=prop_name,
                                     type=prop_type,
@@ -416,14 +446,11 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
                 attr_str = prop_match.group(1)
                 pending_hproperty_attributes = parse_hstruct_attributes(attr_str)
                 # 检查当前行是否同时包含属性定义
-                # 匹配格式：Type Name; 或 Type Name{}; 或 Type Name = value;
-                type_name_pattern = re.compile(r'(\w+(?:\s*\*\s*)?)\s+(\w+)\s*[;={]')
-                type_name_match = type_name_pattern.search(line)
-                if type_name_match:
+                # 匹配格式：Type Name; 或 Type Name{}; 或 Type Name = value; 或 TArray<Type> Name;
+                type_name_result = parse_type_and_name(line)
+                if type_name_result:
                     # 当前行同时有 HPROPERTY 和属性定义
-                    prop_type = type_name_match.group(1).strip()
-                    prop_name = type_name_match.group(2).strip()
-                    prop_type = re.sub(r'\s+', ' ', prop_type)
+                    prop_type, prop_name = type_name_result
                     properties.append(PropertyInfo(
                         name=prop_name,
                         type=prop_type,
@@ -436,13 +463,10 @@ def extract_struct_info(file_path: str) -> Optional[StructInfo]:
             
             # 如果之前找到了 HPROPERTY，检查当前行是否有属性定义
             if found_hproperty and hproperty_line_idx > 0 and i > hproperty_line_idx:
-                # 匹配格式：Type Name; 或 Type Name{}; 或 Type Name = value;
-                type_name_pattern = re.compile(r'(\w+(?:\s*\*\s*)?)\s+(\w+)\s*[;={]')
-                type_name_match = type_name_pattern.search(line)
-                if type_name_match:
-                    prop_type = type_name_match.group(1).strip()
-                    prop_name = type_name_match.group(2).strip()
-                    prop_type = re.sub(r'\s+', ' ', prop_type)
+                # 匹配格式：Type Name; 或 Type Name{}; 或 Type Name = value; 或 TArray<Type> Name;
+                type_name_result = parse_type_and_name(line)
+                if type_name_result:
+                    prop_type, prop_name = type_name_result
                     properties.append(PropertyInfo(
                         name=prop_name,
                         type=prop_type,

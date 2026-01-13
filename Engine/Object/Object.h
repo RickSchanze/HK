@@ -106,7 +106,7 @@ public:
         HObject* Obj = FindObjectByName(Name);
         if (Obj)
         {
-            return dynamic_cast<T*>(Obj);
+            return static_cast<T*>(Obj);
         }
         return nullptr;
     }

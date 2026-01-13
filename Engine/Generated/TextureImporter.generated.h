@@ -41,7 +41,8 @@
             MakeNamedPair("Hash", Hash),                                                                                     \
             MakeNamedPair("Width", Width),                                                                                     \
             MakeNamedPair("Height", Height),                                                                                     \
-            MakeNamedPair("Format", Format)                                                                                      \
+            MakeNamedPair("Format", Format),                                                                                     \
+            MakeNamedPair("ImageData", ImageData)                                                                                      \
         );                                                                                                             \
     }                                                                                                                  \
     static void Register_FTextureIntermediate_Properties(FTypeMutable Type)                                                                                        \
@@ -50,5 +51,6 @@
         Type->RegisterProperty(&FTextureIntermediate::Width, "Width");                                                                                        \
         Type->RegisterProperty(&FTextureIntermediate::Height, "Height");                                                                                        \
         Type->RegisterProperty(&FTextureIntermediate::Format, "Format");                                                                                        \
+        Type->RegisterProperty(&FTextureIntermediate::ImageData, "ImageData");                                                                                        \
     }                                                                                        \
     static inline Z_TextureIntermediate_Register Z_REGISTERER_TEXTUREINTERMEDIATE;

@@ -10,6 +10,7 @@ enum class EAssetType
     Shader,
     Mesh,
     Texture,
+    Material,
     Count,
 };
 
