@@ -2,9 +2,11 @@
 
 #include "Core/Reflection/Reflection.h"
 #include "Core/String/String.h"
+#include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "Math/Vector.h"
 #include "RHIHandle.h"
+
 
 #include "RHIImage.generated.h"
 
@@ -170,6 +172,16 @@ struct FRHIImageDesc
     ERHIImageUsage  Usage         = ERHIImageUsage::None;            // 使用标志
     ERHIImageLayout InitialLayout = ERHIImageLayout::Undefined;      // 初始布局
     FString         DebugName;                                       // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            std::hash<UInt32>{}(static_cast<UInt32>(Type)), std::hash<UInt32>{}(static_cast<UInt32>(Format)),
+            std::hash<Int32>{}(Extent.X), std::hash<Int32>{}(Extent.Y), std::hash<Int32>{}(Extent.Z),
+            std::hash<UInt32>{}(MipLevels), std::hash<UInt32>{}(ArrayLayers),
+            std::hash<UInt32>{}(static_cast<UInt32>(Samples)), std::hash<UInt32>{}(static_cast<UInt32>(Usage)),
+            std::hash<UInt32>{}(static_cast<UInt32>(InitialLayout)));
+    }
 };
 
 // 简单的 Image 值类型，只包含一个 Handle
@@ -264,6 +276,11 @@ public:
     bool operator!=(const FRHIImage& Other) const
     {
         return Handle != Other.Handle;
+    }
+
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
     }
 
 private:

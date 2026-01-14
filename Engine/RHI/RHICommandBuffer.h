@@ -4,6 +4,7 @@
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
 #include "Core/Utility/UniquePtr.h"
+#include "Core/Utility/HashUtility.h"
 #include "Math/Rect2D.h"
 #include "Math/Vector.h"
 #include "RHIBuffer.h"
@@ -94,6 +95,12 @@ struct FRHICommandBufferDesc
     ERHICommandBufferLevel     Level      = ERHICommandBufferLevel::Primary;  // 命令缓冲区级别
     ERHICommandBufferUsageFlag UsageFlags = ERHICommandBufferUsageFlag::None; // 使用标志
     FString                    DebugName;                                     // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Level)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(UsageFlags)));
+    }
 };
 
 // 命令缓冲区类
@@ -152,6 +159,11 @@ public:
     bool operator!=(const FRHICommandBuffer& Other) const
     {
         return Handle != Other.Handle;
+    }
+
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
     }
 
     // 获取执行模式

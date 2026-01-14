@@ -3,11 +3,12 @@
 //
 
 #include "HashUtility.h"
+#include "Core/Container/Span.h"
 #include "Core/Logging/Logger.h"
 #include <fstream>
 #include <xxhash.h>
 
-FHashUtility::HashType FHashUtility::ComputeHash(const void* Data, size_t Size)
+HashType FHashUtility::ComputeHash(const void* Data, size_t Size)
 {
     if (!Data || Size == 0)
     {
@@ -17,7 +18,7 @@ FHashUtility::HashType FHashUtility::ComputeHash(const void* Data, size_t Size)
     return XXH64(Data, Size, 0);
 }
 
-FHashUtility::HashType FHashUtility::ComputeHash(const char* Str)
+HashType FHashUtility::ComputeHash(const char* Str)
 {
     if (!Str)
     {
@@ -27,7 +28,7 @@ FHashUtility::HashType FHashUtility::ComputeHash(const char* Str)
     return XXH64(Str, strlen(Str), 0);
 }
 
-FHashUtility::HashType FHashUtility::ComputeFileHash(const char* FilePath)
+HashType FHashUtility::ComputeFileHash(const char* FilePath)
 {
     if (!FilePath)
     {
@@ -62,13 +63,12 @@ FHashUtility::HashType FHashUtility::ComputeFileHash(const char* FilePath)
     XXH64_reset(State, 0);
 
     constexpr size_t BufferSize = 64 * 1024; // 64KB 缓冲区
-    char            Buffer[BufferSize];
+    char             Buffer[BufferSize];
 
     while (File.good())
     {
         File.read(Buffer, BufferSize);
-        const std::streamsize BytesRead = File.gcount();
-        if (BytesRead > 0)
+        if (const std::streamsize BytesRead = File.gcount(); BytesRead > 0)
         {
             XXH64_update(State, Buffer, static_cast<size_t>(BytesRead));
         }
@@ -81,3 +81,49 @@ FHashUtility::HashType FHashUtility::ComputeFileHash(const char* FilePath)
     return Hash;
 }
 
+HashType FHashUtility::CombineHashes(const HashType* Hashes, const size_t Count)
+{
+    if (!Hashes || Count == 0)
+    {
+        return 0;
+    }
+
+    // 使用 hash 组合算法合并多个 Hash 值
+    // 参考算法：将每个 value 合并到 seed 中
+    constexpr HashType Add = 0x9e3779b97f4a7c15ULL;
+    constexpr HashType Mul = 0x9ddfea08eb382d69ULL;
+
+    HashType Seed = Hashes[0]; // 从第一个 hash 值开始
+
+    // 对后续的每个 hash 值进行合并
+    for (size_t i = 1; i < Count; ++i)
+    {
+        HashType Value = Hashes[i];
+        Value *= Mul;
+        Value ^= Value >> 47;
+        Value *= Mul;
+        Seed ^= Value + Add;
+    }
+
+    return Seed;
+}
+
+HashType FHashUtility::CombineHashes(const TSpan<const HashType> Hashes)
+{
+    if (Hashes.IsEmpty())
+    {
+        return 0;
+    }
+
+    return CombineHashes(Hashes.Data(), Hashes.Size());
+}
+
+HashType FHashUtility::CombineHashes(const std::initializer_list<HashType> Hashes)
+{
+    if (Hashes.size() == 0)
+    {
+        return 0;
+    }
+
+    return CombineHashes(Hashes.begin(), Hashes.size());
+}

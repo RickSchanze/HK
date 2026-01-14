@@ -4,7 +4,7 @@
 #include <type_traits>
 
 template <typename T>
-class ObjectPtr
+class TObjectPtr
 {
 public:
     using ElementType    = T;
@@ -14,33 +14,33 @@ public:
     using ConstReference = const T&;
 
     // 默认构造
-    ObjectPtr() noexcept : Ptr(nullptr) {}
+    TObjectPtr() noexcept : Ptr(nullptr) {}
 
     // 从 nullptr 构造
-    ObjectPtr(std::nullptr_t) noexcept : Ptr(nullptr) {}
+    TObjectPtr(std::nullptr_t) noexcept : Ptr(nullptr) {}
 
     // 从原始指针构造
-    explicit ObjectPtr(Pointer InPtr) noexcept : Ptr(InPtr) {}
+    explicit TObjectPtr(Pointer InPtr) noexcept : Ptr(InPtr) {}
 
     // 从派生类指针构造
     template <typename U>
         requires std::is_base_of_v<T, U>
-    ObjectPtr(U* InPtr) noexcept : Ptr(InPtr)
+    TObjectPtr(U* InPtr) noexcept : Ptr(InPtr)
     {
     }
 
     // 拷贝构造
-    ObjectPtr(const ObjectPtr& Other) noexcept : Ptr(Other.Ptr) {}
+    TObjectPtr(const TObjectPtr& Other) noexcept : Ptr(Other.Ptr) {}
 
     // 从派生类 ObjectPtr 拷贝构造
     template <typename U>
         requires std::is_base_of_v<T, U>
-    ObjectPtr(const ObjectPtr<U>& Other) noexcept : Ptr(Other.Get())
+    TObjectPtr(const TObjectPtr<U>& Other) noexcept : Ptr(Other.Get())
     {
     }
 
     // 移动构造
-    ObjectPtr(ObjectPtr&& Other) noexcept : Ptr(Other.Ptr)
+    TObjectPtr(TObjectPtr&& Other) noexcept : Ptr(Other.Ptr)
     {
         Other.Ptr = nullptr;
     }
@@ -48,16 +48,16 @@ public:
     // 从派生类 ObjectPtr 移动构造
     template <typename U>
         requires std::is_base_of_v<T, U>
-    ObjectPtr(ObjectPtr<U>&& Other) noexcept : Ptr(Other.Get())
+    TObjectPtr(TObjectPtr<U>&& Other) noexcept : Ptr(Other.Get())
     {
         Other.Reset();
     }
 
     // 析构
-    ~ObjectPtr() = default;
+    ~TObjectPtr() = default;
 
     // 拷贝赋值
-    ObjectPtr& operator=(const ObjectPtr& Other) noexcept
+    TObjectPtr& operator=(const TObjectPtr& Other) noexcept
     {
         if (this != &Other)
         {
@@ -69,14 +69,14 @@ public:
     // 从派生类 ObjectPtr 拷贝赋值
     template <typename U>
         requires std::is_base_of_v<T, U>
-    ObjectPtr& operator=(const ObjectPtr<U>& Other) noexcept
+    TObjectPtr& operator=(const TObjectPtr<U>& Other) noexcept
     {
         Ptr = Other.Get();
         return *this;
     }
 
     // 移动赋值
-    ObjectPtr& operator=(ObjectPtr&& Other) noexcept
+    TObjectPtr& operator=(TObjectPtr&& Other) noexcept
     {
         if (this != &Other)
         {
@@ -89,7 +89,7 @@ public:
     // 从派生类 ObjectPtr 移动赋值
     template <typename U>
         requires std::is_base_of_v<T, U>
-    ObjectPtr& operator=(ObjectPtr<U>&& Other) noexcept
+    TObjectPtr& operator=(TObjectPtr<U>&& Other) noexcept
     {
         Ptr = Other.Get();
         Other.Reset();
@@ -97,14 +97,14 @@ public:
     }
 
     // 从原始指针赋值
-    ObjectPtr& operator=(Pointer InPtr) noexcept
+    TObjectPtr& operator=(Pointer InPtr) noexcept
     {
         Ptr = InPtr;
         return *this;
     }
 
     // 从 nullptr 赋值
-    ObjectPtr& operator=(std::nullptr_t) noexcept
+    TObjectPtr& operator=(std::nullptr_t) noexcept
     {
         Ptr = nullptr;
         return *this;
@@ -158,7 +158,7 @@ public:
     }
 
     // 交换
-    void Swap(ObjectPtr& Other) noexcept
+    void Swap(TObjectPtr& Other) noexcept
     {
         Pointer Temp = Ptr;
         Ptr          = Other.Ptr;
@@ -172,12 +172,12 @@ public:
     }
 
     // 比较操作
-    bool operator==(const ObjectPtr& Other) const noexcept
+    bool operator==(const TObjectPtr& Other) const noexcept
     {
         return Ptr == Other.Ptr;
     }
 
-    bool operator!=(const ObjectPtr& Other) const noexcept
+    bool operator!=(const TObjectPtr& Other) const noexcept
     {
         return Ptr != Other.Ptr;
     }
@@ -203,22 +203,22 @@ public:
     }
 
     // 比较操作（与原始指针）
-    friend bool operator==(Pointer Lhs, const ObjectPtr& Rhs) noexcept
+    friend bool operator==(Pointer Lhs, const TObjectPtr& Rhs) noexcept
     {
         return Lhs == Rhs.Ptr;
     }
 
-    friend bool operator!=(Pointer Lhs, const ObjectPtr& Rhs) noexcept
+    friend bool operator!=(Pointer Lhs, const TObjectPtr& Rhs) noexcept
     {
         return Lhs != Rhs.Ptr;
     }
 
-    friend bool operator==(std::nullptr_t, const ObjectPtr& Rhs) noexcept
+    friend bool operator==(std::nullptr_t, const TObjectPtr& Rhs) noexcept
     {
         return nullptr == Rhs.Ptr;
     }
 
-    friend bool operator!=(std::nullptr_t, const ObjectPtr& Rhs) noexcept
+    friend bool operator!=(std::nullptr_t, const TObjectPtr& Rhs) noexcept
     {
         return nullptr != Rhs.Ptr;
     }

@@ -1,20 +1,34 @@
 #pragma once
 
 #include "Core/String/String.h"
+#include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
 #include "RHIImage.h"
 
 struct FRHIImageViewDesc
 {
-    ERHIImageType ViewType = ERHIImageType::Image2D;          // 视图类型
-    ERHIImageFormat Format = ERHIImageFormat::R8G8B8A8_UNorm; // 视图格式（通常与图像相同）
-    ERHIImageAspect Aspects = ERHIImageAspect::Color;         // 图像方面
-    UInt32 BaseMipLevel = 0;                                  // 基础MIP级别
-    UInt32 LevelCount = 1;                                    // MIP级别数量
-    UInt32 BaseArrayLayer = 0;                                // 基础数组层
-    UInt32 LayerCount = 1;                                    // 数组层数量
-    FString DebugName;                                        // 调试名称
+    ERHIImageType   ViewType       = ERHIImageType::Image2D;          // 视图类型
+    ERHIImageFormat Format         = ERHIImageFormat::R8G8B8A8_UNorm; // 视图格式（通常与图像相同）
+    ERHIImageAspect Aspects        = ERHIImageAspect::Color;          // 图像方面
+    UInt32          BaseMipLevel   = 0;                               // 基础MIP级别
+    UInt32          LevelCount     = 1;                               // MIP级别数量
+    UInt32          BaseArrayLayer = 0;                               // 基础数组层
+    UInt32          LayerCount     = 1;                               // 数组层数量
+    FString         DebugName;                                        // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(                     //
+            std::hash<UInt32>{}(static_cast<UInt32>(ViewType)), //
+            std::hash<UInt32>{}(static_cast<UInt32>(Format)),   //
+            std::hash<UInt32>{}(static_cast<UInt32>(Aspects)),  //
+            std::hash<UInt32>{}(BaseMipLevel),                  //
+            std::hash<UInt32>{}(LevelCount),                    //
+            std::hash<UInt32>{}(BaseArrayLayer),                //
+            std::hash<UInt32>{}(LayerCount)                     //
+        );
+    }
 };
 
 // 图像视图类
@@ -31,9 +45,9 @@ public:
     ~FRHIImageView() = default;
 
     // 允许拷贝和移动
-    FRHIImageView(const FRHIImageView& Other) = default;
-    FRHIImageView& operator=(const FRHIImageView& Other) = default;
-    FRHIImageView(FRHIImageView&& Other) noexcept = default;
+    FRHIImageView(const FRHIImageView& Other)                = default;
+    FRHIImageView& operator=(const FRHIImageView& Other)     = default;
+    FRHIImageView(FRHIImageView&& Other) noexcept            = default;
     FRHIImageView& operator=(FRHIImageView&& Other) noexcept = default;
 
     // 检查是否有效
@@ -93,10 +107,15 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
-    FRHIHandle Handle;
-    const FRHIImage* Image = nullptr; // 关联的图像（弱引用）
-    ERHIImageType ViewType = ERHIImageType::Image2D;
-    ERHIImageFormat Format = ERHIImageFormat::Undefined;
-    ERHIImageAspect Aspects = ERHIImageAspect::None;
+    FRHIHandle       Handle;
+    const FRHIImage* Image    = nullptr; // 关联的图像（弱引用）
+    ERHIImageType    ViewType = ERHIImageType::Image2D;
+    ERHIImageFormat  Format   = ERHIImageFormat::Undefined;
+    ERHIImageAspect  Aspects  = ERHIImageAspect::None;
 };

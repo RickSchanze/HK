@@ -14,6 +14,9 @@ static void Register_HMaterial_Impl()
     // 注册父类: HAsset
     Type->RegisterParent(FTypeManager::TypeOf<HAsset>());
 
+    // 注册属性
+    HMaterial::Register_HMaterial_Properties(Type);
+
 }
 
 void HMaterial::Z_HMaterial_Register::Register_HMaterial()
@@ -24,7 +27,9 @@ void HMaterial::Z_HMaterial_Register::Register_HMaterial()
 
 #define HMaterial_SERIALIZATION_CODE \
         Super::Serialize(Ar); \
-        // No serializable properties \
+        Ar( \
+        MakeNamedPair("Shader", Shader) \
+        ); \
 
 
 HK_DEFINE_CLASS_SERIALIZATION(HMaterial)

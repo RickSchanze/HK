@@ -2,6 +2,7 @@
 
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
+#include "Core/Utility/HashUtility.h"
 #include "RHIHandle.h"
 #include <cstdint>
 #include <limits>
@@ -17,6 +18,12 @@ struct FRHISemaphoreDesc
     ERHISemaphoreType Type = ERHISemaphoreType::Binary; // 信号量类型
     UInt64 InitialValue = 0;                            // 初始值（仅用于时间线信号量）
     FString DebugName;                                  // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Type)),
+                                            std::hash<UInt64>{}(InitialValue));
+    }
 };
 
 // 信号量类
@@ -78,6 +85,11 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
     FRHIHandle Handle;
     ERHISemaphoreType Type = ERHISemaphoreType::Binary;
@@ -94,6 +106,11 @@ struct FRHIFenceDesc
 {
     ERHIFenceCreateFlag Flags = ERHIFenceCreateFlag::None; // 创建标志
     FString DebugName;                                      // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return std::hash<UInt32>{}(static_cast<UInt32>(Flags));
+    }
 };
 
 // 栅栏类
@@ -147,6 +164,11 @@ public:
     bool operator!=(const FRHIFence& Other) const
     {
         return Handle != Other.Handle;
+    }
+
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
     }
 
     /**

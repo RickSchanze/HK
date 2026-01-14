@@ -2,35 +2,46 @@
 
 #include "Core/Container/Array.h"
 #include "Core/String/String.h"
+#include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "Math/Rect2D.h"
 #include "RHIDescriptorSet.h"
 #include "RHIHandle.h"
 #include "RHIImage.h"
 
+
 enum class ERHIShaderStage : UInt32
 {
-    Vertex = 1 << 0,                 // 顶点着色器
-    TessellationControl = 1 << 1,    // 曲面细分控制着色器
-    TessellationEvaluation = 1 << 2, // 曲面细分计算着色器
-    Geometry = 1 << 3,               // 几何着色器
-    Fragment = 1 << 4,               // 片段着色器
-    Compute = 1 << 5,                // 计算着色器
-    Task = 1 << 6,                   // 任务着色器（网格着色器）
-    Mesh = 1 << 7,                   // 网格着色器
-    Raygen = 1 << 8,                 // 光线生成着色器（光线追踪）
-    AnyHit = 1 << 9,                 // 任意命中着色器（光线追踪）
-    ClosestHit = 1 << 10,            // 最近命中着色器（光线追踪）
-    Miss = 1 << 11,                  // 未命中着色器（光线追踪）
-    Intersection = 1 << 12,          // 相交着色器（光线追踪）
-    Callable = 1 << 13,              // 可调用着色器（光线追踪）
+    Vertex                 = 1 << 0,  // 顶点着色器
+    TessellationControl    = 1 << 1,  // 曲面细分控制着色器
+    TessellationEvaluation = 1 << 2,  // 曲面细分计算着色器
+    Geometry               = 1 << 3,  // 几何着色器
+    Fragment               = 1 << 4,  // 片段着色器
+    Compute                = 1 << 5,  // 计算着色器
+    Task                   = 1 << 6,  // 任务着色器（网格着色器）
+    Mesh                   = 1 << 7,  // 网格着色器
+    Raygen                 = 1 << 8,  // 光线生成着色器（光线追踪）
+    AnyHit                 = 1 << 9,  // 任意命中着色器（光线追踪）
+    ClosestHit             = 1 << 10, // 最近命中着色器（光线追踪）
+    Miss                   = 1 << 11, // 未命中着色器（光线追踪）
+    Intersection           = 1 << 12, // 相交着色器（光线追踪）
+    Callable               = 1 << 13, // 可调用着色器（光线追踪）
 };
 HK_ENABLE_BITMASK_OPERATORS(ERHIShaderStage)
 
 struct FRHIShaderModuleDesc
 {
-    TArray<UInt32> Code; // SPIR-V 代码（UInt32 数组）
-    FString DebugName;   // 调试名称
+    TArray<UInt32> Code;      // SPIR-V 代码（UInt32 数组）
+    FString        DebugName; // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        if (Code.IsEmpty())
+        {
+            return 0;
+        }
+        return FHashUtility::ComputeHash(Code.Data(), Code.Size() * sizeof(UInt32));
+    }
 };
 
 // 着色器模块类
@@ -47,9 +58,9 @@ public:
     ~FRHIShaderModule() = default;
 
     // 允许拷贝和移动
-    FRHIShaderModule(const FRHIShaderModule& Other) = default;
-    FRHIShaderModule& operator=(const FRHIShaderModule& Other) = default;
-    FRHIShaderModule(FRHIShaderModule&& Other) noexcept = default;
+    FRHIShaderModule(const FRHIShaderModule& Other)                = default;
+    FRHIShaderModule& operator=(const FRHIShaderModule& Other)     = default;
+    FRHIShaderModule(FRHIShaderModule&& Other) noexcept            = default;
     FRHIShaderModule& operator=(FRHIShaderModule&& Other) noexcept = default;
 
     // 检查是否有效
@@ -91,8 +102,13 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
-    FRHIHandle Handle;
+    FRHIHandle      Handle;
     ERHIShaderStage Stage = ERHIShaderStage::Vertex;
 };
 
@@ -100,7 +116,26 @@ struct FRHIPipelineLayoutDesc
 {
     TArray<FRHIDescriptorSetLayout> SetLayouts; // 描述符集布局数组
     TArray<UInt32> PushConstantRanges; // 推送常量范围（每4个UInt32表示一个范围：offset, size, stageFlags, 保留）
-    FString DebugName;                 // 调试名称
+    FString        DebugName;          // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        if (SetLayouts.IsEmpty() && PushConstantRanges.IsEmpty())
+        {
+            return 0;
+        }
+        TArray<HashType> Hashes;
+        Hashes.Reserve(SetLayouts.Size() + PushConstantRanges.Size());
+        for (const auto& SetLayout : SetLayouts)
+        {
+            Hashes.Add(SetLayout.GetHashCode());
+        }
+        for (UInt32 Value : PushConstantRanges)
+        {
+            Hashes.Add(std::hash<UInt32>{}(Value));
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 // 管线布局类
@@ -117,9 +152,9 @@ public:
     ~FRHIPipelineLayout() = default;
 
     // 允许拷贝和移动
-    FRHIPipelineLayout(const FRHIPipelineLayout& Other) = default;
-    FRHIPipelineLayout& operator=(const FRHIPipelineLayout& Other) = default;
-    FRHIPipelineLayout(FRHIPipelineLayout&& Other) noexcept = default;
+    FRHIPipelineLayout(const FRHIPipelineLayout& Other)                = default;
+    FRHIPipelineLayout& operator=(const FRHIPipelineLayout& Other)     = default;
+    FRHIPipelineLayout(FRHIPipelineLayout&& Other) noexcept            = default;
     FRHIPipelineLayout& operator=(FRHIPipelineLayout&& Other) noexcept = default;
 
     // 检查是否有效
@@ -155,177 +190,202 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
     FRHIHandle Handle;
 };
 
 enum class ERHIPipelineType : UInt32
 {
-    Graphics = 0,   // 图形管线
-    Compute = 1,    // 计算管线
+    Graphics   = 0, // 图形管线
+    Compute    = 1, // 计算管线
     RayTracing = 2, // 光线追踪管线
 };
 
 enum class ERHIPrimitiveTopology : UInt32
 {
-    PointList = 0,
-    LineList = 1,
-    LineStrip = 2,
-    TriangleList = 3,
-    TriangleStrip = 4,
-    TriangleFan = 5,
-    LineListWithAdjacency = 6,
-    LineStripWithAdjacency = 7,
-    TriangleListWithAdjacency = 8,
+    PointList                  = 0,
+    LineList                   = 1,
+    LineStrip                  = 2,
+    TriangleList               = 3,
+    TriangleStrip              = 4,
+    TriangleFan                = 5,
+    LineListWithAdjacency      = 6,
+    LineStripWithAdjacency     = 7,
+    TriangleListWithAdjacency  = 8,
     TriangleStripWithAdjacency = 9,
-    PatchList = 10,
+    PatchList                  = 10,
 };
 
 enum class ERHIPolygonMode : UInt32
 {
-    Fill = 0,
-    Line = 1,
+    Fill  = 0,
+    Line  = 1,
     Point = 2,
 };
 
 enum class ERHICullMode : UInt32
 {
-    None = 0,
-    Front = 1,
-    Back = 2,
+    None         = 0,
+    Front        = 1,
+    Back         = 2,
     FrontAndBack = 3,
 };
 
 enum class ERHIFrontFace : UInt32
 {
     CounterClockwise = 0,
-    Clockwise = 1,
+    Clockwise        = 1,
 };
 
 enum class ERHICompareOp : UInt32
 {
-    Never = 0,
-    Less = 1,
-    Equal = 2,
-    LessOrEqual = 3,
-    Greater = 4,
-    NotEqual = 5,
+    Never          = 0,
+    Less           = 1,
+    Equal          = 2,
+    LessOrEqual    = 3,
+    Greater        = 4,
+    NotEqual       = 5,
     GreaterOrEqual = 6,
-    Always = 7,
+    Always         = 7,
 };
 
 enum class ERHIStencilOp : UInt32
 {
-    Keep = 0,
-    Zero = 1,
-    Replace = 2,
+    Keep              = 0,
+    Zero              = 1,
+    Replace           = 2,
     IncrementAndClamp = 3,
     DecrementAndClamp = 4,
-    Invert = 5,
-    IncrementAndWrap = 6,
-    DecrementAndWrap = 7,
+    Invert            = 5,
+    IncrementAndWrap  = 6,
+    DecrementAndWrap  = 7,
 };
 
 enum class ERHIBlendFactor : UInt32
 {
-    Zero = 0,
-    One = 1,
-    SrcColor = 2,
-    OneMinusSrcColor = 3,
-    DstColor = 4,
-    OneMinusDstColor = 5,
-    SrcAlpha = 6,
-    OneMinusSrcAlpha = 7,
-    DstAlpha = 8,
-    OneMinusDstAlpha = 9,
-    ConstantColor = 10,
+    Zero                  = 0,
+    One                   = 1,
+    SrcColor              = 2,
+    OneMinusSrcColor      = 3,
+    DstColor              = 4,
+    OneMinusDstColor      = 5,
+    SrcAlpha              = 6,
+    OneMinusSrcAlpha      = 7,
+    DstAlpha              = 8,
+    OneMinusDstAlpha      = 9,
+    ConstantColor         = 10,
     OneMinusConstantColor = 11,
-    ConstantAlpha = 12,
+    ConstantAlpha         = 12,
     OneMinusConstantAlpha = 13,
-    SrcAlphaSaturate = 14,
-    Src1Color = 15,
-    OneMinusSrc1Color = 16,
-    Src1Alpha = 17,
-    OneMinusSrc1Alpha = 18,
+    SrcAlphaSaturate      = 14,
+    Src1Color             = 15,
+    OneMinusSrc1Color     = 16,
+    Src1Alpha             = 17,
+    OneMinusSrc1Alpha     = 18,
 };
 
 enum class ERHIBlendOp : UInt32
 {
-    Add = 0,
-    Subtract = 1,
+    Add             = 0,
+    Subtract        = 1,
     ReverseSubtract = 2,
-    Min = 3,
-    Max = 4,
+    Min             = 3,
+    Max             = 4,
 };
 
 enum class ERHILogicOp : UInt32
 {
-    Clear = 0,
-    And = 1,
-    AndReverse = 2,
-    Copy = 3,
-    AndInverted = 4,
-    NoOp = 5,
-    Xor = 6,
-    Or = 7,
-    Nor = 8,
-    Equivalent = 9,
-    Invert = 10,
-    OrReverse = 11,
+    Clear        = 0,
+    And          = 1,
+    AndReverse   = 2,
+    Copy         = 3,
+    AndInverted  = 4,
+    NoOp         = 5,
+    Xor          = 6,
+    Or           = 7,
+    Nor          = 8,
+    Equivalent   = 9,
+    Invert       = 10,
+    OrReverse    = 11,
     CopyInverted = 12,
-    OrInverted = 13,
-    Nand = 14,
-    Set = 15,
+    OrInverted   = 13,
+    Nand         = 14,
+    Set          = 15,
 };
 
 enum class ERHIColorComponentFlag : UInt32
 {
     None = 0,
-    R = 1 << 0,
-    G = 1 << 1,
-    B = 1 << 2,
-    A = 1 << 3,
+    R    = 1 << 0,
+    G    = 1 << 1,
+    B    = 1 << 2,
+    A    = 1 << 3,
 };
 HK_ENABLE_BITMASK_OPERATORS(ERHIColorComponentFlag)
 
 enum class ERHIDynamicState : UInt32
 {
-    None = 0,
-    Viewport = 1 << 0,
-    Scissor = 1 << 1,
-    LineWidth = 1 << 2,
-    DepthBias = 1 << 3,
-    BlendConstants = 1 << 4,
-    DepthBounds = 1 << 5,
+    None               = 0,
+    Viewport           = 1 << 0,
+    Scissor            = 1 << 1,
+    LineWidth          = 1 << 2,
+    DepthBias          = 1 << 3,
+    BlendConstants     = 1 << 4,
+    DepthBounds        = 1 << 5,
     StencilCompareMask = 1 << 6,
-    StencilWriteMask = 1 << 7,
-    StencilReference = 1 << 8,
+    StencilWriteMask   = 1 << 7,
+    StencilReference   = 1 << 8,
 };
 HK_ENABLE_BITMASK_OPERATORS(ERHIDynamicState)
 
 struct FRHIVertexInputBindingDescription
 {
-    UInt32 Binding = 0;         // 绑定索引
-    UInt32 Stride = 0;          // 顶点数据步长（字节）
-    bool bInstanceRate = false; // 是否为实例速率
+    UInt32 Binding       = 0;     // 绑定索引
+    UInt32 Stride        = 0;     // 顶点数据步长（字节）
+    bool   bInstanceRate = false; // 是否为实例速率
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(Binding), std::hash<UInt32>{}(Stride),
+                                           std::hash<bool>{}(bInstanceRate));
+    }
 };
 
 struct FRHIVertexInputAttributeDescription
 {
-    UInt32 Location = 0;                                           // 位置（对应着色器中的 location）
-    UInt32 Binding = 0;                                            // 绑定索引
-    ERHIImageFormat Format = ERHIImageFormat::R32G32B32A32_SFloat; // 属性格式
-    UInt32 Offset = 0;                                             // 偏移量（字节）
+    UInt32          Location = 0;                                    // 位置（对应着色器中的 location）
+    UInt32          Binding  = 0;                                    // 绑定索引
+    ERHIImageFormat Format   = ERHIImageFormat::R32G32B32A32_SFloat; // 属性格式
+    UInt32          Offset   = 0;                                    // 偏移量（字节）
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(Location), std::hash<UInt32>{}(Binding),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(Format)),
+                                           std::hash<UInt32>{}(Offset));
+    }
 };
 
 struct FRHIViewport
 {
-    float X = 0.0f;
-    float Y = 0.0f;
-    float Width = 0.0f;
-    float Height = 0.0f;
+    float X        = 0.0f;
+    float Y        = 0.0f;
+    float Width    = 0.0f;
+    float Height   = 0.0f;
     float MinDepth = 0.0f;
     float MaxDepth = 1.0f;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<float>{}(X), std::hash<float>{}(Y), std::hash<float>{}(Width),
+                                           std::hash<float>{}(Height), std::hash<float>{}(MinDepth),
+                                           std::hash<float>{}(MaxDepth));
+    }
 };
 
 // 使用 Math 中的 FRect2Di 作为 RHI 的矩形类型
@@ -333,137 +393,298 @@ typedef FRect2Di FRHIRect2D;
 
 struct FRHIStencilOpState
 {
-    ERHIStencilOp FailOp = ERHIStencilOp::Keep;
-    ERHIStencilOp PassOp = ERHIStencilOp::Keep;
+    ERHIStencilOp FailOp      = ERHIStencilOp::Keep;
+    ERHIStencilOp PassOp      = ERHIStencilOp::Keep;
     ERHIStencilOp DepthFailOp = ERHIStencilOp::Keep;
-    ERHICompareOp CompareOp = ERHICompareOp::Always;
-    UInt32 CompareMask = 0xFF;
-    UInt32 WriteMask = 0xFF;
-    UInt32 Reference = 0;
+    ERHICompareOp CompareOp   = ERHICompareOp::Always;
+    UInt32        CompareMask = 0xFF;
+    UInt32        WriteMask   = 0xFF;
+    UInt32        Reference   = 0;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            std::hash<UInt32>{}(static_cast<UInt32>(FailOp)), std::hash<UInt32>{}(static_cast<UInt32>(PassOp)),
+            std::hash<UInt32>{}(static_cast<UInt32>(DepthFailOp)), std::hash<UInt32>{}(static_cast<UInt32>(CompareOp)),
+            std::hash<UInt32>{}(CompareMask), std::hash<UInt32>{}(WriteMask), std::hash<UInt32>{}(Reference));
+    }
 };
 
 struct FRHIBlendAttachmentState
 {
-    bool bBlendEnable = false;
-    ERHIBlendFactor SrcColorBlendFactor = ERHIBlendFactor::One;
-    ERHIBlendFactor DstColorBlendFactor = ERHIBlendFactor::Zero;
-    ERHIBlendOp ColorBlendOp = ERHIBlendOp::Add;
-    ERHIBlendFactor SrcAlphaBlendFactor = ERHIBlendFactor::One;
-    ERHIBlendFactor DstAlphaBlendFactor = ERHIBlendFactor::Zero;
-    ERHIBlendOp AlphaBlendOp = ERHIBlendOp::Add;
-    ERHIColorComponentFlag ColorWriteMask = ERHIColorComponentFlag::R | ERHIColorComponentFlag::G |
+    bool                   bBlendEnable        = false;
+    ERHIBlendFactor        SrcColorBlendFactor = ERHIBlendFactor::One;
+    ERHIBlendFactor        DstColorBlendFactor = ERHIBlendFactor::Zero;
+    ERHIBlendOp            ColorBlendOp        = ERHIBlendOp::Add;
+    ERHIBlendFactor        SrcAlphaBlendFactor = ERHIBlendFactor::One;
+    ERHIBlendFactor        DstAlphaBlendFactor = ERHIBlendFactor::Zero;
+    ERHIBlendOp            AlphaBlendOp        = ERHIBlendOp::Add;
+    ERHIColorComponentFlag ColorWriteMask      = ERHIColorComponentFlag::R | ERHIColorComponentFlag::G |
                                             ERHIColorComponentFlag::B | ERHIColorComponentFlag::A; // 颜色写入掩码
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<bool>{}(bBlendEnable),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(SrcColorBlendFactor)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(DstColorBlendFactor)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(ColorBlendOp)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(SrcAlphaBlendFactor)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(DstAlphaBlendFactor)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(AlphaBlendOp)),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(ColorWriteMask)));
+    }
 };
 
 struct FRHIPipelineShaderStageState
 {
     TArray<FRHIShaderModule> ShaderModules; // 着色器模块数组
+
+    UInt64 GetHashCode() const
+    {
+        TArray<HashType> Hashes;
+        Hashes.Reserve(ShaderModules.Size());
+        for (const auto& ShaderModule : ShaderModules)
+        {
+            Hashes.Add(ShaderModule.GetHashCode());
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 struct FRHIPipelineVertexInputState
 {
-    TArray<FRHIVertexInputBindingDescription> VertexBindings;
+    TArray<FRHIVertexInputBindingDescription>   VertexBindings;
     TArray<FRHIVertexInputAttributeDescription> VertexAttributes;
+
+    UInt64 GetHashCode() const
+    {
+        TArray<HashType> Hashes;
+        Hashes.Reserve(VertexBindings.Size() + VertexAttributes.Size());
+        for (const auto& Binding : VertexBindings)
+        {
+            Hashes.Add(Binding.GetHashCode());
+        }
+        for (const auto& Attribute : VertexAttributes)
+        {
+            Hashes.Add(Attribute.GetHashCode());
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 struct FRHIPipelineInputAssemblyState
 {
-    ERHIPrimitiveTopology PrimitiveTopology = ERHIPrimitiveTopology::TriangleList;
-    bool bPrimitiveRestartEnable = false;
+    ERHIPrimitiveTopology PrimitiveTopology       = ERHIPrimitiveTopology::TriangleList;
+    bool                  bPrimitiveRestartEnable = false;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(PrimitiveTopology)),
+                                           std::hash<bool>{}(bPrimitiveRestartEnable));
+    }
 };
 
 struct FRHIPipelineViewportState
 {
     TArray<FRHIViewport> Viewports;
-    TArray<FRHIRect2D> Scissors;
+    TArray<FRHIRect2D>   Scissors;
+
+    UInt64 GetHashCode() const
+    {
+        TArray<HashType> Hashes;
+        Hashes.Reserve(Viewports.Size() + Scissors.Size() * 4);
+        for (const auto& Viewport : Viewports)
+        {
+            Hashes.Add(Viewport.GetHashCode());
+        }
+        for (const auto& Scissor : Scissors)
+        {
+            Hashes.Add(std::hash<Int32>{}(Scissor.X));
+            Hashes.Add(std::hash<UInt32>{}(Scissor.Y));
+            Hashes.Add(std::hash<UInt32>{}(Scissor.Width));
+            Hashes.Add(std::hash<UInt32>{}(Scissor.Height));
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 struct FRHIPipelineRasterizationState
 {
-    bool bDepthClampEnable = false;
-    bool bRasterizerDiscardEnable = false;
-    ERHIPolygonMode PolygonMode = ERHIPolygonMode::Fill;
-    ERHICullMode CullMode = ERHICullMode::Back;
-    ERHIFrontFace FrontFace = ERHIFrontFace::CounterClockwise;
-    bool bDepthBiasEnable = false;
-    float DepthBiasConstantFactor = 0.0f;
-    float DepthBiasClamp = 0.0f;
-    float DepthBiasSlopeFactor = 0.0f;
-    float LineWidth = 1.0f;
+    bool            bDepthClampEnable        = false;
+    bool            bRasterizerDiscardEnable = false;
+    ERHIPolygonMode PolygonMode              = ERHIPolygonMode::Fill;
+    ERHICullMode    CullMode                 = ERHICullMode::Back;
+    ERHIFrontFace   FrontFace                = ERHIFrontFace::CounterClockwise;
+    bool            bDepthBiasEnable         = false;
+    float           DepthBiasConstantFactor  = 0.0f;
+    float           DepthBiasClamp           = 0.0f;
+    float           DepthBiasSlopeFactor     = 0.0f;
+    float           LineWidth                = 1.0f;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            std::hash<bool>{}(bDepthClampEnable), std::hash<bool>{}(bRasterizerDiscardEnable),
+            std::hash<UInt32>{}(static_cast<UInt32>(PolygonMode)), std::hash<UInt32>{}(static_cast<UInt32>(CullMode)),
+            std::hash<UInt32>{}(static_cast<UInt32>(FrontFace)), std::hash<bool>{}(bDepthBiasEnable),
+            std::hash<float>{}(DepthBiasConstantFactor), std::hash<float>{}(DepthBiasClamp),
+            std::hash<float>{}(DepthBiasSlopeFactor), std::hash<float>{}(LineWidth));
+    }
 };
 
 struct FRHIPipelineMultisampleState
 {
-    ERHISampleCount RasterizationSamples = ERHISampleCount::Sample1;
-    bool bSampleShadingEnable = false;
-    float MinSampleShading = 0.0f;
-    UInt32 SampleMask = 0xFFFFFFFF;
-    bool bAlphaToCoverageEnable = false;
-    bool bAlphaToOneEnable = false;
+    ERHISampleCount RasterizationSamples   = ERHISampleCount::Sample1;
+    bool            bSampleShadingEnable   = false;
+    float           MinSampleShading       = 0.0f;
+    UInt32          SampleMask             = 0xFFFFFFFF;
+    bool            bAlphaToCoverageEnable = false;
+    bool            bAlphaToOneEnable      = false;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            std::hash<UInt32>{}(static_cast<UInt32>(RasterizationSamples)), std::hash<bool>{}(bSampleShadingEnable),
+            std::hash<float>{}(MinSampleShading), std::hash<UInt32>{}(SampleMask),
+            std::hash<bool>{}(bAlphaToCoverageEnable), std::hash<bool>{}(bAlphaToOneEnable));
+    }
 };
 
 struct FRHIPipelineDepthStencilState
 {
-    bool bDepthTestEnable = true;
-    bool bDepthWriteEnable = true;
-    ERHICompareOp DepthCompareOp = ERHICompareOp::Less;
-    bool bDepthBoundsTestEnable = false;
-    bool bStencilTestEnable = false;
+    bool               bDepthTestEnable       = true;
+    bool               bDepthWriteEnable      = true;
+    ERHICompareOp      DepthCompareOp         = ERHICompareOp::Less;
+    bool               bDepthBoundsTestEnable = false;
+    bool               bStencilTestEnable     = false;
     FRHIStencilOpState FrontStencil;
     FRHIStencilOpState BackStencil;
-    float MinDepthBounds = 0.0f;
-    float MaxDepthBounds = 1.0f;
+    float              MinDepthBounds = 0.0f;
+    float              MaxDepthBounds = 1.0f;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            std::hash<bool>{}(bDepthTestEnable), std::hash<bool>{}(bDepthWriteEnable),
+            std::hash<UInt32>{}(static_cast<UInt32>(DepthCompareOp)), std::hash<bool>{}(bDepthBoundsTestEnable),
+            std::hash<bool>{}(bStencilTestEnable), FrontStencil.GetHashCode(), BackStencil.GetHashCode(),
+            std::hash<float>{}(MinDepthBounds), std::hash<float>{}(MaxDepthBounds));
+    }
 };
 
 struct FRHIPipelineColorBlendState
 {
-    bool bLogicOpEnable = false;
-    ERHILogicOp LogicOp = ERHILogicOp::Copy;
+    bool                             bLogicOpEnable = false;
+    ERHILogicOp                      LogicOp        = ERHILogicOp::Copy;
     TArray<FRHIBlendAttachmentState> BlendAttachments;
-    float BlendConstants[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float                            BlendConstants[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    UInt64 GetHashCode() const
+    {
+        if (BlendAttachments.IsEmpty())
+        {
+            return FHashUtility::CombineHashes(
+                std::hash<bool>{}(bLogicOpEnable), std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)),
+                std::hash<float>{}(BlendConstants[0]), std::hash<float>{}(BlendConstants[1]),
+                std::hash<float>{}(BlendConstants[2]), std::hash<float>{}(BlendConstants[3]));
+        }
+        TArray<HashType> Hashes;
+        Hashes.Reserve(BlendAttachments.Size() + 6);
+        Hashes.Add(std::hash<bool>{}(bLogicOpEnable));
+        Hashes.Add(std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)));
+        for (const auto& BlendAttachment : BlendAttachments)
+        {
+            Hashes.Add(BlendAttachment.GetHashCode());
+        }
+        Hashes.Add(std::hash<float>{}(BlendConstants[0]));
+        Hashes.Add(std::hash<float>{}(BlendConstants[1]));
+        Hashes.Add(std::hash<float>{}(BlendConstants[2]));
+        Hashes.Add(std::hash<float>{}(BlendConstants[3]));
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 struct FRHIPipelineDynamicState
 {
     ERHIDynamicState DynamicStates = ERHIDynamicState::None;
+
+    UInt64 GetHashCode() const
+    {
+        return std::hash<UInt32>{}(static_cast<UInt32>(DynamicStates));
+    }
 };
 
 struct FRHIGraphicsPipelineDesc
 {
-    FRHIPipelineLayout Layout; // 管线布局（必须有效）
-    FString DebugName;         // 调试名称
+    FRHIPipelineLayout Layout;    // 管线布局（必须有效）
+    FString            DebugName; // 调试名称
 
     // Render pass (nullptr 表示使用 dynamic rendering)
-    void* RenderPass = nullptr; // 暂时使用 void*，后续改为 FRHIRenderPass
-    UInt32 Subpass = 0;
+    void*  RenderPass = nullptr; // 暂时使用 void*，后续改为 FRHIRenderPass
+    UInt32 Subpass    = 0;
 
     // Pipeline state (类似 Vulkan 的组织方式)
-    FRHIPipelineShaderStageState ShaderStageState;
-    FRHIPipelineVertexInputState VertexInputState;
+    FRHIPipelineShaderStageState   ShaderStageState;
+    FRHIPipelineVertexInputState   VertexInputState;
     FRHIPipelineInputAssemblyState InputAssemblyState;
-    FRHIPipelineViewportState ViewportState;
+    FRHIPipelineViewportState      ViewportState;
     FRHIPipelineRasterizationState RasterizationState;
-    FRHIPipelineMultisampleState MultisampleState;
-    FRHIPipelineDepthStencilState DepthStencilState;
-    FRHIPipelineColorBlendState ColorBlendState;
-    FRHIPipelineDynamicState DynamicState;
+    FRHIPipelineMultisampleState   MultisampleState;
+    FRHIPipelineDepthStencilState  DepthStencilState;
+    FRHIPipelineColorBlendState    ColorBlendState;
+    FRHIPipelineDynamicState       DynamicState;
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(
+            Layout.GetHashCode(), std::hash<void*>{}(RenderPass), std::hash<UInt32>{}(Subpass),
+            ShaderStageState.GetHashCode(), VertexInputState.GetHashCode(), InputAssemblyState.GetHashCode(),
+            ViewportState.GetHashCode(), RasterizationState.GetHashCode(), MultisampleState.GetHashCode(),
+            DepthStencilState.GetHashCode(), ColorBlendState.GetHashCode(), DynamicState.GetHashCode());
+    }
 };
 
 struct FRHIComputePipelineDesc
 {
-    FRHIPipelineLayout Layout;      // 管线布局（必须有效）
-    FRHIShaderModule ComputeShader; // 计算着色器（必须有效）
-    FString DebugName;              // 调试名称
+    FRHIPipelineLayout Layout;        // 管线布局（必须有效）
+    FRHIShaderModule   ComputeShader; // 计算着色器（必须有效）
+    FString            DebugName;     // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(Layout.GetHashCode(), ComputeShader.GetHashCode());
+    }
 };
 
 struct FRHIRayTracingPipelineDesc
 {
-    FRHIPipelineLayout Layout;              // 管线布局（必须有效）
+    FRHIPipelineLayout       Layout;        // 管线布局（必须有效）
     TArray<FRHIShaderModule> ShaderModules; // 着色器模块数组
     TArray<UInt32> ShaderGroupIndices;      // 着色器组索引（每5个UInt32表示一个组：type, generalIndex, closestHitIndex,
                                             // anyHitIndex, intersectionIndex）
-    UInt32 MaxRayRecursionDepth = 1;        // 最大光线递归深度
+    UInt32  MaxRayRecursionDepth = 1;       // 最大光线递归深度
     FString DebugName;                      // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        if (ShaderModules.IsEmpty() && ShaderGroupIndices.IsEmpty())
+        {
+            return FHashUtility::CombineHashes(Layout.GetHashCode(), std::hash<UInt32>{}(MaxRayRecursionDepth));
+        }
+        TArray<HashType> Hashes;
+        Hashes.Reserve(ShaderModules.Size() + ShaderGroupIndices.Size() + 2);
+        Hashes.Add(Layout.GetHashCode());
+        for (const auto& ShaderModule : ShaderModules)
+        {
+            Hashes.Add(ShaderModule.GetHashCode());
+        }
+        for (UInt32 Value : ShaderGroupIndices)
+        {
+            Hashes.Add(std::hash<UInt32>{}(Value));
+        }
+        Hashes.Add(std::hash<UInt32>{}(MaxRayRecursionDepth));
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 // 管线类
@@ -480,9 +701,9 @@ public:
     ~FRHIPipeline() = default;
 
     // 允许拷贝和移动
-    FRHIPipeline(const FRHIPipeline& Other) = default;
-    FRHIPipeline& operator=(const FRHIPipeline& Other) = default;
-    FRHIPipeline(FRHIPipeline&& Other) noexcept = default;
+    FRHIPipeline(const FRHIPipeline& Other)                = default;
+    FRHIPipeline& operator=(const FRHIPipeline& Other)     = default;
+    FRHIPipeline(FRHIPipeline&& Other) noexcept            = default;
     FRHIPipeline& operator=(FRHIPipeline&& Other) noexcept = default;
 
     // 检查是否有效
@@ -530,8 +751,13 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
-    FRHIHandle Handle;
-    ERHIPipelineType Type = ERHIPipelineType::Graphics;
+    FRHIHandle         Handle;
+    ERHIPipelineType   Type = ERHIPipelineType::Graphics;
     FRHIPipelineLayout Layout; // 关联的管线布局
 };

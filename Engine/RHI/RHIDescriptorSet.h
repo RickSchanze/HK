@@ -2,64 +2,111 @@
 
 #include "Core/Container/Array.h"
 #include "Core/String/String.h"
+#include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
 
+
 enum class ERHIDescriptorType : UInt32
 {
-    Sampler = 0,                   // 采样器
-    CombinedImageSampler = 1,      // 组合图像采样器
-    SampledImage = 2,              // 采样图像
-    StorageImage = 3,              // 存储图像
-    UniformTexelBuffer = 4,        // 统一纹理缓冲区
-    StorageTexelBuffer = 5,        // 存储纹理缓冲区
-    UniformBuffer = 6,             // 统一缓冲区
-    StorageBuffer = 7,             // 存储缓冲区
-    UniformBufferDynamic = 8,      // 动态统一缓冲区
-    StorageBufferDynamic = 9,      // 动态存储缓冲区
-    InputAttachment = 10,          // 输入附件
+    Sampler                  = 0,  // 采样器
+    CombinedImageSampler     = 1,  // 组合图像采样器
+    SampledImage             = 2,  // 采样图像
+    StorageImage             = 3,  // 存储图像
+    UniformTexelBuffer       = 4,  // 统一纹理缓冲区
+    StorageTexelBuffer       = 5,  // 存储纹理缓冲区
+    UniformBuffer            = 6,  // 统一缓冲区
+    StorageBuffer            = 7,  // 存储缓冲区
+    UniformBufferDynamic     = 8,  // 动态统一缓冲区
+    StorageBufferDynamic     = 9,  // 动态存储缓冲区
+    InputAttachment          = 10, // 输入附件
     AccelerationStructureKHR = 11, // 加速结构（光线追踪）
-    AccelerationStructureNV = 12,  // 加速结构（NV扩展）
-    MutableVALVE = 13,             // 可变描述符（VALVE扩展）
+    AccelerationStructureNV  = 12, // 加速结构（NV扩展）
+    MutableVALVE             = 13, // 可变描述符（VALVE扩展）
 };
 
 enum class ERHIDescriptorPoolCreateFlag : UInt32
 {
-    None = 0,
+    None              = 0,
     FreeDescriptorSet = 1 << 0, // 允许释放描述符集
-    UpdateAfterBind = 1 << 1,   // 允许绑定后更新
+    UpdateAfterBind   = 1 << 1, // 允许绑定后更新
 };
 HK_ENABLE_BITMASK_OPERATORS(ERHIDescriptorPoolCreateFlag)
 
 struct FRHIDescriptorPoolSize
 {
-    ERHIDescriptorType Type = ERHIDescriptorType::UniformBuffer; // 描述符类型
-    UInt32 Count = 0;                                            // 该类型的描述符数量
+    ERHIDescriptorType Type  = ERHIDescriptorType::UniformBuffer; // 描述符类型
+    UInt32             Count = 0;                                 // 该类型的描述符数量
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Type)), std::hash<UInt32>{}(Count));
+    }
 };
 
 struct FRHIDescriptorPoolDesc
 {
-    ERHIDescriptorPoolCreateFlag Flags = ERHIDescriptorPoolCreateFlag::None; // 创建标志
-    UInt32 MaxSets = 0;                                                      // 最大描述符集数量
-    TArray<FRHIDescriptorPoolSize> PoolSizes;                                // 描述符池大小数组
-    FString DebugName;                                                       // 调试名称
+    ERHIDescriptorPoolCreateFlag   Flags   = ERHIDescriptorPoolCreateFlag::None; // 创建标志
+    UInt32                         MaxSets = 0;                                  // 最大描述符集数量
+    TArray<FRHIDescriptorPoolSize> PoolSizes;                                    // 描述符池大小数组
+    FString                        DebugName;                                    // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        if (PoolSizes.IsEmpty())
+        {
+            return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)),
+                                               std::hash<UInt32>{}(MaxSets));
+        }
+        TArray<HashType> Hashes;
+        Hashes.Reserve(PoolSizes.Size() + 2);
+        Hashes.Add(std::hash<UInt32>{}(static_cast<UInt32>(Flags)));
+        Hashes.Add(std::hash<UInt32>{}(MaxSets));
+        for (const auto& PoolSize : PoolSizes)
+        {
+            Hashes.Add(PoolSize.GetHashCode());
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 // 描述符集布局绑定
 struct FRHIDescriptorSetLayoutBinding
 {
-    UInt32 Binding = 0;                    // 绑定索引
-    ERHIDescriptorType DescriptorType = ERHIDescriptorType::UniformBuffer; // 描述符类型
-    UInt32 DescriptorCount = 1;            // 描述符数量
-    UInt32 StageFlags = 0;                 // 着色器阶段标志（ERHIShaderStage 的位掩码）
+    UInt32             Binding         = 0;                                 // 绑定索引
+    ERHIDescriptorType DescriptorType  = ERHIDescriptorType::UniformBuffer; // 描述符类型
+    UInt32             DescriptorCount = 1;                                 // 描述符数量
+    UInt32             StageFlags      = 0; // 着色器阶段标志（ERHIShaderStage 的位掩码）
     // 注意：ImmutableSamplers 将在后续实现
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(Binding),
+                                           std::hash<UInt32>{}(static_cast<UInt32>(DescriptorType)),
+                                           std::hash<UInt32>{}(DescriptorCount), std::hash<UInt32>{}(StageFlags));
+    }
 };
 
 // 描述符集布局描述
 struct FRHIDescriptorSetLayoutDesc
 {
-    TArray<FRHIDescriptorSetLayoutBinding> Bindings; // 绑定数组
-    FString DebugName;                                 // 调试名称
+    TArray<FRHIDescriptorSetLayoutBinding> Bindings;  // 绑定数组
+    FString                                DebugName; // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        if (Bindings.IsEmpty())
+        {
+            return 0;
+        }
+        TArray<HashType> Hashes;
+        Hashes.Reserve(Bindings.Size());
+        for (const auto& Binding : Bindings)
+        {
+            Hashes.Add(Binding.GetHashCode());
+        }
+        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+    }
 };
 
 // 描述符集布局类
@@ -76,9 +123,9 @@ public:
     ~FRHIDescriptorSetLayout() = default;
 
     // 允许拷贝和移动
-    FRHIDescriptorSetLayout(const FRHIDescriptorSetLayout& Other) = default;
-    FRHIDescriptorSetLayout& operator=(const FRHIDescriptorSetLayout& Other) = default;
-    FRHIDescriptorSetLayout(FRHIDescriptorSetLayout&& Other) noexcept = default;
+    FRHIDescriptorSetLayout(const FRHIDescriptorSetLayout& Other)                = default;
+    FRHIDescriptorSetLayout& operator=(const FRHIDescriptorSetLayout& Other)     = default;
+    FRHIDescriptorSetLayout(FRHIDescriptorSetLayout&& Other) noexcept            = default;
     FRHIDescriptorSetLayout& operator=(FRHIDescriptorSetLayout&& Other) noexcept = default;
 
     // 检查是否有效
@@ -114,14 +161,24 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
     FRHIHandle Handle;
 };
 
 struct FRHIDescriptorSetDesc
 {
-    FRHIDescriptorSetLayout Layout; // 描述符集布局（必须有效）
-    FString DebugName;               // 调试名称
+    FRHIDescriptorSetLayout Layout;    // 描述符集布局（必须有效）
+    FString                 DebugName; // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return Layout.GetHashCode();
+    }
 };
 
 // 描述符池类
@@ -138,9 +195,9 @@ public:
     ~FRHIDescriptorPool() = default;
 
     // 允许拷贝和移动
-    FRHIDescriptorPool(const FRHIDescriptorPool& Other) = default;
-    FRHIDescriptorPool& operator=(const FRHIDescriptorPool& Other) = default;
-    FRHIDescriptorPool(FRHIDescriptorPool&& Other) noexcept = default;
+    FRHIDescriptorPool(const FRHIDescriptorPool& Other)                = default;
+    FRHIDescriptorPool& operator=(const FRHIDescriptorPool& Other)     = default;
+    FRHIDescriptorPool(FRHIDescriptorPool&& Other) noexcept            = default;
     FRHIDescriptorPool& operator=(FRHIDescriptorPool&& Other) noexcept = default;
 
     // 检查是否有效
@@ -188,10 +245,15 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
-    FRHIHandle Handle;
-    UInt32 MaxSets = 0;
-    ERHIDescriptorPoolCreateFlag Flags = ERHIDescriptorPoolCreateFlag::None;
+    FRHIHandle                   Handle;
+    UInt32                       MaxSets = 0;
+    ERHIDescriptorPoolCreateFlag Flags   = ERHIDescriptorPoolCreateFlag::None;
 };
 
 // 描述符集类
@@ -208,9 +270,9 @@ public:
     ~FRHIDescriptorSet() = default;
 
     // 允许拷贝和移动
-    FRHIDescriptorSet(const FRHIDescriptorSet& Other) = default;
-    FRHIDescriptorSet& operator=(const FRHIDescriptorSet& Other) = default;
-    FRHIDescriptorSet(FRHIDescriptorSet&& Other) noexcept = default;
+    FRHIDescriptorSet(const FRHIDescriptorSet& Other)                = default;
+    FRHIDescriptorSet& operator=(const FRHIDescriptorSet& Other)     = default;
+    FRHIDescriptorSet(FRHIDescriptorSet&& Other) noexcept            = default;
     FRHIDescriptorSet& operator=(FRHIDescriptorSet&& Other) noexcept = default;
 
     // 检查是否有效
@@ -252,7 +314,12 @@ public:
         return Handle != Other.Handle;
     }
 
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
+    }
+
 private:
-    FRHIHandle Handle;
+    FRHIHandle                Handle;
     const FRHIDescriptorPool* Pool = nullptr; // 关联的描述符池（弱引用）
 };

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Core/String/String.h"
+#include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
+
 
 enum class ERHIBufferUsage : UInt32
 {
@@ -35,6 +37,12 @@ struct FRHIBufferDesc
     ERHIBufferUsage          Usage          = ERHIBufferUsage::None;                 // 使用标志
     ERHIBufferMemoryProperty MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal; // 内存属性
     FString                  DebugName;                                              // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt64>{}(Size), std::hash<UInt32>{}(static_cast<UInt32>(Usage)),
+                                            std::hash<UInt32>{}(static_cast<UInt32>(MemoryProperty)));
+    }
 };
 
 // 简单的 Buffer 值类型，只包含一个 Handle
@@ -123,6 +131,11 @@ public:
     bool operator!=(const FRHIBuffer& Other) const
     {
         return Handle != Other.Handle;
+    }
+
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
     }
 
 private:

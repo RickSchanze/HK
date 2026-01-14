@@ -2,6 +2,7 @@
 
 #include "Core/String/String.h"
 #include "Core/Utility/Macros.h"
+#include "Core/Utility/HashUtility.h"
 #include "RHIHandle.h"
 
 // 命令池创建标志
@@ -19,6 +20,12 @@ struct FRHICommandPoolDesc
     ERHICommandPoolCreateFlag Flags = ERHICommandPoolCreateFlag::None; // 创建标志
     UInt32                    QueueFamilyIndex = 0;                    // 队列族索引
     FString                   DebugName;                               // 调试名称
+
+    UInt64 GetHashCode() const
+    {
+        return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)),
+                                           std::hash<UInt32>{}(QueueFamilyIndex));
+    }
 };
 
 // 命令池类
@@ -77,6 +84,11 @@ public:
     bool operator!=(const FRHICommandPool& Other) const
     {
         return Handle != Other.Handle;
+    }
+
+    UInt64 GetHashCode() const
+    {
+        return Handle.GetHashCode();
     }
 
 private:
