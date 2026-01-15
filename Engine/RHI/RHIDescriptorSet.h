@@ -53,20 +53,13 @@ struct FRHIDescriptorPoolDesc
 
     UInt64 GetHashCode() const
     {
-        if (PoolSizes.IsEmpty())
-        {
-            return FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)),
-                                               std::hash<UInt32>{}(MaxSets));
-        }
-        TArray<HashType> Hashes;
-        Hashes.Reserve(PoolSizes.Size() + 2);
-        Hashes.Add(std::hash<UInt32>{}(static_cast<UInt32>(Flags)));
-        Hashes.Add(std::hash<UInt32>{}(MaxSets));
+        UInt64 hash = FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)),
+                                                   std::hash<UInt32>{}(MaxSets));
         for (const auto& PoolSize : PoolSizes)
         {
-            Hashes.Add(PoolSize.GetHashCode());
+            hash = FHashUtility::CombineHashes(hash, PoolSize.GetHashCode());
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        return hash;
     }
 };
 
@@ -99,13 +92,12 @@ struct FRHIDescriptorSetLayoutDesc
         {
             return 0;
         }
-        TArray<HashType> Hashes;
-        Hashes.Reserve(Bindings.Size());
-        for (const auto& Binding : Bindings)
+        UInt64 hash = Bindings[0].GetHashCode();
+        for (size_t i = 1; i < Bindings.Size(); ++i)
         {
-            Hashes.Add(Binding.GetHashCode());
+            hash = FHashUtility::CombineHashes(hash, Bindings[i].GetHashCode());
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        return hash;
     }
 };
 

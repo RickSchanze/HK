@@ -120,21 +120,20 @@ struct FRHIPipelineLayoutDesc
 
     UInt64 GetHashCode() const
     {
-        if (SetLayouts.IsEmpty() && PushConstantRanges.IsEmpty())
+        UInt64 hash = 0;
+        if (!SetLayouts.IsEmpty())
         {
-            return 0;
-        }
-        TArray<HashType> Hashes;
-        Hashes.Reserve(SetLayouts.Size() + PushConstantRanges.Size());
-        for (const auto& SetLayout : SetLayouts)
-        {
-            Hashes.Add(SetLayout.GetHashCode());
+            hash = SetLayouts[0].GetHashCode();
+            for (size_t i = 1; i < SetLayouts.Size(); ++i)
+            {
+                hash = FHashUtility::CombineHashes(hash, SetLayouts[i].GetHashCode());
+            }
         }
         for (UInt32 Value : PushConstantRanges)
         {
-            Hashes.Add(std::hash<UInt32>{}(Value));
+            hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(Value));
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        return hash;
     }
 };
 
@@ -441,13 +440,16 @@ struct FRHIPipelineShaderStageState
 
     UInt64 GetHashCode() const
     {
-        TArray<HashType> Hashes;
-        Hashes.Reserve(ShaderModules.Size());
-        for (const auto& ShaderModule : ShaderModules)
+        if (ShaderModules.IsEmpty())
         {
-            Hashes.Add(ShaderModule.GetHashCode());
+            return 0;
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        UInt64 hash = ShaderModules[0].GetHashCode();
+        for (size_t i = 1; i < ShaderModules.Size(); ++i)
+        {
+            hash = FHashUtility::CombineHashes(hash, ShaderModules[i].GetHashCode());
+        }
+        return hash;
     }
 };
 
@@ -458,17 +460,20 @@ struct FRHIPipelineVertexInputState
 
     UInt64 GetHashCode() const
     {
-        TArray<HashType> Hashes;
-        Hashes.Reserve(VertexBindings.Size() + VertexAttributes.Size());
-        for (const auto& Binding : VertexBindings)
+        UInt64 hash = 0;
+        if (!VertexBindings.IsEmpty())
         {
-            Hashes.Add(Binding.GetHashCode());
+            hash = VertexBindings[0].GetHashCode();
+            for (size_t i = 1; i < VertexBindings.Size(); ++i)
+            {
+                hash = FHashUtility::CombineHashes(hash, VertexBindings[i].GetHashCode());
+            }
         }
         for (const auto& Attribute : VertexAttributes)
         {
-            Hashes.Add(Attribute.GetHashCode());
+            hash = FHashUtility::CombineHashes(hash, Attribute.GetHashCode());
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        return hash;
     }
 };
 
@@ -491,20 +496,23 @@ struct FRHIPipelineViewportState
 
     UInt64 GetHashCode() const
     {
-        TArray<HashType> Hashes;
-        Hashes.Reserve(Viewports.Size() + Scissors.Size() * 4);
-        for (const auto& Viewport : Viewports)
+        UInt64 hash = 0;
+        if (!Viewports.IsEmpty())
         {
-            Hashes.Add(Viewport.GetHashCode());
+            hash = Viewports[0].GetHashCode();
+            for (size_t i = 1; i < Viewports.Size(); ++i)
+            {
+                hash = FHashUtility::CombineHashes(hash, Viewports[i].GetHashCode());
+            }
         }
         for (const auto& Scissor : Scissors)
         {
-            Hashes.Add(std::hash<Int32>{}(Scissor.X));
-            Hashes.Add(std::hash<UInt32>{}(Scissor.Y));
-            Hashes.Add(std::hash<UInt32>{}(Scissor.Width));
-            Hashes.Add(std::hash<UInt32>{}(Scissor.Height));
+            hash = FHashUtility::CombineHashes(hash, std::hash<Int32>{}(Scissor.X));
+            hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(Scissor.Y));
+            hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(Scissor.Width));
+            hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(Scissor.Height));
         }
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        return hash;
     }
 };
 
@@ -581,26 +589,17 @@ struct FRHIPipelineColorBlendState
 
     UInt64 GetHashCode() const
     {
-        if (BlendAttachments.IsEmpty())
-        {
-            return FHashUtility::CombineHashes(
-                std::hash<bool>{}(bLogicOpEnable), std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)),
-                std::hash<float>{}(BlendConstants[0]), std::hash<float>{}(BlendConstants[1]),
-                std::hash<float>{}(BlendConstants[2]), std::hash<float>{}(BlendConstants[3]));
-        }
-        TArray<HashType> Hashes;
-        Hashes.Reserve(BlendAttachments.Size() + 6);
-        Hashes.Add(std::hash<bool>{}(bLogicOpEnable));
-        Hashes.Add(std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)));
+        UInt64 hash = FHashUtility::CombineHashes(std::hash<bool>{}(bLogicOpEnable),
+                                                   std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)));
         for (const auto& BlendAttachment : BlendAttachments)
         {
-            Hashes.Add(BlendAttachment.GetHashCode());
+            hash = FHashUtility::CombineHashes(hash, BlendAttachment.GetHashCode());
         }
-        Hashes.Add(std::hash<float>{}(BlendConstants[0]));
-        Hashes.Add(std::hash<float>{}(BlendConstants[1]));
-        Hashes.Add(std::hash<float>{}(BlendConstants[2]));
-        Hashes.Add(std::hash<float>{}(BlendConstants[3]));
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        hash = FHashUtility::CombineHashes(hash, std::hash<float>{}(BlendConstants[0]));
+        hash = FHashUtility::CombineHashes(hash, std::hash<float>{}(BlendConstants[1]));
+        hash = FHashUtility::CombineHashes(hash, std::hash<float>{}(BlendConstants[2]));
+        hash = FHashUtility::CombineHashes(hash, std::hash<float>{}(BlendConstants[3]));
+        return hash;
     }
 };
 
@@ -667,23 +666,17 @@ struct FRHIRayTracingPipelineDesc
 
     UInt64 GetHashCode() const
     {
-        if (ShaderModules.IsEmpty() && ShaderGroupIndices.IsEmpty())
-        {
-            return FHashUtility::CombineHashes(Layout.GetHashCode(), std::hash<UInt32>{}(MaxRayRecursionDepth));
-        }
-        TArray<HashType> Hashes;
-        Hashes.Reserve(ShaderModules.Size() + ShaderGroupIndices.Size() + 2);
-        Hashes.Add(Layout.GetHashCode());
+        UInt64 hash = Layout.GetHashCode();
         for (const auto& ShaderModule : ShaderModules)
         {
-            Hashes.Add(ShaderModule.GetHashCode());
+            hash = FHashUtility::CombineHashes(hash, ShaderModule.GetHashCode());
         }
         for (UInt32 Value : ShaderGroupIndices)
         {
-            Hashes.Add(std::hash<UInt32>{}(Value));
+            hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(Value));
         }
-        Hashes.Add(std::hash<UInt32>{}(MaxRayRecursionDepth));
-        return FHashUtility::CombineHashes(Hashes.Data(), Hashes.Size());
+        hash = FHashUtility::CombineHashes(hash, std::hash<UInt32>{}(MaxRayRecursionDepth));
+        return hash;
     }
 };
 
