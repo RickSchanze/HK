@@ -3,3 +3,8 @@
 //
 
 #include "Material.h"
+#include "SharedMaterial.h"
+
+HMaterial::HMaterial() {}
+
+HMaterial::~HMaterial() {}
