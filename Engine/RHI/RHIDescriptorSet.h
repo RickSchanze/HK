@@ -5,7 +5,7 @@
 #include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
-
+#include "RHIPipeline.h"
 
 enum class ERHIDescriptorType : UInt32
 {
@@ -53,8 +53,8 @@ struct FRHIDescriptorPoolDesc
 
     UInt64 GetHashCode() const
     {
-        UInt64 hash = FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)),
-                                                   std::hash<UInt32>{}(MaxSets));
+        UInt64 hash =
+            FHashUtility::CombineHashes(std::hash<UInt32>{}(static_cast<UInt32>(Flags)), std::hash<UInt32>{}(MaxSets));
         for (const auto& PoolSize : PoolSizes)
         {
             hash = FHashUtility::CombineHashes(hash, PoolSize.GetHashCode());
@@ -69,14 +69,14 @@ struct FRHIDescriptorSetLayoutBinding
     UInt32             Binding         = 0;                                 // 绑定索引
     ERHIDescriptorType DescriptorType  = ERHIDescriptorType::UniformBuffer; // 描述符类型
     UInt32             DescriptorCount = 1;                                 // 描述符数量
-    UInt32             StageFlags      = 0; // 着色器阶段标志（ERHIShaderStage 的位掩码）
+    ERHIShaderStage    StageFlags      = ERHIShaderStage::None; // 着色器阶段标志（ERHIShaderStage 的位掩码）
     // 注意：ImmutableSamplers 将在后续实现
 
     UInt64 GetHashCode() const
     {
-        return FHashUtility::CombineHashes(std::hash<UInt32>{}(Binding),
-                                           std::hash<UInt32>{}(static_cast<UInt32>(DescriptorType)),
-                                           std::hash<UInt32>{}(DescriptorCount), std::hash<UInt32>{}(StageFlags));
+        return FHashUtility::CombineHashes(
+            std::hash<UInt32>{}(Binding), std::hash<UInt32>{}(static_cast<UInt32>(DescriptorType)),
+            std::hash<UInt32>{}(DescriptorCount), std::hash<ERHIShaderStage>{}(StageFlags));
     }
 };
 

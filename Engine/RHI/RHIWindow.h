@@ -120,7 +120,7 @@ private:
     bool bIsOpened = false;
 };
 
-class FRHIWindowManager : public FSingleton<FRHIWindowManager>
+class FRHIWindowManager : public TSingleton<FRHIWindowManager>
 {
     friend class FGfxDevice;
     friend class FGfxDeviceVk;

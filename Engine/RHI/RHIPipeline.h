@@ -9,9 +9,9 @@
 #include "RHIHandle.h"
 #include "RHIImage.h"
 
-
 enum class ERHIShaderStage : UInt32
 {
+    None                   = 0,
     Vertex                 = 1 << 0,  // 顶点着色器
     TessellationControl    = 1 << 1,  // 曲面细分控制着色器
     TessellationEvaluation = 1 << 2,  // 曲面细分计算着色器
@@ -590,7 +590,7 @@ struct FRHIPipelineColorBlendState
     UInt64 GetHashCode() const
     {
         UInt64 hash = FHashUtility::CombineHashes(std::hash<bool>{}(bLogicOpEnable),
-                                                   std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)));
+                                                  std::hash<UInt32>{}(static_cast<UInt32>(LogicOp)));
         for (const auto& BlendAttachment : BlendAttachments)
         {
             hash = FHashUtility::CombineHashes(hash, BlendAttachment.GetHashCode());

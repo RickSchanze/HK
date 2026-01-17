@@ -71,7 +71,7 @@ struct FRHIHandle
     }
 };
 
-class FRHIHandleManager : public FSingleton<FRHIHandleManager>
+class FRHIHandleManager : public TSingleton<FRHIHandleManager>
 {
 public:
     constexpr static Int32 MAX_RHI_HANDLE_COUNT = 2048;

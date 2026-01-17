@@ -1,7 +1,14 @@
 #pragma once
 
+#if HK_DEBUG
+struct FSingletonCounter
+{
+    static inline Int32 Counter = 0;
+};
+#endif
+
 template <typename T>
-class FSingleton
+class TSingleton
 {
 private:
     static inline T* Instance = nullptr;
@@ -17,7 +24,7 @@ public:
         }
     }
 
-    virtual ~FSingleton() = default;
+    virtual ~TSingleton() = default;
     virtual void StartUp() {}
     virtual void ShutDown() {}
 
@@ -27,6 +34,9 @@ public:
         {
             Instance = new T();
             Instance->StartUp();
+#if HK_DEBUG
+            ++FSingletonCounter::Counter;
+#endif
         }
         return Instance;
     }

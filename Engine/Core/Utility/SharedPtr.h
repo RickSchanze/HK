@@ -13,13 +13,13 @@ template <typename T>
 struct TDefaultSharedPtrDeleter
 {
     constexpr TDefaultSharedPtrDeleter() noexcept = default;
-    
+
     template <typename U>
     constexpr TDefaultSharedPtrDeleter(const TDefaultSharedPtrDeleter<U>&) noexcept
     {
         static_assert(std::is_convertible_v<U*, T*>, "U* must be convertible to T*");
     }
-    
+
     void operator()(T* Ptr) const noexcept
     {
         Delete(Ptr);
@@ -30,10 +30,10 @@ template <typename T>
 class TSharedPtr
 {
 public:
-    using ElementType = T;
-    using Pointer = T*;
-    using ConstPointer = const T*;
-    using Reference = T&;
+    using ElementType    = T;
+    using Pointer        = T*;
+    using ConstPointer   = const T*;
+    using Reference      = T&;
     using ConstReference = const T&;
 
     // 默认构造
@@ -235,15 +235,40 @@ private:
     friend class TSharedPtr;
 };
 
+// 1. 定义一个适配 Profiler 的分配器
+template <typename T>
+struct TProfilerAllocator
+{
+    using value_type = T;
+
+    TProfilerAllocator() = default;
+    template <typename U>
+    TProfilerAllocator(const TProfilerAllocator<U>&)
+    {
+    }
+
+    T* allocate(std::size_t n)
+    {
+        // 使用你的 Profiler 跟踪分配
+        // 注意：这里分配的是原始字节，shared_ptr 会在上面构造控制块和对象
+        return static_cast<T*>(Malloc(n * sizeof(T)));
+    }
+
+    void deallocate(T* p, std::size_t n)
+    {
+        Free(p);
+    }
+};
+
 // MakeShared 函数 - 使用 New/Delete 进行内存跟踪
 // 使用默认删除器 TDefaultDelete，无状态，零开销
 template <typename T, typename... Args>
 TSharedPtr<T> MakeShared(Args&&... InArgs)
 {
-    // 使用 New 分配内存（会加入 Profiler 跟踪）
-    T* Ptr = New<T>(std::forward<Args>(InArgs)...);
-    // 使用默认删除器（无状态，零开销）
-    return TSharedPtr<T>(std::shared_ptr<T>(Ptr, TDefaultSharedPtrDeleter<T>()));
+    // allocate_shared 会分配一块足够容纳 [控制块 + T对象] 的连续内存
+    // 并且会调用 TProfilerAllocator 进行分配
+    auto StdPtr = std::allocate_shared<T>(TProfilerAllocator<T>(), std::forward<Args>(InArgs)...);
+    return TSharedPtr<T>(StdPtr);
 }
 
 // 从原始指针创建（使用自定义删除器）
@@ -251,6 +276,17 @@ template <typename T, typename Deleter>
 TSharedPtr<T> MakeShared(T* InPtr, Deleter InDeleter)
 {
     return TSharedPtr<T>(std::shared_ptr<T>(InPtr, InDeleter));
+}
+
+// MakeSharedWithDeleter - 使用自定义删除器创建对象
+// 第一个参数为 Deleter，后面是可变参数用于构造对象
+template <typename T, typename Deleter, typename... Args>
+TSharedPtr<T> MakeSharedWithDeleter(Deleter InDeleter, Args&&... InArgs)
+{
+    // 使用 New 分配内存（会加入 Profiler 跟踪）
+    T* Ptr = New<T>(std::forward<Args>(InArgs)...);
+    // 使用自定义删除器
+    return TSharedPtr<T>(std::shared_ptr<T>(Ptr, InDeleter));
 }
 
 // DynamicPointerCast - 类型安全的动态转换

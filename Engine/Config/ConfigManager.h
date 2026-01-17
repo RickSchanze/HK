@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <fstream>
 
-class FConfigManager : public FSingleton<FConfigManager>
+class FConfigManager : public TSingleton<FConfigManager>
 {
 public:
     void StartUp() override;

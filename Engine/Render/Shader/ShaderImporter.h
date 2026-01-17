@@ -38,7 +38,7 @@ public:
     // 导入过程中的临时数据
     struct FImportData
     {
-        FShaderCompileResult CompileResult;
+        FShaderTranslateResult CompileResult;
         HShader*             Shader = nullptr;
     };
 

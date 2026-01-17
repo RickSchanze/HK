@@ -2,7 +2,7 @@
 #include "Core/Singleton/Singleton.h"
 #include "RHI/RHICommandPool.h"
 
-class FRenderContext : public FSingleton<FRenderContext>
+class FRenderContext : public TSingleton<FRenderContext>
 {
 public:
     void StartUp() override;

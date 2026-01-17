@@ -46,7 +46,7 @@ HShader* LoadShaderFromIntermediate(const FAssetMetadata& Metadata)
     }
 
     // 将 FShaderBinaryData 转换为 FShaderCompileResult
-    FShaderCompileResult CompileResult;
+    FShaderTranslateResult CompileResult;
     CompileResult.ErrorMessage   = FString(); // 从 Intermediate 加载时没有错误信息
     CompileResult.ParameterSheet = Intermediate.BinaryData.ParameterSheet;
     CompileResult.VS             = Intermediate.BinaryData.VS;

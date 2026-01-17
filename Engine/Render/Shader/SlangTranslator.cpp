@@ -2,7 +2,7 @@
 // Created by Admin on 2025/12/21.
 //
 
-#include "SlangCompiler.h"
+#include "SlangTranslator.h"
 
 #include "Config/ConfigManager.h"
 #include "Core/Container/FixedArray.h"
@@ -17,18 +17,18 @@
 
 using namespace slang;
 
-class FSlangCompiler::FImpl
+class FSlangTranslator::FImpl
 {
 public:
-    Slang::ComPtr<slang::IGlobalSession> GlobalSession;
-    Slang::ComPtr<slang::ISession> CompileSession;
-    TFixedArray<Int32, (Int32)EShaderCompileTarget::Count> LanguageIndices;
+    Slang::ComPtr<slang::IGlobalSession>                                GlobalSession;
+    Slang::ComPtr<slang::ISession>                                      CompileSession;
+    TFixedArray<Int32, static_cast<Int32>(EShaderCompileTarget::Count)> LanguageIndices;
 
     FImpl()
     {
         slang::createGlobalSession(GlobalSession.writeRef());
         std::ranges::fill(LanguageIndices, -1);
-        const auto Cfg = FConfigManager::Get()->GetConfig<FRenderConfig>();
+        const auto          Cfg = FConfigManager::Get()->GetConfig<FRenderConfig>();
         TArray<const char*> SearchPaths;
         if (Cfg)
         {
@@ -38,34 +38,34 @@ public:
             }
         }
         slang::SessionDesc Desc{};
-        slang::TargetDesc TargetDesc[Int32(EShaderCompileTarget::Count)];
+        slang::TargetDesc  TargetDesc[static_cast<Int32>(EShaderCompileTarget::Count)];
 
         // SPIRV target
-        TargetDesc[0].format = SLANG_SPIRV;
-        TargetDesc[0].profile = GlobalSession->findProfile("glsl_460");
-        LanguageIndices[Int32(EShaderCompileTarget::Spirv)] = 0;
+        TargetDesc[0].format                                             = SLANG_SPIRV;
+        TargetDesc[0].profile                                            = GlobalSession->findProfile("glsl_460");
+        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::Spirv)] = 0;
 
         // GLSL target
-        TargetDesc[1].format = SLANG_GLSL;
-        TargetDesc[1].profile = GlobalSession->findProfile("glsl_460");
-        LanguageIndices[Int32(EShaderCompileTarget::GLSL)] = 1;
+        TargetDesc[1].format                                            = SLANG_GLSL;
+        TargetDesc[1].profile                                           = GlobalSession->findProfile("glsl_460");
+        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::GLSL)] = 1;
 
         // HLSL target
-        TargetDesc[2].format = SLANG_HLSL;
-        TargetDesc[2].profile = GlobalSession->findProfile("sm_6_0");
-        LanguageIndices[Int32(EShaderCompileTarget::HLSL)] = 2;
+        TargetDesc[2].format                                            = SLANG_HLSL;
+        TargetDesc[2].profile                                           = GlobalSession->findProfile("sm_6_0");
+        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::HLSL)] = 2;
 
-        Desc.searchPaths = SearchPaths.Data();
+        Desc.searchPaths     = SearchPaths.Data();
         Desc.searchPathCount = static_cast<SlangInt>(SearchPaths.Size());
-        Desc.targets = TargetDesc;
-        Desc.targetCount = 3;
+        Desc.targets         = TargetDesc;
+        Desc.targetCount     = 3;
         GlobalSession->createSession(Desc, CompileSession.writeRef());
     }
 
     ~FImpl()
     {
         CompileSession = {};
-        GlobalSession = {};
+        GlobalSession  = {};
     }
 
     Int32 GetCompileTargetIndex(EShaderCompileTarget Target)
@@ -74,7 +74,7 @@ public:
         {
             return -1;
         }
-        return LanguageIndices[Int32(Target)];
+        return LanguageIndices[static_cast<Int32>(Target)];
     }
 
     static bool ProcessReflectFixedParameters(slang::ProgramLayout* Layout, FShaderParameterSheet& OutParameterSheet)
@@ -118,8 +118,8 @@ public:
     static bool ProcessReflectPushConstant(slang::ProgramLayout* Layout, FShaderParameterSheet& OutParameterSheet,
                                            FString& OutErrorMessage)
     {
-        const SlangInt GlobalParamCount = Layout->getParameterCount();
-        bool IsPushConstantProcessed = false;
+        const SlangInt GlobalParamCount        = Layout->getParameterCount();
+        bool           IsPushConstantProcessed = false;
 
         for (SlangInt Index = 0; Index < GlobalParamCount; Index++)
         {
@@ -131,7 +131,7 @@ public:
             if (!Variable)
                 continue;
 
-            const auto Category = Param->getCategory();
+            const auto Category   = Param->getCategory();
             const auto TypeLayout = Param->getTypeLayout();
 
             if (Category == slang::PushConstantBuffer)
@@ -142,9 +142,9 @@ public:
                     return false;
                 }
 
-                IsPushConstantProcessed = true;
+                IsPushConstantProcessed      = true;
                 const auto ElementTypeLayout = TypeLayout->getElementTypeLayout();
-                const auto PushConstantKind = ElementTypeLayout->getKind();
+                const auto PushConstantKind  = ElementTypeLayout->getKind();
 
                 if (PushConstantKind != slang::TypeReflection::Kind::Struct)
                 {
@@ -165,9 +165,9 @@ public:
                         continue;
 
                     FShaderPushConstantItem Item;
-                    Item.Name = FName(Var->getName());
+                    Item.Name   = FName(Var->getName());
                     Item.Offset = static_cast<UInt32>(VarLayout->getOffset());
-                    Item.Size = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize());
+                    Item.Size   = static_cast<UInt32>(VarLayout->getTypeLayout()->getSize());
 
                     OutParameterSheet.PushConstants.Add(Item);
                 }
@@ -178,14 +178,15 @@ public:
     }
 
     bool LoadShaderModule(const FString& ShaderPath, Slang::ComPtr<slang::IBlob>& OutDiagnostics,
-                          slang::IModule*& OutModule)
+                          slang::IModule*& OutModule) const
     {
         OutModule = CompileSession->loadModule(ShaderPath.CStr(), OutDiagnostics.writeRef());
         if (OutModule != nullptr)
         {
             if (OutDiagnostics != nullptr)
             {
-                HK_LOG_WARN(ELogcat::Shader, "编译 {} 警告: \n{}", ShaderPath, (const char*)OutDiagnostics->getBufferPointer());
+                HK_LOG_WARN(ELogcat::Shader, "编译 {} 警告: \n{}", ShaderPath,
+                            static_cast<const char*>(OutDiagnostics->getBufferPointer()));
             }
             return true;
         }
@@ -213,10 +214,10 @@ public:
     }
 
     bool CreateProgram(slang::IModule* Module, slang::IEntryPoint* VertexEntry, slang::IEntryPoint* FragmentEntry,
-                       Slang::ComPtr<slang::IComponentType>& OutProgram, FString& OutErrorMessage)
+                       Slang::ComPtr<slang::IComponentType>& OutProgram, FString& OutErrorMessage) const
     {
         TArray<slang::IComponentType*> Components = {Module, VertexEntry, FragmentEntry};
-        Slang::ComPtr<slang::IBlob> Diagnostics;
+        Slang::ComPtr<slang::IBlob>    Diagnostics;
         CompileSession->createCompositeComponentType(Components.Data(), static_cast<SlangInt>(Components.Size()),
                                                      OutProgram.writeRef(), Diagnostics.writeRef());
         if (Diagnostics)
@@ -249,7 +250,7 @@ public:
     bool GetEntryPointIndices(slang::ProgramLayout* Layout, SlangInt& OutVertexIndex, SlangInt& OutFragmentIndex,
                               FString& OutErrorMessage)
     {
-        OutVertexIndex = -1;
+        OutVertexIndex   = -1;
         OutFragmentIndex = -1;
 
         const SlangInt EntryPointCount = Layout->getEntryPointCount();
@@ -282,7 +283,7 @@ public:
                             Slang::ComPtr<slang::IBlob>& OutCode, FString& OutErrorMessage)
     {
         Slang::ComPtr<slang::IBlob> Diagnostics;
-        SlangResult Result =
+        SlangResult                 Result =
             Program->getEntryPointCode(StageIndex, TargetIndex, OutCode.writeRef(), Diagnostics.writeRef());
         if (SLANG_FAILED(Result))
         {
@@ -299,19 +300,19 @@ public:
                          EShaderCompileTarget Target, TArray<UInt32>& OutVS, TArray<UInt32>& OutFS)
     {
         // 写入顶点着色器代码
-        const auto VertexCodeSize = static_cast<UInt32>(VertexCode->getBufferSize());
+        const auto   VertexCodeSize  = static_cast<UInt32>(VertexCode->getBufferSize());
         const UInt32 VertexWordCount = VertexCodeSize / sizeof(UInt32);
-        const auto* VertexData = static_cast<const UInt32*>(VertexCode->getBufferPointer());
+        const auto*  VertexData      = static_cast<const UInt32*>(VertexCode->getBufferPointer());
         OutVS.Append(VertexData, VertexData + VertexWordCount);
 
         // 写入片段着色器代码
-        const auto FragmentCodeSize = static_cast<UInt32>(FragmentCode->getBufferSize());
+        const auto   FragmentCodeSize  = static_cast<UInt32>(FragmentCode->getBufferSize());
         const UInt32 FragmentWordCount = FragmentCodeSize / sizeof(UInt32);
-        const auto* FragmentData = static_cast<const UInt32*>(FragmentCode->getBufferPointer());
+        const auto*  FragmentData      = static_cast<const UInt32*>(FragmentCode->getBufferPointer());
         OutFS.Append(FragmentData, FragmentData + FragmentWordCount);
     }
 
-    void WriteDebugOutput(const FShaderCompileRequest& Request, slang::IComponentType* Program,
+    void WriteDebugOutput(const FShaderTranslatorRequest& Request, slang::IComponentType* Program,
                           SlangInt VertexStageIndex, SlangInt FragmentStageIndex)
     {
         if (Request.DebugOutputTarget == EShaderCompileTarget::Count || Request.DebugOutputPath.IsEmpty())
@@ -391,11 +392,11 @@ public:
         }
     }
 
-    bool RequestCompileGraphicsShader(const FShaderCompileRequest& Request, FShaderCompileResult& OutResult)
+    bool RequestCompileGraphicsShader(const FShaderTranslatorRequest& Request, FShaderTranslateResult& OutResult)
     {
         // 加载着色器模块
         Slang::ComPtr<slang::IBlob> Diagnostics;
-        slang::IModule* Module = nullptr;
+        slang::IModule*             Module = nullptr;
         if (!LoadShaderModule(Request.ShaderPath, Diagnostics, Module))
         {
             OutResult.ErrorMessage = Diagnostics && Diagnostics->getBufferSize()
@@ -436,7 +437,7 @@ public:
         }
 
         // 6. 获取入口点索引
-        SlangInt VertexStageIndex = -1;
+        SlangInt VertexStageIndex   = -1;
         SlangInt FragmentStageIndex = -1;
         if (!GetEntryPointIndices(ProgLayout, VertexStageIndex, FragmentStageIndex, OutResult.ErrorMessage))
         {
@@ -453,7 +454,7 @@ public:
 
         // 8. 编译顶点着色器
         Slang::ComPtr<slang::IBlob> VertexCode;
-        FString VertexErrorMessage;
+        FString                     VertexErrorMessage;
         if (!CompileShaderStage(Program, VertexStageIndex, TargetIndex, VertexCode, VertexErrorMessage))
         {
             OutResult.ErrorMessage = FString("编译顶点着色器失败: ") + VertexErrorMessage;
@@ -462,7 +463,7 @@ public:
 
         // 9. 编译片段着色器
         Slang::ComPtr<slang::IBlob> FragmentCode;
-        FString FragmentErrorMessage;
+        FString                     FragmentErrorMessage;
         if (!CompileShaderStage(Program, FragmentStageIndex, TargetIndex, FragmentCode, FragmentErrorMessage))
         {
             OutResult.ErrorMessage = FString("编译片段着色器失败: ") + FragmentErrorMessage;
@@ -479,18 +480,19 @@ public:
     }
 };
 
-void FSlangCompiler::StartUp()
+void FSlangTranslator::StartUp()
 {
     Impl = new FImpl();
 }
 
-void FSlangCompiler::ShutDown()
+void FSlangTranslator::ShutDown()
 {
     delete Impl;
     Impl = nullptr;
 }
 
-bool FSlangCompiler::RequestCompileGraphicsShader(const FShaderCompileRequest& Request, FShaderCompileResult& OutResult)
+bool FSlangTranslator::RequestCompileGraphicsShader(const FShaderTranslatorRequest& Request,
+                                                    FShaderTranslateResult&         OutResult)
 {
     if (!Impl)
     {

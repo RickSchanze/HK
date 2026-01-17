@@ -36,6 +36,11 @@ public:
         return Name;
     }
 
+    virtual UInt64 GetHashCode() const
+    {
+        return std::hash<const HObject*>{}(this);
+    }
+
 protected:
     HPROPERTY()
     FName Name;
@@ -48,7 +53,7 @@ private:
     EObjectFlags Flags = EObjectFlags::None;
 };
 
-class HK_API FObjectArray : public FSingleton<FObjectArray>
+class HK_API FObjectArray : public TSingleton<FObjectArray>
 {
 public:
     void StartUp() override;

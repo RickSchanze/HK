@@ -46,7 +46,7 @@ void FEngineLoop::Init()
     CompileRequest.Target = EShaderCompileTarget::GLSL;
     CompileRequest.DebugOutputTarget = EShaderCompileTarget::GLSL;
     CompileRequest.DebugOutputPath = "F:/Project/HK/Builtin/Shader/SimpleShading.debug.glsl";
-    FShaderCompileResult CompileResult;
+    FShaderTranslateResult CompileResult;
     FSlangCompiler::GetRef().RequestCompileGraphicsShader(CompileRequest, CompileResult);
 }
 

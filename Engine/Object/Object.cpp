@@ -66,7 +66,7 @@ void FObjectArray::StartUp()
 
 void FObjectArray::ShutDown()
 {
-    FSingleton<FObjectArray>::ShutDown();
+    TSingleton<FObjectArray>::ShutDown();
 }
 
 HObject* FObjectArray::CreateObject(FType ObjectType, FName NewName)

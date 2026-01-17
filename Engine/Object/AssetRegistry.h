@@ -91,7 +91,7 @@ public:
     UInt64 IntermediateHash = 0; // 中间文件的 Hash 值，用于快速校验
 };
 
-class FAssetRegistry : public FSingleton<FAssetRegistry>
+class FAssetRegistry : public TSingleton<FAssetRegistry>
 {
 public:
     FAssetRegistry() : CachedMetadata(512) {}

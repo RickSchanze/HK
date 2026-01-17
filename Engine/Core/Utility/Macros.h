@@ -80,6 +80,7 @@
 
 #include <mutex>
 #include <shared_mutex>
+#include <utility>
 typedef int8_t   Int8;
 typedef int16_t  Int16;
 typedef int32_t  Int32;
@@ -153,3 +154,50 @@ using AutoLock = std::scoped_lock<Args...>;
 // 注意: 必须配合 #include 指令使用，不能单独使用
 #define INCLUDE_GENERATED_HELPER(Name) #Name ".generated.h"
 #define INCLUDE_GENERATED(Name) INCLUDE_GENERATED_HELPER(Name)
+
+// HK_DEFER 宏 - 延迟执行代码（类似 Go 语言的 defer）
+// 使用方法: HK_DEFER([capture] { /* code */ });
+// 代码会在当前作用域结束时自动执行
+// 实现原理：使用 RAII，创建一个临时对象，在析构时执行 lambda
+namespace HKDeferImpl
+{
+template <typename F>
+class FDeferHelper
+{
+public:
+    explicit FDeferHelper(F&& Func) : Func(std::forward<F>(Func))
+    {
+    }
+
+    ~FDeferHelper()
+    {
+        Func();
+    }
+
+    // 禁止拷贝和移动
+    FDeferHelper(const FDeferHelper&)            = delete;
+    FDeferHelper& operator=(const FDeferHelper&) = delete;
+    FDeferHelper(FDeferHelper&&)                 = delete;
+    FDeferHelper& operator=(FDeferHelper&&)      = delete;
+
+private:
+    F Func;
+};
+
+// 辅助函数用于推导模板参数
+template <typename F>
+FDeferHelper<F> MakeDeferHelper(F&& Func)
+{
+    return FDeferHelper<F>(std::forward<F>(Func));
+}
+} // namespace HKDeferImpl
+
+// HK_DEFER 宏实现
+// 使用 __COUNTER__ 或 __LINE__ 确保变量名唯一
+#ifdef _MSC_VER
+#define HK_DEFER_IMPL(Line) auto HK_DEFER_VAR_##Line = HKDeferImpl::MakeDeferHelper
+#else
+#define HK_DEFER_IMPL(Line) auto HK_DEFER_VAR_##Line = HKDeferImpl::MakeDeferHelper
+#endif
+
+#define HK_DEFER(...) HK_DEFER_IMPL(__COUNTER__)(__VA_ARGS__)

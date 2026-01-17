@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <tracy/Tracy.hpp>
-#include <tracy/TracyLock.hpp>
 #include <utility>
 
 // Zone作用域宏 - 自动跟踪函数作用域

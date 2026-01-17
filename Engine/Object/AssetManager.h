@@ -6,7 +6,7 @@
 #include "Core/Utility/Uuid.h"
 #include "Object.h"
 
-class FAssetManager : public FSingleton<FAssetManager>
+class FAssetManager : public TSingleton<FAssetManager>
 {
 public:
     HObject* LoadAsset(FStringView AssetPath);

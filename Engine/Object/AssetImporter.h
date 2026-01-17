@@ -64,7 +64,7 @@ public:
     virtual TSharedPtr<FAssetMetadata> Create() = 0;
 };
 
-class FGlobalAssetMetadataFactory : public FSingleton<FGlobalAssetMetadataFactory>
+class FGlobalAssetMetadataFactory : public TSingleton<FGlobalAssetMetadataFactory>
 {
 public:
     void StartUp() override;
