@@ -23,7 +23,8 @@ bool HShader::Compile(TFixedArray<FRHIShaderModule, 2>& OutShaderModules, bool C
     OutShaderModules[1] = GetGfxDeviceRef().CreateShaderModule(Desc, ERHIShaderStage::Fragment);
     if (ClearCode)
     {
-        ShaderCompileResult.
+        ShaderCompileResult.VS = {};
+        ShaderCompileResult.FS = {};
     }
     return true;
 }
