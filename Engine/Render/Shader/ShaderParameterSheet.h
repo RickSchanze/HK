@@ -45,6 +45,9 @@ public:
     // Shader的PushConstant参数
     HPROPERTY()
     TArray<FShaderPushConstantItem> PushConstants;
+
+    // 参数是否有效
+    bool bIsValid = false;
 };
 
 HSTRUCT()

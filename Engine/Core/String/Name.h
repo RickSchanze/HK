@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Core/Utility/Macros.h"
-#include "Core/String/String.h"
 #include "Core/Serialization/Serialization.h"
+#include "Core/String/String.h"
+#include "Core/Utility/Macros.h"
 #include <cereal/types/string.hpp>
 #include <cstdint>
 
@@ -30,7 +30,7 @@ public:
         return ID;
     }
 
-    const FString& GetString() const;
+    const FString&     GetString() const;
     const std::string& GetStdString() const;
 
     bool IsValid() const noexcept
@@ -77,8 +77,8 @@ public:
     operator FStringView() const;
 
     // 全局字符串ID表管理
-    static void ClearNameTable();
-    static size_t GetNameTableSize();
+    static void                                        ClearNameTable();
+    static size_t                                      GetNameTableSize();
     static const std::unordered_map<FIDType, FString>& GetNameTable();
 
     template <typename Archive>
@@ -102,15 +102,20 @@ private:
     {
         std::unordered_map<FString, FIDType> StringToID;
         std::unordered_map<FIDType, FString> IDToString;
-        FIDType NextID = 1;
-        std::mutex Mutex;
+        FIDType                              NextID = 1;
+        std::mutex                           Mutex;
     };
 
     static FNameTable& GetNameTableInstance();
-    static FIDType GetOrCreateID(const FString& InStr);
+    static FIDType     GetOrCreateID(const FString& InStr);
 };
 
 namespace Names
 {
 inline auto None = FName("");
-}
+// SPN: Shader Parameter Name
+inline auto SPN_GlobalCamera = FName("GCamera");
+inline auto SPN_GlobalModel  = FName("GModel");
+inline auto SPN_TexturePool  = FName("GTexturePool");
+inline auto SPN_SamplerPool  = FName("GSamplerPool");
+} // namespace Names

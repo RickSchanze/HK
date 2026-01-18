@@ -241,9 +241,11 @@ public:
 
         if (!ProcessReflectPushConstant(Layout, OutParameterSheet, OutErrorMessage))
         {
+            OutParameterSheet.bIsValid = false;
             return false;
         }
 
+        OutParameterSheet.bIsValid = true;
         return true;
     }
 
