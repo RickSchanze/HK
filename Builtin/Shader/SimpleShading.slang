@@ -8,9 +8,9 @@ DECL_SAMPLER_POOL_PARAM;
 // [新增] 定义 PushConstants 结构
 struct InstancePushConstants
 {
-    uint ModelID;            // 用于去 GModel 查矩阵
-    uint MainTextureID;      // 用于去 GTexturePool 查纹理
-    uint MainSamplerStateID; // 用于去 GSamplerPool 查采样器
+    uint16 ModelID;            // 用于去 GModel 查矩阵
+    uint16 MainTextureID;      // 用于去 GTexturePool 查纹理
+    uint16 MainSamplerStateID; // 用于去 GSamplerPool 查采样器
 };
 // 定义 PushConstant (不需要 binding 号，因为它不是 DescriptorSet 的一部分)
 [[vk::push_constant]]

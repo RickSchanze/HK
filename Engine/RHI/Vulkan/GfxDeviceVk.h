@@ -10,6 +10,7 @@
 #include "RHI/RHIDescriptorSet.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
+#include "RHI/RHISampler.h"
 #include "RHI/RHIPipeline.h"
 #include "RHI/RHISync.h"
 #include <vulkan/vulkan.h>
@@ -34,6 +35,8 @@ public:
     void DestroyImage(FRHIImage& Image) override;
     FRHIImageView CreateImageView(const FRHIImage& Image, const FRHIImageViewDesc& ViewCreateInfo) override;
     void DestroyImageView(FRHIImageView& ImageView) override;
+    FRHISampler CreateSampler(const FRHISamplerDesc& SamplerCreateInfo) override;
+    void DestroySampler(FRHISampler& Sampler) override;
 #pragma endregion
 
 #pragma region Descriptor操作
@@ -44,6 +47,8 @@ public:
     FRHIDescriptorSet AllocateDescriptorSet(const FRHIDescriptorPool& Pool,
                                             const FRHIDescriptorSetDesc& SetCreateInfo) override;
     void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) override;
+    void UpdateDescriptorSet(const FRHIDescriptorSet& DescriptorSet,
+                             const TArray<FRHIWriteDescriptorSet>& WriteDescriptorSets) override;
 #pragma endregion
 
 #pragma region Pipeline操作
@@ -281,6 +286,26 @@ private:
     static vk::CompareOp ConvertCompareOp(ERHICompareOp Op);
 
     /**
+     * 转换 ERHIFilter 到 VkFilter
+     */
+    static vk::Filter ConvertFilter(ERHIFilter Filter);
+
+    /**
+     * 转换 ERHISamplerAddressMode 到 VkSamplerAddressMode
+     */
+    static vk::SamplerAddressMode ConvertSamplerAddressMode(ERHISamplerAddressMode AddressMode);
+
+    /**
+     * 转换 ERHISamplerBorderColor 到 VkBorderColor
+     */
+    static vk::BorderColor ConvertSamplerBorderColor(ERHISamplerBorderColor BorderColor);
+
+    /**
+     * 转换 ERHISamplerMipmapMode 到 VkSamplerMipmapMode
+     */
+    static vk::SamplerMipmapMode ConvertSamplerMipmapMode(ERHISamplerMipmapMode MipmapMode);
+
+    /**
      * 转换 ERHIStencilOp 到 VkStencilOp
      */
     static vk::StencilOp ConvertStencilOp(ERHIStencilOp Op);
@@ -338,6 +363,7 @@ private:
     void SetDebugName(vk::Buffer ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::Image ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::ImageView ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
+    void SetDebugName(vk::Sampler ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::DescriptorSetLayout ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::DescriptorPool ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;
     void SetDebugName(vk::DescriptorSet ObjectHandle, vk::ObjectType ObjectType, const FStringView& Name) const;

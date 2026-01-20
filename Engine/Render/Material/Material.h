@@ -1,9 +1,9 @@
 #pragma once
+#include "Core/Container/Buffer.h"
 #include "Core/Utility/SharedPtr.h"
 #include "Object/Asset.h"
 #include "Object/ObjectPtr.h"
 
-#include "Core/Container/Buffer.h"
 #include "Material.generated.h"
 
 class HTexture;
@@ -73,7 +73,7 @@ public:
      * @param InName
      * @param InTexture
      */
-    void BindTexture(const FName& InName, const HTexture* InTexture);
+    void BindTexture(const FName& InName, HTexture* InTexture);
 
     /**
      * 绑定一个模型矩阵的索引

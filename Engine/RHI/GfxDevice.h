@@ -16,6 +16,8 @@ struct FRHIImageDesc;
 class FRHIImage;
 struct FRHIImageViewDesc;
 class FRHIImageView;
+struct FRHISamplerDesc;
+class FRHISampler;
 struct FRHIDescriptorPoolDesc;
 class FRHIDescriptorPool;
 struct FRHIDescriptorSetLayoutDesc;
@@ -100,6 +102,14 @@ public:
     // 销毁图像视图资源
     // 必须通过此方法销毁，不能直接调用 ImageView.Destroy()
     virtual void DestroyImageView(FRHIImageView& ImageView) = 0;
+
+    // 创建采样器
+    // 采样器定义了如何从纹理中采样数据
+    virtual FRHISampler CreateSampler(const FRHISamplerDesc& SamplerCreateInfo) = 0;
+
+    // 销毁采样器资源
+    // 必须通过此方法销毁，不能直接调用 Sampler.Destroy()
+    virtual void DestroySampler(FRHISampler& Sampler) = 0;
 #pragma endregion
 
 #pragma region Descriptor操作
@@ -134,6 +144,13 @@ public:
     // @param Pool 描述符池
     // @param DescriptorSet 要释放的描述符集
     virtual void FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescriptorSet& DescriptorSet) = 0;
+
+    // 更新描述符集
+    // 将资源（图像、缓冲区等）绑定到描述符集
+    // @param DescriptorSet 要更新的描述符集
+    // @param WriteDescriptorSets 描述符写入信息数组
+    virtual void UpdateDescriptorSet(const FRHIDescriptorSet& DescriptorSet,
+                                     const TArray<FRHIWriteDescriptorSet>& WriteDescriptorSets) = 0;
 #pragma endregion
 
 #pragma region Pipeline操作
@@ -258,7 +275,7 @@ public:
     // @param Fence 栅栏（可选，用于等待提交完成）
     // @return 是否提交成功
     virtual bool SubmitCommandBuffer(FRHICommandBuffer& CommandBuffer, const TArray<FRHISemaphore>& WaitSemaphores,
-                                      const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence) = 0;
+                                     const TArray<FRHISemaphore>& SignalSemaphores, const FRHIFence& Fence) = 0;
 #pragma endregion
 
 #pragma region "窗口操作"

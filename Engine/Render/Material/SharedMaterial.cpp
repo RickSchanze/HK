@@ -53,9 +53,9 @@ void FRHIPipelineResourcePool::ReleasePipelineLayout(const UInt64& PipelineLayou
 
 FRHIDescriptorSet FRHIPipelineResourcePool::RequestCommonDescriptorSet(ECommonDescriptorSetIndex Index)
 {
-    if (ComonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet.IsValid())
+    if (CommonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet.IsValid())
     {
-        return ComonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet;
+        return CommonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet;
     }
     const FRHIDescriptorSetLayout SetLayout = RequestCommonDescriptorSetLayout(Index);
     FRHIDescriptorSetDesc         DescriptorSetDesc;
@@ -63,16 +63,16 @@ FRHIDescriptorSet FRHIPipelineResourcePool::RequestCommonDescriptorSet(ECommonDe
     const char* DebugNameLUT[]  = {"DescSet_Camera", "DescSet_Model", "DescSet_StaticResource"};
     DescriptorSetDesc.DebugName = DebugNameLUT[static_cast<Int32>(Index)];
 
-    ComonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet =
+    CommonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet =
         GetGfxDeviceRef().AllocateDescriptorSet(SelectDescriptorPool(Index), DescriptorSetDesc);
-    return ComonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet;
+    return CommonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet;
 }
 
 FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayout(ECommonDescriptorSetIndex Index)
 {
-    if (ComonDescriptorSets[static_cast<Int32>(Index)].Layout.IsValid())
+    if (CommonDescriptorSets[static_cast<Int32>(Index)].Layout.IsValid())
     {
-        return ComonDescriptorSets[static_cast<Int32>(Index)].Layout;
+        return CommonDescriptorSets[static_cast<Int32>(Index)].Layout;
     }
     FRHIDescriptorSetLayoutDesc DescriptorSetDesc;
     auto&                       Device = GetGfxDeviceRef();
@@ -87,7 +87,7 @@ FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayo
             Binding.DescriptorCount = 1;
             Binding.StageFlags      = ERHIShaderStage::Vertex | ERHIShaderStage::Fragment;
             DescriptorSetDesc.Bindings.Add(Binding);
-            ComonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         break;
         case ECommonDescriptorSetIndex::Model:
@@ -99,7 +99,7 @@ FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayo
             Binding.DescriptorCount = 1;
             Binding.StageFlags      = ERHIShaderStage::Vertex;
             DescriptorSetDesc.Bindings.Add(Binding);
-            ComonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         break;
         case ECommonDescriptorSetIndex::StaticResource:
@@ -117,13 +117,13 @@ FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayo
             Binding1.DescriptorCount = HK_RENDER_BINDLESS_MAX_SAMPLERS;
             Binding1.StageFlags      = ERHIShaderStage::Vertex | ERHIShaderStage::Fragment;
             DescriptorSetDesc.Bindings.Add(Binding1);
-            ComonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         default:
             HK_LOG_FATAL(ELogcat::Render, "Invalid CommonDescriptorSetIndex {}", static_cast<Int32>(Index));
             break;
     }
-    return ComonDescriptorSets[static_cast<Int32>(Index)].Layout;
+    return CommonDescriptorSets[static_cast<Int32>(Index)].Layout;
 }
 
 void FRHIPipelineResourcePool::StartUp()
@@ -141,10 +141,10 @@ void FRHIPipelineResourcePool::ClearCommonDescriptorSets()
     for (Int32 Index = static_cast<Int32>(ECommonDescriptorSetIndex::Camera);
          Index < static_cast<Int32>(ECommonDescriptorSetIndex::Count); ++Index)
     {
-        GetGfxDeviceRef().FreeDescriptorSet(StaticResourcesDescriptorPool, ComonDescriptorSets[Index].DescriptorSet);
-        GetGfxDeviceRef().DestroyDescriptorSetLayout(ComonDescriptorSets[Index].Layout);
+        GetGfxDeviceRef().FreeDescriptorSet(StaticResourcesDescriptorPool, CommonDescriptorSets[Index].DescriptorSet);
+        GetGfxDeviceRef().DestroyDescriptorSetLayout(CommonDescriptorSets[Index].Layout);
     }
-    ComonDescriptorSets = {};
+    CommonDescriptorSets = {};
 }
 
 void FRHIPipelineResourcePool::CreateGlobalDescriptorPools()
@@ -227,11 +227,12 @@ FSharedMaterial::FSharedMaterial(const HShader* InShader)
     FRHIShaderModule VSModule = ShaderModules[0];
     FRHIShaderModule FSModule = ShaderModules[1];
 
-    HK_DEFER([&VSModule, &FSModule]
-    {
-        GetGfxDeviceRef().DestroyShaderModule(VSModule);
-        GetGfxDeviceRef().DestroyShaderModule(FSModule);
-    });
+    HK_DEFER(
+        [&VSModule, &FSModule]
+        {
+            GetGfxDeviceRef().DestroyShaderModule(VSModule);
+            GetGfxDeviceRef().DestroyShaderModule(FSModule);
+        });
 
     // 2. 根据 ParameterSheet 配置 DescriptorSetLayout
     FRHIPipelineLayoutDesc PipelineLayoutDesc;

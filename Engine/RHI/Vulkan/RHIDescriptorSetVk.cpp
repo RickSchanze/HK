@@ -333,6 +333,150 @@ void FGfxDeviceVk::FreeDescriptorSet(const FRHIDescriptorPool& Pool, FRHIDescrip
     HK_LOG_INFO(ELogcat::RHI, "描述符集已释放");
 }
 
+void FGfxDeviceVk::UpdateDescriptorSet(const FRHIDescriptorSet& DescriptorSet,
+                                        const TArray<FRHIWriteDescriptorSet>& WriteDescriptorSets)
+{
+    if (!DescriptorSet.IsValid())
+    {
+        HK_LOG_WARN(ELogcat::RHI, "尝试更新无效的描述符集");
+        return;
+    }
+
+    if (WriteDescriptorSets.IsEmpty())
+    {
+        HK_LOG_WARN(ELogcat::RHI, "描述符写入信息数组为空");
+        return;
+    }
+
+    try
+    {
+        // 获取 Vulkan 描述符集句柄
+        const auto VulkanSet = vk::DescriptorSet(DescriptorSet.Handle.Cast<VkDescriptorSet>());
+
+        // 转换描述符写入信息
+        TArray<vk::WriteDescriptorSet> VulkanWrites;
+        TArray<vk::DescriptorImageInfo> ImageInfos;
+        TArray<vk::DescriptorBufferInfo> BufferInfos;
+
+        VulkanWrites.Reserve(WriteDescriptorSets.Size());
+
+        for (const auto& Write : WriteDescriptorSets)
+        {
+            vk::WriteDescriptorSet VulkanWrite;
+            VulkanWrite.dstSet = VulkanSet;
+            VulkanWrite.dstBinding = Write.DstBinding;
+            VulkanWrite.dstArrayElement = Write.DstArrayElement;
+            VulkanWrite.descriptorCount = Write.DescriptorCount;
+            VulkanWrite.descriptorType = ConvertDescriptorType(Write.DescriptorType);
+
+            // 根据描述符类型填充相应的信息
+            switch (Write.DescriptorType)
+            {
+                case ERHIDescriptorType::Sampler:
+                case ERHIDescriptorType::CombinedImageSampler:
+                case ERHIDescriptorType::SampledImage:
+                case ERHIDescriptorType::StorageImage:
+                case ERHIDescriptorType::InputAttachment:
+                {
+                    // 处理图像信息
+                    if (Write.ImageInfo.IsEmpty())
+                    {
+                        HK_LOG_ERROR(ELogcat::RHI, "图像描述符类型需要 ImageInfo，但数组为空");
+                        continue;
+                    }
+
+                    const size_t ImageInfoStartIndex = ImageInfos.Size();
+                    ImageInfos.Reserve(ImageInfos.Size() + Write.ImageInfo.Size());
+
+                    for (const auto& ImageInfo : Write.ImageInfo)
+                    {
+                        vk::DescriptorImageInfo VulkanImageInfo;
+                        if (ImageInfo.Sampler.IsValid())
+                        {
+                            VulkanImageInfo.sampler = vk::Sampler(ImageInfo.Sampler.Handle.Cast<VkSampler>());
+                        }
+                        if (ImageInfo.ImageView.IsValid())
+                        {
+                            VulkanImageInfo.imageView = vk::ImageView(ImageInfo.ImageView.Handle.Cast<VkImageView>());
+                        }
+                        VulkanImageInfo.imageLayout = ConvertImageLayout(ImageInfo.ImageLayout);
+                        ImageInfos.Add(VulkanImageInfo);
+                    }
+
+                    VulkanWrite.pImageInfo = ImageInfos.Data() + ImageInfoStartIndex;
+                    break;
+                }
+                case ERHIDescriptorType::UniformBuffer:
+                case ERHIDescriptorType::StorageBuffer:
+                case ERHIDescriptorType::UniformBufferDynamic:
+                case ERHIDescriptorType::StorageBufferDynamic:
+                {
+                    // 处理缓冲区信息
+                    if (Write.BufferInfo.IsEmpty())
+                    {
+                        HK_LOG_ERROR(ELogcat::RHI, "缓冲区描述符类型需要 BufferInfo，但数组为空");
+                        continue;
+                    }
+
+                    const size_t BufferInfoStartIndex = BufferInfos.Size();
+                    BufferInfos.Reserve(BufferInfos.Size() + Write.BufferInfo.Size());
+
+                    for (const auto& BufferInfo : Write.BufferInfo)
+                    {
+                        vk::DescriptorBufferInfo VulkanBufferInfo;
+                        if (BufferInfo.Buffer.IsValid())
+                        {
+                            VulkanBufferInfo.buffer = vk::Buffer(BufferInfo.Buffer.Handle.Cast<VkBuffer>());
+                        }
+                        VulkanBufferInfo.offset = BufferInfo.Offset;
+                        VulkanBufferInfo.range = BufferInfo.Range == 0 ? VK_WHOLE_SIZE : BufferInfo.Range;
+                        BufferInfos.Add(VulkanBufferInfo);
+                    }
+
+                    VulkanWrite.pBufferInfo = BufferInfos.Data() + BufferInfoStartIndex;
+                    break;
+                }
+                default:
+                {
+                    HK_LOG_WARN(ELogcat::RHI, "不支持的描述符类型: {}，跳过", static_cast<UInt32>(Write.DescriptorType));
+                    continue;
+                }
+            }
+
+            VulkanWrites.Add(VulkanWrite);
+        }
+
+        if (VulkanWrites.IsEmpty())
+        {
+            HK_LOG_WARN(ELogcat::RHI, "没有有效的描述符写入信息");
+            return;
+        }
+
+        // 更新描述符集
+        try
+        {
+            Device.updateDescriptorSets(static_cast<uint32_t>(VulkanWrites.Size()), VulkanWrites.Data(), 0, nullptr);
+        }
+        catch (const vk::SystemError& e)
+        {
+            HK_LOG_FATAL(ELogcat::RHI, "更新 Vulkan 描述符集失败: {}", e.what());
+            throw std::runtime_error((FString("更新 Vulkan 描述符集失败: ") + FString(e.what())).CStr());
+        }
+
+        HK_LOG_INFO(ELogcat::RHI, "描述符集更新成功: {} 个写入操作", VulkanWrites.Size());
+    }
+    catch (const std::exception& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "更新描述符集失败: {}", e.what());
+        throw;
+    }
+    catch (...)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "更新描述符集失败: 未知异常");
+        throw std::runtime_error("更新描述符集失败: 未知异常");
+    }
+}
+
 #pragma endregion
 
 #pragma region 转换函数实现

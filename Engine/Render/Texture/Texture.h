@@ -5,6 +5,7 @@
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
 
+#include "RHI/RHISampler.h"
 #include "Texture.generated.h"
 
 HCLASS()
@@ -74,10 +75,17 @@ public:
         return {Width, Height};
     }
 
+    TEvent<HTexture*>& GetPreDestroyEvent()
+    {
+        return PreDestroyEvent;
+    }
+
 private:
     FRHIImage       Image;
     FRHIImageView   ImageView;
     Int32           Width  = 0;
     Int32           Height = 0;
     ERHIImageFormat Format = ERHIImageFormat::Undefined;
+
+    TEvent<HTexture*> PreDestroyEvent;
 };

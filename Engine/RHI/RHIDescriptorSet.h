@@ -5,6 +5,10 @@
 #include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
+#include "RHIImage.h"
+#include "RHIImageView.h"
+#include "RHISampler.h"
+#include "RHIBuffer.h"
 #include "RHIPipeline.h"
 
 enum class ERHIDescriptorType : UInt32
@@ -171,6 +175,34 @@ struct FRHIDescriptorSetDesc
     {
         return Layout.GetHashCode();
     }
+};
+
+// 描述符图像信息（用于 SampledImage、StorageImage、CombinedImageSampler）
+struct FRHIDescriptorImageInfo
+{
+    FRHISampler    Sampler;  // 采样器（可选，仅用于 CombinedImageSampler 和 Sampler）
+    FRHIImageView  ImageView; // 图像视图（用于 SampledImage、StorageImage、CombinedImageSampler）
+    ERHIImageLayout ImageLayout = ERHIImageLayout::ShaderReadOnlyOptimal; // 图像布局
+};
+
+// 描述符缓冲区信息（用于 UniformBuffer、StorageBuffer 等）
+struct FRHIDescriptorBufferInfo
+{
+    FRHIBuffer Buffer; // 缓冲区
+    UInt64     Offset  = 0; // 偏移量（字节）
+    UInt64     Range   = 0; // 范围（字节），0 表示整个缓冲区
+};
+
+// 描述符写入信息（用于更新描述符集）
+struct FRHIWriteDescriptorSet
+{
+    UInt32             DstBinding      = 0;   // 目标绑定索引
+    UInt32             DstArrayElement = 0;   // 目标数组元素索引
+    UInt32             DescriptorCount = 1;   // 描述符数量
+    ERHIDescriptorType DescriptorType  = ERHIDescriptorType::UniformBuffer; // 描述符类型
+    TArray<FRHIDescriptorImageInfo>  ImageInfo;  // 图像信息数组（用于图像相关描述符）
+    TArray<FRHIDescriptorBufferInfo> BufferInfo;  // 缓冲区信息数组（用于缓冲区相关描述符）
+    // 注意：TexelBufferView 和 AccelerationStructure 将在后续实现
 };
 
 // 描述符池类

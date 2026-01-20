@@ -37,7 +37,7 @@ struct FRHIPipelineResourcePool : TSingleton<FRHIPipelineResourcePool>
         FRHIDescriptorSetLayout Layout;
         FRHIDescriptorSet       DescriptorSet;
     };
-    TFixedArray<FFixedDescriptorSet, static_cast<Int32>(ECommonDescriptorSetIndex::Count)> ComonDescriptorSets;
+    TFixedArray<FFixedDescriptorSet, static_cast<Int32>(ECommonDescriptorSetIndex::Count)> CommonDescriptorSets;
 
     // 用于静态资产(纹理, 采样器等)的DescriptorPool, 开启了UpdateAfterBind
     FRHIDescriptorPool StaticResourcesDescriptorPool;
