@@ -8,7 +8,7 @@
 #include "Render/Material/SharedMaterial.h"
 #include "Texture/Texture.h"
 
-Int16 FGlobalStaticResourcePool::FindEmptyTextureIndex()
+Int16 FGlobalStaticRenderResourcePool::FindEmptyTextureIndex()
 {
     for (int Index = 0; Index < TextureArray.Size(); Index++)
     {
@@ -20,7 +20,7 @@ Int16 FGlobalStaticResourcePool::FindEmptyTextureIndex()
     return -1;
 }
 
-Int16 FGlobalStaticResourcePool::FindEmptySamplerIndex()
+Int16 FGlobalStaticRenderResourcePool::FindEmptySamplerIndex()
 {
     for (int Index = 0; Index < SamplerArray.Size(); Index++)
     {
@@ -32,7 +32,7 @@ Int16 FGlobalStaticResourcePool::FindEmptySamplerIndex()
     return -1;
 }
 
-void FGlobalStaticResourcePool::AddTexture(HTexture* InTexture)
+void FGlobalStaticRenderResourcePool::AddTexture(HTexture* InTexture)
 {
     if (InTexture == nullptr)
     {
@@ -83,12 +83,12 @@ void FGlobalStaticResourcePool::AddTexture(HTexture* InTexture)
     GfxDevice.UpdateDescriptorSet(StaticResourceDescriptorSet, WriteDescriptorSets);
 
     // 注册到 PreDestroyEvent 来移除绑定
-    InTexture->GetPreDestroyEvent().AddBind(this, &FGlobalStaticResourcePool::RemoveTexture);
+    InTexture->GetPreDestroyEvent().AddBind(this, &FGlobalStaticRenderResourcePool::RemoveTexture);
 
     HK_LOG_INFO(ELogcat::Render, "纹理已添加到纹理池: Index={}", Index);
 }
 
-void FGlobalStaticResourcePool::RemoveTexture(HTexture* InTexture)
+void FGlobalStaticRenderResourcePool::RemoveTexture(HTexture* InTexture)
 {
     if (InTexture == nullptr)
     {
@@ -121,7 +121,7 @@ void FGlobalStaticResourcePool::RemoveTexture(HTexture* InTexture)
     HK_LOG_INFO(ELogcat::Render, "纹理已从纹理池移除: Index={}", Index);
 }
 
-void FGlobalStaticResourcePool::AddSampler(const FRHISamplerDesc& SamplerDesc)
+void FGlobalStaticRenderResourcePool::AddSampler(const FRHISamplerDesc& SamplerDesc)
 {
     // 根据 SamplerDesc 的 HashCode 查找是否已存在
     UInt64 HashCode = SamplerDesc.GetHashCode();
@@ -173,7 +173,7 @@ void FGlobalStaticResourcePool::AddSampler(const FRHISamplerDesc& SamplerDesc)
     HK_LOG_INFO(ELogcat::Render, "采样器已添加到采样器池: Index={}, HashCode={}", Index, HashCode);
 }
 
-Int16 FGlobalStaticResourcePool::GetTextureIndex(HTexture* InTexture) const
+Int16 FGlobalStaticRenderResourcePool::GetTextureIndex(HTexture* InTexture) const
 {
     if (InTexture == nullptr)
     {
@@ -189,7 +189,7 @@ Int16 FGlobalStaticResourcePool::GetTextureIndex(HTexture* InTexture) const
     return *IndexPtr;
 }
 
-Int16 FGlobalStaticResourcePool::GetOrAddTextureIndex(HTexture* InTexture)
+Int16 FGlobalStaticRenderResourcePool::GetOrAddTextureIndex(HTexture* InTexture)
 {
     if (InTexture == nullptr)
     {
@@ -210,7 +210,7 @@ Int16 FGlobalStaticResourcePool::GetOrAddTextureIndex(HTexture* InTexture)
     return GetTextureIndex(InTexture);
 }
 
-Int16 FGlobalStaticResourcePool::GetSamplerIndex(const FRHISamplerDesc& SamplerDesc) const
+Int16 FGlobalStaticRenderResourcePool::GetSamplerIndex(const FRHISamplerDesc& SamplerDesc) const
 {
     UInt64 HashCode = SamplerDesc.GetHashCode();
     const Int16* IndexPtr = SamplerIndexMap.Find(HashCode);
@@ -222,7 +222,7 @@ Int16 FGlobalStaticResourcePool::GetSamplerIndex(const FRHISamplerDesc& SamplerD
     return *IndexPtr;
 }
 
-Int16 FGlobalStaticResourcePool::GetOrAddSamplerIndex(const FRHISamplerDesc& SamplerDesc)
+Int16 FGlobalStaticRenderResourcePool::GetOrAddSamplerIndex(const FRHISamplerDesc& SamplerDesc)
 {
     // 先尝试获取索引
     Int16 Index = GetSamplerIndex(SamplerDesc);
@@ -238,14 +238,14 @@ Int16 FGlobalStaticResourcePool::GetOrAddSamplerIndex(const FRHISamplerDesc& Sam
     return GetSamplerIndex(SamplerDesc);
 }
 
-void FGlobalDynamicResourcePool::StartUp()
+void FGlobalDynamicRenderResourcePool::StartUp()
 {
     ModelMatrixArray.Resize(HK_RENDER_INIT_MODEL_MATRIX_COUNT);
     FRHIBufferDesc BufferDesc{};
 
 }
 
-void FGlobalDynamicResourcePool::ShutDown()
+void FGlobalDynamicRenderResourcePool::ShutDown()
 {
 
 }

@@ -7,7 +7,7 @@
 #include "Render/RenderOptions.h"
 
 class HTexture;
-class FGlobalStaticResourcePool : public TSingleton<FGlobalStaticResourcePool>
+class FGlobalStaticRenderResourcePool : public TSingleton<FGlobalStaticRenderResourcePool>
 {
     TMap<HTexture*, Int16>                                  TextureIndexMap;
     TFixedArray<HTexture*, HK_RENDER_BINDLESS_MAX_TEXTURES> TextureArray;
@@ -64,7 +64,7 @@ public:
     Int16 GetOrAddSamplerIndex(const FRHISamplerDesc& SamplerDesc);
 };
 
-class FGlobalDynamicResourcePool : public TSingleton<FGlobalDynamicResourcePool>
+class FGlobalDynamicRenderResourcePool : public TSingleton<FGlobalDynamicRenderResourcePool>
 {
     FRHIBuffer ModelMatrixBuffer;
     TArray<FMatrix4x4f> ModelMatrixArray;
