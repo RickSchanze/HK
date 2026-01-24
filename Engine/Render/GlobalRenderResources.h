@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Container/Map.h"
 #include "Core/Singleton/Singleton.h"
+#include "Math/Matrix.h"
 #include "RHI/RHIDescriptorSet.h"
 #include "RHI/RHISampler.h"
 #include "Render/RenderOptions.h"
@@ -18,9 +19,9 @@ class FGlobalStaticResourcePool : public TSingleton<FGlobalStaticResourcePool>
     Int16 FindEmptyTextureIndex();
     Int16 FindEmptySamplerIndex();
 
-    // 移除纹理（由 PreDestroyEvent 调用）
+    // 移除纹理（由 Texture的PreDestroyEvent 调用）
     void RemoveTexture(HTexture* InTexture);
-
+ 
 public:
     /**
      * 向纹理池中分配一个纹理, 如果纹理为空 or 纹理已经存在于纹理池中, 则不做任何操作
@@ -61,4 +62,14 @@ public:
      * @return 采样器索引，如果添加失败返回 -1
      */
     Int16 GetOrAddSamplerIndex(const FRHISamplerDesc& SamplerDesc);
+};
+
+class FGlobalDynamicResourcePool : public TSingleton<FGlobalDynamicResourcePool>
+{
+    FRHIBuffer ModelMatrixBuffer;
+    TArray<FMatrix4x4f> ModelMatrixArray;
+
+public:
+    void StartUp() override;
+    void ShutDown() override;
 };

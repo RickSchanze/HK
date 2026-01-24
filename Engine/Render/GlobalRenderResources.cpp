@@ -2,7 +2,7 @@
 // Created by Admin on 2026/1/18.
 //
 
-#include "GlobalStaticResourcesPool.h"
+#include "GlobalRenderResources.h"
 
 #include "RHI/GfxDevice.h"
 #include "Render/Material/SharedMaterial.h"
@@ -236,4 +236,16 @@ Int16 FGlobalStaticResourcePool::GetOrAddSamplerIndex(const FRHISamplerDesc& Sam
 
     // 再次获取索引（如果添加成功）
     return GetSamplerIndex(SamplerDesc);
+}
+
+void FGlobalDynamicResourcePool::StartUp()
+{
+    ModelMatrixArray.Resize(HK_RENDER_INIT_MODEL_MATRIX_COUNT);
+    FRHIBufferDesc BufferDesc{};
+
+}
+
+void FGlobalDynamicResourcePool::ShutDown()
+{
+
 }

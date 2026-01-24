@@ -822,11 +822,16 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
 
 def remove_prefix(name: str) -> str:
     """
-    移除类型名前缀（例如 FColor -> Color）
-    如果以 F 开头且第二个字母是大写，则去掉 F 前缀
+    移除类型名前缀（例如 FColor -> Color, CComponent -> Component）
+    如果以 F 或 C 开头且第二个字母是大写，则去掉前缀
     """
-    if len(name) > 1 and name[0] == 'F' and name[1].isupper():
-        return name[1:]
+    if len(name) > 1:
+        # 处理 F 前缀（例如 FColor -> Color）
+        if name[0] == 'F' and name[1].isupper():
+            return name[1:]
+        # 处理 C 前缀（例如 CComponent -> Component）
+        if name[0] == 'C' and name[1].isupper():
+            return name[1:]
     return name
 
 

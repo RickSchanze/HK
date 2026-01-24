@@ -41,7 +41,7 @@ struct FRHIPipelineResourcePool : TSingleton<FRHIPipelineResourcePool>
 
     // 用于静态资产(纹理, 采样器等)的DescriptorPool, 开启了UpdateAfterBind
     FRHIDescriptorPool StaticResourcesDescriptorPool;
-    // 每帧都可能变化的DescriptorPool
+    // 每帧都可能变化的DescriptorPool, 一大用处是模型矩阵
     FRHIDescriptorPool DynamicResourcesDescriptorPool;
 
     FRHIDescriptorSetLayout RequestDescriptorSetLayout(const FRHIDescriptorSetLayoutDesc& DescriptorSetDesc);
