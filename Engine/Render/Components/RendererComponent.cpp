@@ -4,11 +4,14 @@
 
 #include "RendererComponent.h"
 
+#include "Render/GlobalRenderResources.h"
+
 void CRendererComponent::OnTransformUpdated()
 {
     if (RendererModelMatrixIndex == -1)
     {
         return;
     }
-    WorldTra
+    const FMatrix4x4f WorldMatrix = WorldTransform.ToMatrix();
+    FGlobalDynamicRenderResourcePool::GetRef().UpdateModelMatrix(WorldMatrix, RendererModelMatrixIndex);
 }

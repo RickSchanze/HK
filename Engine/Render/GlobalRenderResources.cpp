@@ -270,6 +270,7 @@ void FGlobalDynamicRenderResourcePool::ShutDown()
 
 void FGlobalDynamicRenderResourcePool::UpdateModelMatrix(const FMatrix4x4f& ModelMatrix, Int32 Index)
 {
+    HK_ASSERT_MSG(Index >= 0 && Index < ModelMatrixArray.Size(), "模型矩阵索引超出范围");
     ModelMatrixArray[Index] = ModelMatrix;
 }
 

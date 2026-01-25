@@ -11,7 +11,7 @@ class CComponent : public HObject
     GENERATED_BODY(CComponent)
 protected:
     HPROPERTY()
-    bool bActive = true;
+    bool bActive = false;
 
     HPROPERTY()
     TObjectPtr<class AActor> Owner;

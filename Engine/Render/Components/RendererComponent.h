@@ -2,9 +2,12 @@
 
 #include "Object/SceneComponent.h"
 
+#include "RendererComponent.generated.h"
+
 HCLASS()
 class CRendererComponent : public CSceneComponent
 {
+    GENERATED_BODY(CRendererComponent)
 protected:
     // 渲染器使用的模型矩阵索引
     Int16 RendererModelMatrixIndex = -1;

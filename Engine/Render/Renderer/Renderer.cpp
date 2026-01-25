@@ -30,11 +30,19 @@ void FRenderer::SetVisible(bool InVisible)
 
 void FRenderer::RegisterThisToModelMatrixPool()
 {
+    if (RendererMatrixIndex != -1 || !bCanHasModelMatrix)
+    {
+        return;
+    }
     RendererMatrixIndex = FGlobalDynamicRenderResourcePool::GetRef().AddRendererIndexMap(this);
 }
 
 void FRenderer::UnregisterThisFromModelMatrixPool()
 {
+    if (RendererMatrixIndex == -1)
+    {
+        return;
+    }
     RendererMatrixIndex = -1;
     FGlobalDynamicRenderResourcePool::GetRef().RemoveRendererIndexMap(this);
 }
