@@ -19,6 +19,6 @@
     HK_DECL_CLASS_SERIALIZATION(CSceneComponent)                                                                                        \
     static void Register_CSceneComponent_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
-        Type->RegisterProperty(&CSceneComponent::RelativeTransform, "RelativeTransform");                                                                                        \
+        Type->RegisterProperty(&CSceneComponent::LocalTransform, "LocalTransform");                                                                                        \
     }                                                                                        \
     static inline Z_SceneComponent_Register Z_REGISTERER_SCENECOMPONENT;

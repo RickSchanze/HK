@@ -29,7 +29,7 @@ void AActor::Z_AActor_Register::Register_AActor()
         Super::Serialize(Ar); \
         Ar( \
         MakeNamedPair("Components", Components), \
-        MakeNamedPair("RelativeTransform", RelativeTransform) \
+        MakeNamedPair("LocalTransform", LocalTransform) \
         ); \
 
 

@@ -28,7 +28,7 @@ void CSceneComponent::Z_SceneComponent_Register::Register_CSceneComponent()
 #define CSceneComponent_SERIALIZATION_CODE \
         Super::Serialize(Ar); \
         Ar( \
-        MakeNamedPair("RelativeTransform", RelativeTransform) \
+        MakeNamedPair("LocalTransform", LocalTransform) \
         ); \
 
 

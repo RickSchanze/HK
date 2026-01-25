@@ -13,16 +13,16 @@ template <size_t Size>
 class TBitmap
 {
 public:
-    using SizeType = size_t;
+    using SizeType       = size_t;
     using DifferenceType = ptrdiff_t;
 
     // 位引用代理类，用于支持 operator[] 返回可修改的引用
     class BitReference
     {
     public:
-        BitReference(UInt8* BytePtr, UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
+        BitReference(UInt8* BytePtr, const UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
 
-        BitReference& operator=(bool Value)
+        BitReference& operator=(const bool Value)
         {
             if (Value)
             {
@@ -58,14 +58,14 @@ public:
 
     private:
         UInt8* MyBytePtr;
-        UInt8 MyBitMask;
+        UInt8  MyBitMask;
     };
 
     // 常量位引用
     class ConstBitReference
     {
     public:
-        ConstBitReference(const UInt8* BytePtr, UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
+        ConstBitReference(const UInt8* BytePtr, const UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
 
         operator bool() const
         {
@@ -79,7 +79,7 @@ public:
 
     private:
         const UInt8* MyBytePtr;
-        UInt8 MyBitMask;
+        UInt8        MyBitMask;
     };
 
     TBitmap() : MyData()
@@ -87,12 +87,12 @@ public:
         std::fill(MyData.begin(), MyData.end(), 0);
     }
 
-    explicit TBitmap(bool InitialValue) : MyData()
+    explicit TBitmap(const bool InitialValue) : MyData()
     {
         std::fill(MyData.begin(), MyData.end(), InitialValue ? 0xFF : 0x00);
     }
 
-    TBitmap(std::initializer_list<bool> InitList) : MyData()
+    TBitmap(const std::initializer_list<bool> InitList) : MyData()
     {
         std::fill(MyData.begin(), MyData.end(), 0);
         SizeType Index = 0;
@@ -106,19 +106,19 @@ public:
     }
 
     // 访问操作
-    BitReference operator[](SizeType Index)
+    BitReference operator[](const SizeType Index)
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         return BitReference(&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex));
     }
 
-    ConstBitReference operator[](SizeType Index) const
+    ConstBitReference operator[](const SizeType Index) const
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         return ConstBitReference(&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex));
     }
 
@@ -135,19 +135,19 @@ public:
     }
 
     // 位操作
-    void Set(SizeType Index)
+    void Set(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] |= static_cast<UInt8>(1U << BitIndex);
     }
 
-    void Set(SizeType Index, bool Value)
+    void Set(const SizeType Index, const bool Value)
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         if (Value)
         {
             MyData[ByteIndex] |= static_cast<UInt8>(1U << BitIndex);
@@ -158,31 +158,31 @@ public:
         }
     }
 
-    void Clear(SizeType Index)
+    void Clear(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] &= static_cast<UInt8>(~(1U << BitIndex));
     }
 
-    void Flip(SizeType Index)
+    void Flip(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] ^= static_cast<UInt8>(1U << BitIndex);
     }
 
-    bool Test(SizeType Index) const
+    bool Test(const SizeType Index) const
     {
         HK_ASSERT_RAW(Index < SizeValue);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         return (MyData[ByteIndex] & static_cast<UInt8>(1U << BitIndex)) != 0;
     }
 
-    bool Get(SizeType Index) const
+    bool Get(const SizeType Index) const
     {
         return Test(Index);
     }
@@ -220,7 +220,7 @@ public:
         }
     }
 
-    void Fill(bool Value)
+    void Fill(const bool Value)
     {
         std::fill(MyData.begin(), MyData.end(), Value ? 0xFF : 0x00);
         // 清除超出 SizeValue 的位
@@ -266,7 +266,7 @@ public:
         return Count;
     }
 
-    SizeType Count(bool Value) const noexcept
+    SizeType Count(const bool Value) const noexcept
     {
         return Value ? Count() : (SizeValue - Count());
     }
@@ -333,7 +333,7 @@ public:
 
 private:
     static constexpr SizeType SizeValue = Size;
-    constexpr SizeType ByteCount() const noexcept
+    constexpr SizeType        ByteCount() const noexcept
     {
         return (SizeValue + 7) / 8;
     }
@@ -345,16 +345,16 @@ private:
 class FDynamicBitmap
 {
 public:
-    using SizeType = size_t;
+    using SizeType       = size_t;
     using DifferenceType = ptrdiff_t;
 
     // 位引用代理类
     class BitReference
     {
     public:
-        BitReference(UInt8* BytePtr, UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
+        BitReference(UInt8* BytePtr, const UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
 
-        BitReference& operator=(bool Value)
+        BitReference& operator=(const bool Value)
         {
             if (Value)
             {
@@ -390,14 +390,14 @@ public:
 
     private:
         UInt8* MyBytePtr;
-        UInt8 MyBitMask;
+        UInt8  MyBitMask;
     };
 
     // 常量位引用
     class ConstBitReference
     {
     public:
-        ConstBitReference(const UInt8* BytePtr, UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
+        ConstBitReference(const UInt8* BytePtr, const UInt8 BitMask) : MyBytePtr(BytePtr), MyBitMask(BitMask) {}
 
         operator bool() const
         {
@@ -411,18 +411,20 @@ public:
 
     private:
         const UInt8* MyBytePtr;
-        UInt8 MyBitMask;
+        UInt8        MyBitMask;
     };
 
     FDynamicBitmap() : MySize(0), MyData() {}
 
-    explicit FDynamicBitmap(SizeType InSize, bool InitialValue = false) : MySize(InSize), MyData(ByteCount(InSize))
+    explicit FDynamicBitmap(const SizeType InSize, const bool InitialValue = false)
+        : MySize(InSize), MyData(ByteCount(InSize))
     {
         std::fill(MyData.begin(), MyData.end(), InitialValue ? 0xFF : 0x00);
         ClearExtraBits();
     }
 
-    FDynamicBitmap(std::initializer_list<bool> InitList) : MySize(InitList.size()), MyData(ByteCount(InitList.size()))
+    FDynamicBitmap(const std::initializer_list<bool> InitList)
+        : MySize(InitList.size()), MyData(ByteCount(InitList.size()))
     {
         std::fill(MyData.begin(), MyData.end(), 0);
         SizeType Index = 0;
@@ -434,48 +436,48 @@ public:
     }
 
     // 访问操作
-    BitReference operator[](SizeType Index)
+    BitReference operator[](const SizeType Index)
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
-        return BitReference(&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex));
+        const auto     BitIndex  = static_cast<UInt8>(Index % 8);
+        return {&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex)};
     }
 
-    ConstBitReference operator[](SizeType Index) const
+    ConstBitReference operator[](const SizeType Index) const
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
-        return ConstBitReference(&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex));
+        const auto     BitIndex  = static_cast<UInt8>(Index % 8);
+        return {&MyData[ByteIndex], static_cast<UInt8>(1U << BitIndex)};
     }
 
-    BitReference At(SizeType Index)
+    BitReference At(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < MySize);
         return (*this)[Index];
     }
 
-    ConstBitReference At(SizeType Index) const
+    ConstBitReference At(const SizeType Index) const
     {
         HK_ASSERT_RAW(Index < MySize);
         return (*this)[Index];
     }
 
     // 位操作
-    void Set(SizeType Index)
+    void Set(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] |= static_cast<UInt8>(1U << BitIndex);
     }
 
-    void Set(SizeType Index, bool Value)
+    void Set(const SizeType Index, const bool Value)
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         if (Value)
         {
             MyData[ByteIndex] |= static_cast<UInt8>(1U << BitIndex);
@@ -486,41 +488,41 @@ public:
         }
     }
 
-    void Clear(SizeType Index)
+    void Clear(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] &= static_cast<UInt8>(~(1U << BitIndex));
     }
 
-    void Flip(SizeType Index)
+    void Flip(const SizeType Index)
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         MyData[ByteIndex] ^= static_cast<UInt8>(1U << BitIndex);
     }
 
-    bool Test(SizeType Index) const
+    bool Test(const SizeType Index) const
     {
         HK_ASSERT_RAW(Index < MySize);
         const SizeType ByteIndex = Index / 8;
-        const UInt8 BitIndex = static_cast<UInt8>(Index % 8);
+        const UInt8    BitIndex  = static_cast<UInt8>(Index % 8);
         return (MyData[ByteIndex] & static_cast<UInt8>(1U << BitIndex)) != 0;
     }
 
-    bool Get(SizeType Index) const
+    bool Get(const SizeType Index) const
     {
         return Test(Index);
     }
 
     // 大小管理
-    void Resize(SizeType NewSize, bool Value = false)
+    void Resize(const SizeType NewSize, const bool Value = false)
     {
         const SizeType OldByteCount = ByteCount(MySize);
         const SizeType NewByteCount = ByteCount(NewSize);
-        MySize = NewSize;
+        MySize                      = NewSize;
 
         if (NewByteCount > OldByteCount)
         {
@@ -544,7 +546,7 @@ public:
         }
     }
 
-    void Reserve(SizeType Capacity)
+    void Reserve(const SizeType Capacity)
     {
         MyData.reserve(ByteCount(Capacity));
     }
@@ -580,7 +582,7 @@ public:
         ClearExtraBits();
     }
 
-    void Fill(bool Value)
+    void Fill(const bool Value)
     {
         std::fill(MyData.begin(), MyData.end(), Value ? 0xFF : 0x00);
         ClearExtraBits();
@@ -615,7 +617,7 @@ public:
         return Count;
     }
 
-    SizeType Count(bool Value) const noexcept
+    SizeType Count(const bool Value) const noexcept
     {
         return Value ? Count() : (MySize - Count());
     }
@@ -682,7 +684,7 @@ public:
     }
 
 private:
-    static constexpr SizeType ByteCount(SizeType BitCount) noexcept
+    static constexpr SizeType ByteCount(const SizeType BitCount) noexcept
     {
         return (BitCount + 7) / 8;
     }
@@ -700,6 +702,6 @@ private:
         }
     }
 
-    SizeType MySize;
+    SizeType           MySize;
     std::vector<UInt8> MyData;
 };

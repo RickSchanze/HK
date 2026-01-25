@@ -12,8 +12,11 @@ constexpr inline FObjectID INVALID_OBJECT_ID = 0;
 
 enum class EObjectFlags
 {
-    None  = 0,
-    Asset = 1 << 0,
+    None           = 0,
+    Asset          = 1 << 0,
+    Component      = 1 << 1,
+    SceneComponent = 1 << 2,
+    Actor          = 1 << 3,
 };
 HK_ENABLE_BITMASK_OPERATORS(EObjectFlags)
 
@@ -39,6 +42,11 @@ public:
     virtual UInt64 GetHashCode() const
     {
         return std::hash<const HObject*>{}(this);
+    }
+
+    EObjectFlags GetFlags() const
+    {
+        return Flags;
     }
 
 protected:

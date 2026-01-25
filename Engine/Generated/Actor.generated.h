@@ -20,6 +20,6 @@
     static void Register_AActor_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
         Type->RegisterProperty(&AActor::Components, "Components");                                                                                        \
-        Type->RegisterProperty(&AActor::RelativeTransform, "RelativeTransform");                                                                                        \
+        Type->RegisterProperty(&AActor::LocalTransform, "LocalTransform");                                                                                        \
     }                                                                                        \
     static inline Z_AActor_Register Z_REGISTERER_AACTOR;

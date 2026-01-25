@@ -212,7 +212,7 @@ Int16 FGlobalStaticRenderResourcePool::GetOrAddTextureIndex(HTexture* InTexture)
 
 Int16 FGlobalStaticRenderResourcePool::GetSamplerIndex(const FRHISamplerDesc& SamplerDesc) const
 {
-    UInt64 HashCode = SamplerDesc.GetHashCode();
+    UInt64       HashCode = SamplerDesc.GetHashCode();
     const Int16* IndexPtr = SamplerIndexMap.Find(HashCode);
     if (IndexPtr == nullptr)
     {
@@ -238,14 +238,95 @@ Int16 FGlobalStaticRenderResourcePool::GetOrAddSamplerIndex(const FRHISamplerDes
     return GetSamplerIndex(SamplerDesc);
 }
 
+Int16 FGlobalDynamicRenderResourcePool::FindNextEmptyModelMatrixIndex()
+{
+    for (Int16 i = 0; i < ModelMatrixOccupiedBitmap.Size(); ++i)
+    {
+        if (!ModelMatrixOccupiedBitmap[i])
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void FGlobalDynamicRenderResourcePool::StartUp()
 {
     ModelMatrixArray.Resize(HK_RENDER_INIT_MODEL_MATRIX_COUNT);
+    ModelMatrixOccupiedBitmap.Resize(HK_RENDER_INIT_MODEL_MATRIX_COUNT);
     FRHIBufferDesc BufferDesc{};
-
+    BufferDesc.Usage          = ERHIBufferUsage::UniformBuffer;
+    BufferDesc.Size           = ModelMatrixArray.Size() * sizeof(FMatrix4x4f);
+    BufferDesc.MemoryProperty = ERHIBufferMemoryProperty::HostCoherent;
+    ModelMatrixBuffer         = GetGfxDeviceRef().CreateBuffer(BufferDesc);
+    MappedPtr                 = ModelMatrixBuffer.Map();
 }
 
 void FGlobalDynamicRenderResourcePool::ShutDown()
 {
+    ModelMatrixArray = {};
+    GetGfxDeviceRef().DestroyBuffer(ModelMatrixBuffer);
+}
 
+void FGlobalDynamicRenderResourcePool::UpdateModelMatrix(const FMatrix4x4f& ModelMatrix, Int32 Index)
+{
+    ModelMatrixArray[Index] = ModelMatrix;
+}
+
+void FGlobalDynamicRenderResourcePool::SyncToGPU()
+{
+    HK_ASSERT_MSG(MappedPtr, "ModelMatrixBuffer 未映射");
+    std::memcpy(MappedPtr, ModelMatrixArray.Data(), ModelMatrixArray.Size() * sizeof(FMatrix4x4f));
+}
+
+Int16 FGlobalDynamicRenderResourcePool::AddRendererIndexMap(FRenderer* Renderer)
+{
+    if (Renderer == nullptr)
+    {
+        return -1;
+    }
+    auto Found = RendererModelMatrixIndexMap.Find(Renderer);
+    if (Found != nullptr)
+    {
+        return *Found;
+    }
+    Int16 Index = FindNextEmptyModelMatrixIndex();
+    if (Index < 0)
+    {
+        HK_LOG_ERROR(ELogcat::Render, "模型矩阵池已满，无法添加更多渲染器");
+        return -1;
+    }
+    RendererModelMatrixIndexMap.Add(Renderer, Index);
+    ModelMatrixOccupiedBitmap[Index].Flip();
+    return Index;
+}
+
+Int16 FGlobalDynamicRenderResourcePool::GetRendererIndexMap(FRenderer* Renderer) const
+{
+    if (Renderer == nullptr)
+    {
+        return -1;
+    }
+    const Int16* IndexPtr = RendererModelMatrixIndexMap.Find(Renderer);
+    if (IndexPtr == nullptr)
+    {
+        return -1;
+    }
+    return *IndexPtr;
+}
+
+bool FGlobalDynamicRenderResourcePool::RemoveRendererIndexMap(FRenderer* Renderer)
+{
+    if (Renderer == nullptr)
+    {
+        return false;
+    }
+    auto Found = RendererModelMatrixIndexMap.Find(Renderer);
+    if (Found == nullptr)
+    {
+        return false;
+    }
+    RendererModelMatrixIndexMap.Remove(Renderer);
+    ModelMatrixOccupiedBitmap[*Found].Flip();
+    return true;
 }

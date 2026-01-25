@@ -4,7 +4,7 @@
 
 #include "Component.h"
 
-CComponent::CComponent()
+CComponent::CComponent() : HObject(EObjectFlags::Component)
 {
 
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Container/Bitmap.h"
 #include "Core/Container/Map.h"
 #include "Core/Singleton/Singleton.h"
 #include "Math/Matrix.h"
@@ -6,6 +7,7 @@
 #include "RHI/RHISampler.h"
 #include "Render/RenderOptions.h"
 
+class FRenderer;
 class HTexture;
 class FGlobalStaticRenderResourcePool : public TSingleton<FGlobalStaticRenderResourcePool>
 {
@@ -21,7 +23,7 @@ class FGlobalStaticRenderResourcePool : public TSingleton<FGlobalStaticRenderRes
 
     // 移除纹理（由 Texture的PreDestroyEvent 调用）
     void RemoveTexture(HTexture* InTexture);
- 
+
 public:
     /**
      * 向纹理池中分配一个纹理, 如果纹理为空 or 纹理已经存在于纹理池中, 则不做任何操作
@@ -66,10 +68,45 @@ public:
 
 class FGlobalDynamicRenderResourcePool : public TSingleton<FGlobalDynamicRenderResourcePool>
 {
+    // GPU侧模型矩阵
     FRHIBuffer ModelMatrixBuffer;
+    // Renderer到ModelMatrixIndex的Map
+    TMap<FRenderer*, Int16> RendererModelMatrixIndexMap;
+    // 一个Bitmap，用于记录ModelMatrixArray中哪些位置被占用
+    FDynamicBitmap ModelMatrixOccupiedBitmap;
+    // 当前全部的ModelMatrix
     TArray<FMatrix4x4f> ModelMatrixArray;
+    // ModelMatrixBuffer的映射指针
+    void* MappedPtr = nullptr;
+
+private:
+    Int16 FindNextEmptyModelMatrixIndex();
 
 public:
     void StartUp() override;
     void ShutDown() override;
+
+    void UpdateModelMatrix(const FMatrix4x4f& ModelMatrix, Int32 Index);
+    void SyncToGPU();
+
+    /**
+     * 增加一个Renderer的Map
+     * @param Renderer
+     * @return
+     */
+    Int16 AddRendererIndexMap(FRenderer* Renderer);
+
+    /**
+     * 获取一个Renderer的Map
+     * @param Renderer
+     * @return
+     */
+    Int16 GetRendererIndexMap(FRenderer* Renderer) const;
+
+    /**
+     * 移除一个Renderer的Map
+     * @param Renderer
+     * @return
+     */
+    bool RemoveRendererIndexMap(FRenderer* Renderer);
 };

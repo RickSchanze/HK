@@ -3,6 +3,7 @@
 #include "Core/Utility/Macros.h"
 #include "Matrix.h"
 #include "Vector.h"
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -205,6 +206,14 @@ struct TTransform
     TVector3<T> GetUp() const
     {
         return TransformDirection(TVector3<T>(0, 1, 0));
+    }
+
+    // 逆变换（计算逆 Transform）
+    TTransform Inverse() const
+    {
+        // 使用矩阵的逆来获取逆 Transform
+        TMatrix4x4<T> Mat = ToMatrix();
+        return FromMatrix(Mat.Inverse());
     }
 
     // 设置位置

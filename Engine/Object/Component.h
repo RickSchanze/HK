@@ -16,6 +16,7 @@ protected:
     HPROPERTY()
     TObjectPtr<class AActor> Owner;
 
+    CComponent(EObjectFlags InObjectFlags) : HObject(InObjectFlags) {}
 public:
     CComponent();
     ~CComponent() override;
