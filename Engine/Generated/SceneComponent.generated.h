@@ -13,9 +13,7 @@
         }                                                                                                              \
         static void Register_CSceneComponent();                                                                                 \
     };                                                                                                                 \
-    typedef CComponent::ThisClass Super;                                                                                        \
-    typedef CSceneComponent ThisClass;                                                                                        \
-    virtual FType GetType() const override { return TypeOf<CSceneComponent>(); }                                                                                        \
+    virtual FType GetType() const { return TypeOf<CSceneComponent>(); }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(CSceneComponent)                                                                                        \
     static void Register_CSceneComponent_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

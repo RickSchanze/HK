@@ -41,7 +41,7 @@ public:
         return Instance;
     }
 
-    static T& GetRef()
+    inline static T& GetRef()
     {
         return *Get();
     }

@@ -22,7 +22,7 @@ class FSlangTranslator::FImpl
 public:
     Slang::ComPtr<slang::IGlobalSession>                                GlobalSession;
     Slang::ComPtr<slang::ISession>                                      CompileSession;
-    TFixedArray<Int32, static_cast<Int32>(EShaderCompileTarget::Count)> LanguageIndices;
+    TFixedArray<Int32, static_cast<Int32>(EShaderTranslateTarget::Count)> LanguageIndices;
 
     FImpl()
     {
@@ -38,22 +38,22 @@ public:
             }
         }
         slang::SessionDesc Desc{};
-        slang::TargetDesc  TargetDesc[static_cast<Int32>(EShaderCompileTarget::Count)];
+        slang::TargetDesc  TargetDesc[static_cast<Int32>(EShaderTranslateTarget::Count)];
 
         // SPIRV target
         TargetDesc[0].format                                             = SLANG_SPIRV;
         TargetDesc[0].profile                                            = GlobalSession->findProfile("glsl_460");
-        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::Spirv)] = 0;
+        LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::Spirv)] = 0;
 
         // GLSL target
         TargetDesc[1].format                                            = SLANG_GLSL;
         TargetDesc[1].profile                                           = GlobalSession->findProfile("glsl_460");
-        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::GLSL)] = 1;
+        LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::GLSL)] = 1;
 
         // HLSL target
         TargetDesc[2].format                                            = SLANG_HLSL;
         TargetDesc[2].profile                                           = GlobalSession->findProfile("sm_6_0");
-        LanguageIndices[static_cast<Int32>(EShaderCompileTarget::HLSL)] = 2;
+        LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::HLSL)] = 2;
 
         Desc.searchPaths     = SearchPaths.Data();
         Desc.searchPathCount = static_cast<SlangInt>(SearchPaths.Size());
@@ -68,9 +68,9 @@ public:
         GlobalSession  = {};
     }
 
-    Int32 GetCompileTargetIndex(EShaderCompileTarget Target)
+    Int32 GetCompileTargetIndex(EShaderTranslateTarget Target)
     {
-        if (Target >= EShaderCompileTarget::Count)
+        if (Target >= EShaderTranslateTarget::Count)
         {
             return -1;
         }
@@ -299,7 +299,7 @@ public:
     }
 
     void WriteShaderCode(const Slang::ComPtr<slang::IBlob>& VertexCode, const Slang::ComPtr<slang::IBlob>& FragmentCode,
-                         EShaderCompileTarget Target, TArray<UInt32>& OutVS, TArray<UInt32>& OutFS)
+                         EShaderTranslateTarget Target, TArray<UInt32>& OutVS, TArray<UInt32>& OutFS)
     {
         // 写入顶点着色器代码
         const auto   VertexCodeSize  = static_cast<UInt32>(VertexCode->getBufferSize());
@@ -317,7 +317,7 @@ public:
     void WriteDebugOutput(const FShaderTranslatorRequest& Request, slang::IComponentType* Program,
                           SlangInt VertexStageIndex, SlangInt FragmentStageIndex)
     {
-        if (Request.DebugOutputTarget == EShaderCompileTarget::Count || Request.DebugOutputPath.IsEmpty())
+        if (Request.DebugOutputTarget == EShaderTranslateTarget::Count || Request.DebugOutputPath.IsEmpty())
         {
             return;
         }
@@ -340,11 +340,11 @@ public:
 
         // 确定文件扩展名
         FString Extension;
-        if (Request.DebugOutputTarget == EShaderCompileTarget::GLSL)
+        if (Request.DebugOutputTarget == EShaderTranslateTarget::GLSL)
         {
             Extension = ".glsl";
         }
-        else if (Request.DebugOutputTarget == EShaderCompileTarget::HLSL)
+        else if (Request.DebugOutputTarget == EShaderTranslateTarget::HLSL)
         {
             Extension = ".hlsl";
         }

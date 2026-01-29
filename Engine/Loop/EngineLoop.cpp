@@ -10,7 +10,7 @@
 #include "LoopData.h"
 #include "RHI/GfxDevice.h"
 #include "RHI/RHIWindow.h"
-#include "Render/Shader/SlangCompiler.h"
+#include "Render/Shader/SlangTranslator.h"
 
 void FEngineLoop::Init()
 {
@@ -21,6 +21,7 @@ void FEngineLoop::Init()
     CreateGfxDevice();
 
     SetInputTickFunc(&FRHIWindowManager::PollAllWindowInput);
+    SetRenderTickFunc()
 
     // 检查必要的函数是否已设置
     if (RenderTickFunc == nullptr)
@@ -41,13 +42,13 @@ void FEngineLoop::Init()
 
     HK_LOG_INFO(ELogcat::Engine, "引擎循环初始化完成");
 
-    FShaderCompileRequest CompileRequest;
+    FShaderTranslatorRequest CompileRequest;
     CompileRequest.ShaderPath = "F:/Project/HK/Builtin/Shader/SimpleShading.slang";
-    CompileRequest.Target = EShaderCompileTarget::GLSL;
-    CompileRequest.DebugOutputTarget = EShaderCompileTarget::GLSL;
+    CompileRequest.Target = EShaderTranslateTarget::GLSL;
+    CompileRequest.DebugOutputTarget = EShaderTranslateTarget::GLSL;
     CompileRequest.DebugOutputPath = "F:/Project/HK/Builtin/Shader/SimpleShading.debug.glsl";
     FShaderTranslateResult CompileResult;
-    FSlangCompiler::GetRef().RequestCompileGraphicsShader(CompileRequest, CompileResult);
+    FSlangTranslator::GetRef().RequestCompileGraphicsShader(CompileRequest, CompileResult);
 }
 
 void FEngineLoop::UnInit()

@@ -53,7 +53,7 @@ bool FShaderImporter::ProcessImport()
     // 编译 Shader
     FShaderCompileRequest Request;
     Request.ShaderPath = Metadata->Path;
-    Request.Target     = EShaderCompileTarget::Spirv;
+    Request.Target     = EShaderTranslateTarget::Spirv;
 
     if (!FSlangCompiler::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
     {
@@ -102,7 +102,7 @@ bool FShaderImporter::ProcessAssetIntermediate()
     {
         FShaderCompileRequest Request;
         Request.ShaderPath = Metadata->Path;
-        Request.Target     = EShaderCompileTarget::Spirv;
+        Request.Target     = EShaderTranslateTarget::Spirv;
 
         if (!FSlangCompiler::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
         {

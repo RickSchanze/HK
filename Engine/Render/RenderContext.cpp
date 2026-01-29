@@ -37,3 +37,8 @@ void FRenderContext::ShutDown()
         HK_LOG_INFO(ELogcat::Render, "Global upload command pool destroyed");
     }
 }
+
+void FRenderContext::RenderFrame()
+{
+
+}

@@ -34,7 +34,7 @@ public:
     }
 };
 
-enum class EShaderCompileTarget
+enum class EShaderTranslateTarget
 {
     GLSL,
     HLSL,
@@ -44,11 +44,11 @@ enum class EShaderCompileTarget
 
 struct FShaderTranslatorRequest
 {
-    FString              ShaderPath;
-    EShaderCompileTarget Target = EShaderCompileTarget::Spirv;
+    FString                ShaderPath;
+    EShaderTranslateTarget Target = EShaderTranslateTarget::Spirv;
 
-    EShaderCompileTarget DebugOutputTarget = EShaderCompileTarget::Count;
-    FString              DebugOutputPath;
+    EShaderTranslateTarget DebugOutputTarget = EShaderTranslateTarget::Count;
+    FString                DebugOutputPath;
 };
 
 class FSlangTranslator : public TSingleton<FSlangTranslator>
