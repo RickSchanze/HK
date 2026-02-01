@@ -67,8 +67,6 @@ void FEngineLoop::Run()
 {
     HK_PROFILE_SCOPE_N("FEngineLoop::Run");
 
-    DestroyGfxDevice();
-
     bIsRunning = true;
     HK_LOG_INFO(ELogcat::Engine, "引擎循环开始运行");
 

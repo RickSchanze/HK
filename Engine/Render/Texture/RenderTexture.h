@@ -26,6 +26,17 @@ public:
                    FStringView    InDebugName = "RenderTexture");
 
     /**
+     * 构造函数 - 使用外部ImageView创建RenderTexture（例如从SwapChain）
+     * @param InImageView 外部ImageView（不会被释放，由外部管理生命周期）
+     * @param InWidth 宽度
+     * @param InHeight 高度
+     * @param InFormat 图像格式
+     * @param InDebugName 调试名称
+     */
+    FRenderTexture(const FRHIImageView& InImageView, UInt32 InWidth, UInt32 InHeight, ERHIImageFormat InFormat,
+                   FStringView InDebugName = "ExternalRenderTexture");
+
+    /**
      * 析构函数 - 不自动释放资源
      * 需要手动调用 Release() 来释放资源
      */
@@ -54,12 +65,21 @@ public:
     void Release();
 
     /**
+     * 设置外部ImageView（用于SwapChain Resize等场景）
+     * 仅在使用外部ImageView构造函数创建的RenderTexture上调用
+     * @param InImageView 新的外部ImageView
+     */
+    void SetImageView(const FRHIImageView& InImageView);
+
+    /**
      * 检查RenderTexture是否有效
      * @return 如果已创建且有效则返回true
      */
     bool IsValid() const
     {
-        return Image.IsValid() && ImageView.IsValid();
+        // 外部ImageView模式：只检查ImageView是否有效
+        // 自管理模式：检查Image和ImageView都有效
+        return bOwnsImageView ? (Image.IsValid() && ImageView.IsValid()) : ImageView.IsValid();
     }
 
     // Getter方法
@@ -75,7 +95,7 @@ public:
 
     FVector2i GetSize() const
     {
-        return FVector2i(static_cast<Int32>(Width), static_cast<Int32>(Height));
+        return {static_cast<Int32>(Width), static_cast<Int32>(Height)};
     }
 
     ERHIImageFormat GetFormat() const
@@ -128,11 +148,12 @@ private:
      */
     bool CreateResources();
 
-    UInt32          Width     = 0;
-    UInt32          Height    = 0;
-    ERHIImageFormat Format    = ERHIImageFormat::R8G8B8A8_UNorm;
-    ERHIImageUsage  Usage     = ERHIImageUsage::ColorAttachment | ERHIImageUsage::Sampled;
-    FString         DebugName = "RenderTexture";
+    UInt32          Width  = 0;
+    UInt32          Height = 0;
+    ERHIImageFormat Format = ERHIImageFormat::R8G8B8A8_UNorm;
+    ERHIImageUsage  Usage  = ERHIImageUsage::ColorAttachment | ERHIImageUsage::Sampled;
+    FString         DebugName{"RenderTexture"};
     FRHIImage       Image;
     FRHIImageView   ImageView;
+    bool            bOwnsImageView = true;  // true表示拥有ImageView所有权，需要释放
 };

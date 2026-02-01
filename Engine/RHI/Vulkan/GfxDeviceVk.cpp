@@ -53,9 +53,10 @@ void FGfxDeviceVk::Init()
         const FName     DefaultMainWindowName("HKEngine");
         const FVector2i DefaultMainWindowSize = Config->GetDefaultWindowSize();
         CreateMainWindowAndSurface(DefaultMainWindowName, DefaultMainWindowSize);
-
         // 4. 创建Device（需要Surface）
         CreateDevice();
+        // 创建SwapChain需要Device
+        CreateMainWindowSwapChain(*FRHIWindowManager::GetRef().GetMainWindow());
 
         HK_LOG_INFO(ELogcat::RHI, "Vulkan设备初始化完成");
     }

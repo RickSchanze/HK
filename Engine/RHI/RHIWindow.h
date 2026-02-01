@@ -83,6 +83,7 @@ public:
     {
         Surface = InSurface;
     }
+
     void SetSwapChain(const FRHISwapChain& InSwapChain)
     {
         SwapChain = InSwapChain;
@@ -112,12 +113,12 @@ public:
     ~FRHIWindow();
 
 private:
-    FRHISurface Surface;
+    FRHISurface   Surface;
     FRHISwapChain SwapChain;
-    FName WindowName;
+    FName         WindowName;
     FWindowHandle Handle = nullptr;
-    FVector2i Size;
-    bool bIsOpened = false;
+    FVector2i     Size;
+    bool          bIsOpened = false;
 };
 
 class FRHIWindowManager : public TSingleton<FRHIWindowManager>

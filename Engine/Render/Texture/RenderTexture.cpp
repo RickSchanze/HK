@@ -5,7 +5,7 @@
 
 FRenderTexture::FRenderTexture(UInt32 InWidth, UInt32 InHeight, ERHIImageFormat InFormat, ERHIImageUsage InUsage,
                                FStringView InDebugName)
-    : Width(InWidth), Height(InHeight), Format(InFormat), Usage(InUsage), DebugName(InDebugName)
+    : Width(InWidth), Height(InHeight), Format(InFormat), Usage(InUsage), DebugName(InDebugName), bOwnsImageView(true)
 {
     // 如果参数合规，直接创建资源
     if (Width > 0 && Height > 0 && Format != ERHIImageFormat::Undefined)
@@ -19,6 +19,19 @@ FRenderTexture::FRenderTexture(UInt32 InWidth, UInt32 InHeight, ERHIImageFormat 
     {
         HK_LOG_WARN(ELogcat::Render, "RenderTexture created with invalid parameters: {}. Width: {}, Height: {}",
                     DebugName, Width, Height);
+    }
+}
+
+FRenderTexture::FRenderTexture(const FRHIImageView& InImageView, UInt32 InWidth, UInt32 InHeight,
+                               ERHIImageFormat InFormat, FStringView InDebugName)
+    : Width(InWidth), Height(InHeight), Format(InFormat), DebugName(InDebugName), ImageView(InImageView),
+      bOwnsImageView(false)
+{
+    // 外部ImageView模式：不创建自己的Image和ImageView
+    // ImageView由外部管理（例如SwapChain），不需要释放
+    if (!ImageView.IsValid())
+    {
+        HK_LOG_WARN(ELogcat::Render, "RenderTexture '{}' created with invalid external ImageView", DebugName);
     }
 }
 
@@ -36,12 +49,14 @@ FRenderTexture::~FRenderTexture()
 
 FRenderTexture::FRenderTexture(FRenderTexture&& Other) noexcept
     : Width(Other.Width), Height(Other.Height), Format(Other.Format), Usage(Other.Usage),
-      DebugName(std::move(Other.DebugName)), Image(std::move(Other.Image)), ImageView(std::move(Other.ImageView))
+      DebugName(std::move(Other.DebugName)), Image(std::move(Other.Image)), ImageView(std::move(Other.ImageView)),
+      bOwnsImageView(Other.bOwnsImageView)
 {
-    Other.Width  = 0;
-    Other.Height = 0;
-    Other.Format = ERHIImageFormat::Undefined;
-    Other.Usage  = ERHIImageUsage::None;
+    Other.Width          = 0;
+    Other.Height         = 0;
+    Other.Format         = ERHIImageFormat::Undefined;
+    Other.Usage          = ERHIImageUsage::None;
+    Other.bOwnsImageView = true;  // 重置为默认值
 }
 
 FRenderTexture& FRenderTexture::operator=(FRenderTexture&& Other) noexcept
@@ -52,19 +67,21 @@ FRenderTexture& FRenderTexture::operator=(FRenderTexture&& Other) noexcept
         Release();
 
         // 移动数据
-        Width     = Other.Width;
-        Height    = Other.Height;
-        Format    = Other.Format;
-        Usage     = Other.Usage;
-        DebugName = std::move(Other.DebugName);
-        Image     = std::move(Other.Image);
-        ImageView = std::move(Other.ImageView);
+        Width          = Other.Width;
+        Height         = Other.Height;
+        Format         = Other.Format;
+        Usage          = Other.Usage;
+        DebugName      = std::move(Other.DebugName);
+        Image          = std::move(Other.Image);
+        ImageView      = std::move(Other.ImageView);
+        bOwnsImageView = Other.bOwnsImageView;
 
         // 清空源对象
-        Other.Width  = 0;
-        Other.Height = 0;
-        Other.Format = ERHIImageFormat::Undefined;
-        Other.Usage  = ERHIImageUsage::None;
+        Other.Width          = 0;
+        Other.Height         = 0;
+        Other.Format         = ERHIImageFormat::Undefined;
+        Other.Usage          = ERHIImageUsage::None;
+        Other.bOwnsImageView = true; // 重置为默认值
     }
     return *this;
 }
@@ -84,7 +101,19 @@ bool FRenderTexture::Resize(UInt32 NewWidth, UInt32 NewHeight)
         return true;
     }
 
-    // 释放旧资源
+    // 外部ImageView模式：只更新尺寸，不重新创建资源
+    // 调用者需要手动调用 SetImageView() 来更新 ImageView
+    if (!bOwnsImageView)
+    {
+        Width  = NewWidth;
+        Height = NewHeight;
+        HK_LOG_INFO(ELogcat::Render,
+                    "RenderTexture '{}' resized to {}x{} (external ImageView mode, call SetImageView to update)",
+                    DebugName, NewWidth, NewHeight);
+        return true;
+    }
+
+    // 自管理模式：释放旧资源并重新创建
     Release();
 
     // 更新尺寸
@@ -110,17 +139,40 @@ void FRenderTexture::Release()
         return;
     }
 
-    // 销毁ImageView
-    if (ImageView.IsValid())
+    // 销毁ImageView（仅当拥有所有权时）
+    if (ImageView.IsValid() && bOwnsImageView)
     {
         Device->DestroyImageView(ImageView);
     }
 
-    // 销毁Image
-    if (Image.IsValid())
+    // 销毁Image（仅当拥有所有权时，外部ImageView模式下不会有Image）
+    if (Image.IsValid() && bOwnsImageView)
     {
         Device->DestroyImage(Image);
     }
+
+    // 清空引用
+    ImageView = FRHIImageView();
+    Image     = FRHIImage();
+}
+
+void FRenderTexture::SetImageView(const FRHIImageView& InImageView)
+{
+    if (bOwnsImageView)
+    {
+        HK_LOG_WARN(ELogcat::Render,
+                    "SetImageView called on RenderTexture '{}' that owns its ImageView. "
+                    "This method should only be used with external ImageView mode.",
+                    DebugName);
+        return;
+    }
+
+    if (!InImageView.IsValid())
+    {
+        HK_LOG_WARN(ELogcat::Render, "SetImageView called with invalid ImageView on RenderTexture '{}'", DebugName);
+    }
+
+    ImageView = InImageView;
 }
 
 bool FRenderTexture::IsDepthFormat() const

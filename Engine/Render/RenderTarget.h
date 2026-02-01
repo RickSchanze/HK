@@ -40,8 +40,7 @@ struct FRenderTargetColorAttachment
     ERenderTargetLoadOp  LoadOp        = ERenderTargetLoadOp::Clear;              // 加载操作
     ERenderTargetStoreOp StoreOp       = ERenderTargetStoreOp::Store;             // 存储操作
     FVector4f            ClearColor    = FVector4f(0.0f, 0.0f, 0.0f, 1.0f);       // 清除颜色（LoadOp为Clear时使用）
-    ERHIImageLayout      InitialLayout = ERHIImageLayout::Undefined;              // 初始布局
-    ERHIImageLayout      FinalLayout   = ERHIImageLayout::ColorAttachmentOptimal; // 最终布局
+    ERHIImageLayout      Layout        = ERHIImageLayout::ColorAttachmentOptimal; // 最终布局
 };
 
 /**
@@ -56,8 +55,7 @@ struct FRenderTargetDepthStencilAttachment
     ERenderTargetStoreOp StencilStoreOp = ERenderTargetStoreOp::DontCare;                 // 模板存储操作
     float                ClearDepth     = 1.0f;                                           // 清除深度值
     UInt32               ClearStencil   = 0;                                              // 清除模板值
-    ERHIImageLayout      InitialLayout  = ERHIImageLayout::Undefined;                     // 初始布局
-    ERHIImageLayout      FinalLayout    = ERHIImageLayout::DepthStencilAttachmentOptimal; // 最终布局
+    ERHIImageLayout      Layout         = ERHIImageLayout::DepthStencilAttachmentOptimal; // 最终布局
 };
 
 /**
