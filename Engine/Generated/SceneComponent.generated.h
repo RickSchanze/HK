@@ -13,7 +13,10 @@
         }                                                                                                              \
         static void Register_CSceneComponent();                                                                                 \
     };                                                                                                                 \
-    virtual FType GetType() const { return TypeOf<CSceneComponent>(); }                                                                                        \
+    typedef CComponent::ThisClass Super;                                                                                        \
+    typedef CSceneComponent ThisClass;                                                                                        \
+    virtual FType GetType() const override { return TypeOf<CSceneComponent>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(CSceneComponent)                                                                                        \
     static void Register_CSceneComponent_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

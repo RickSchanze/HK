@@ -595,52 +595,176 @@ void FGfxDeviceVk::ExecuteCommand(FRHICommandBuffer& CommandBuffer, const FRHICo
         case ERHICommandType::BeginRendering:
         {
             const auto& Cmd = static_cast<const FRHICommand_BeginRendering&>(Command);
+            
             // 转换颜色附件
             TArray<vk::RenderingAttachmentInfo> VkColorAttachments;
             VkColorAttachments.Reserve(Cmd.ColorAttachments.Size());
             for (const auto& Attachment : Cmd.ColorAttachments)
             {
-                if (Attachment.IsValid())
+                if (Attachment.ImageView.IsValid())
                 {
-                    auto ImageView   = Attachment.GetHandle().Cast<VkImageView>();
+                    auto ImageView   = Attachment.ImageView.GetHandle().Cast<VkImageView>();
                     auto VkImageView = vk::ImageView(ImageView);
+                    
+                    // 转换LoadOp
+                    vk::AttachmentLoadOp VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                    switch (Attachment.LoadOp)
+                    {
+                        case ERHIAttachmentLoadOp::Load:
+                            VkLoadOp = vk::AttachmentLoadOp::eLoad;
+                            break;
+                        case ERHIAttachmentLoadOp::Clear:
+                            VkLoadOp = vk::AttachmentLoadOp::eClear;
+                            break;
+                        case ERHIAttachmentLoadOp::DontCare:
+                            VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                            break;
+                    }
+                    
+                    // 转换StoreOp
+                    vk::AttachmentStoreOp VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                    switch (Attachment.StoreOp)
+                    {
+                        case ERHIAttachmentStoreOp::Store:
+                            VkStoreOp = vk::AttachmentStoreOp::eStore;
+                            break;
+                        case ERHIAttachmentStoreOp::DontCare:
+                            VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                            break;
+                    }
+                    
+                    // 创建清除值
+                    vk::ClearValue ClearValue;
+                    ClearValue.color = vk::ClearColorValue(std::array<float, 4>{
+                        Attachment.ClearValue.X, Attachment.ClearValue.Y, 
+                        Attachment.ClearValue.Z, Attachment.ClearValue.W
+                    });
+                    
                     VkColorAttachments.Add(vk::RenderingAttachmentInfo(
-                        VkImageView, vk::ImageLayout::eColorAttachmentOptimal, vk::ResolveModeFlagBits::eNone, nullptr,
-                        vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore));
+                        VkImageView, 
+                        ConvertImageLayout(Attachment.ImageLayout), 
+                        vk::ResolveModeFlagBits::eNone, 
+                        nullptr,
+                        vk::ImageLayout::eUndefined, 
+                        VkLoadOp, 
+                        VkStoreOp,
+                        ClearValue));
                 }
             }
 
             // 转换深度附件
             vk::RenderingAttachmentInfo* VkDepthAttachment = nullptr;
             vk::RenderingAttachmentInfo  VkDepthAttachmentInfo;
-            if (Cmd.DepthAttachment.IsValid())
+            if (Cmd.bHasDepthAttachment && Cmd.DepthAttachment.ImageView.IsValid())
             {
-                auto ImageView        = Cmd.DepthAttachment.GetHandle().Cast<VkImageView>();
-                auto VkImageView      = vk::ImageView(ImageView);
+                auto ImageView   = Cmd.DepthAttachment.ImageView.GetHandle().Cast<VkImageView>();
+                auto VkImageView = vk::ImageView(ImageView);
+                
+                // 转换LoadOp
+                vk::AttachmentLoadOp VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                switch (Cmd.DepthAttachment.LoadOp)
+                {
+                    case ERHIAttachmentLoadOp::Load:
+                        VkLoadOp = vk::AttachmentLoadOp::eLoad;
+                        break;
+                    case ERHIAttachmentLoadOp::Clear:
+                        VkLoadOp = vk::AttachmentLoadOp::eClear;
+                        break;
+                    case ERHIAttachmentLoadOp::DontCare:
+                        VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                        break;
+                }
+                
+                // 转换StoreOp
+                vk::AttachmentStoreOp VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                switch (Cmd.DepthAttachment.StoreOp)
+                {
+                    case ERHIAttachmentStoreOp::Store:
+                        VkStoreOp = vk::AttachmentStoreOp::eStore;
+                        break;
+                    case ERHIAttachmentStoreOp::DontCare:
+                        VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                        break;
+                }
+                
+                // 创建清除值
+                vk::ClearValue ClearValue;
+                ClearValue.depthStencil = vk::ClearDepthStencilValue(Cmd.DepthAttachment.ClearValue.X, 0);
+                
                 VkDepthAttachmentInfo = vk::RenderingAttachmentInfo(
-                    VkImageView, ConvertImageLayout(Cmd.DepthAttachmentLayout), vk::ResolveModeFlagBits::eNone, nullptr,
-                    vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore);
+                    VkImageView, 
+                    ConvertImageLayout(Cmd.DepthAttachment.ImageLayout), 
+                    vk::ResolveModeFlagBits::eNone, 
+                    nullptr,
+                    vk::ImageLayout::eUndefined, 
+                    VkLoadOp, 
+                    VkStoreOp,
+                    ClearValue);
                 VkDepthAttachment = &VkDepthAttachmentInfo;
             }
 
             // 转换模板附件
             vk::RenderingAttachmentInfo* VkStencilAttachment = nullptr;
             vk::RenderingAttachmentInfo  VkStencilAttachmentInfo;
-            if (Cmd.StencilAttachment.IsValid())
+            if (Cmd.bHasStencilAttachment && Cmd.StencilAttachment.ImageView.IsValid())
             {
-                auto ImageView          = Cmd.StencilAttachment.GetHandle().Cast<VkImageView>();
-                auto VkImageView        = vk::ImageView(ImageView);
+                auto ImageView   = Cmd.StencilAttachment.ImageView.GetHandle().Cast<VkImageView>();
+                auto VkImageView = vk::ImageView(ImageView);
+                
+                // 转换LoadOp
+                vk::AttachmentLoadOp VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                switch (Cmd.StencilAttachment.LoadOp)
+                {
+                    case ERHIAttachmentLoadOp::Load:
+                        VkLoadOp = vk::AttachmentLoadOp::eLoad;
+                        break;
+                    case ERHIAttachmentLoadOp::Clear:
+                        VkLoadOp = vk::AttachmentLoadOp::eClear;
+                        break;
+                    case ERHIAttachmentLoadOp::DontCare:
+                        VkLoadOp = vk::AttachmentLoadOp::eDontCare;
+                        break;
+                }
+                
+                // 转换StoreOp
+                vk::AttachmentStoreOp VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                switch (Cmd.StencilAttachment.StoreOp)
+                {
+                    case ERHIAttachmentStoreOp::Store:
+                        VkStoreOp = vk::AttachmentStoreOp::eStore;
+                        break;
+                    case ERHIAttachmentStoreOp::DontCare:
+                        VkStoreOp = vk::AttachmentStoreOp::eDontCare;
+                        break;
+                }
+                
+                // 创建清除值
+                vk::ClearValue ClearValue;
+                ClearValue.depthStencil = vk::ClearDepthStencilValue(0.0f, static_cast<UInt32>(Cmd.StencilAttachment.ClearValue.Y));
+                
                 VkStencilAttachmentInfo = vk::RenderingAttachmentInfo(
-                    VkImageView, ConvertImageLayout(Cmd.StencilAttachmentLayout), vk::ResolveModeFlagBits::eNone,
-                    nullptr, vk::ImageLayout::eUndefined, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore);
+                    VkImageView, 
+                    ConvertImageLayout(Cmd.StencilAttachment.ImageLayout), 
+                    vk::ResolveModeFlagBits::eNone,
+                    nullptr, 
+                    vk::ImageLayout::eUndefined, 
+                    VkLoadOp, 
+                    VkStoreOp,
+                    ClearValue);
                 VkStencilAttachment = &VkStencilAttachmentInfo;
             }
 
-            vk::RenderingInfo RenderingInfo(vk::RenderingFlags(),
-                                            vk::Rect2D(vk::Offset2D(Cmd.RenderArea.X, Cmd.RenderArea.Y),
-                                                       vk::Extent2D(Cmd.RenderArea.Width, Cmd.RenderArea.Height)),
-                                            1, 0, VkColorAttachments.Size(), VkColorAttachments.Data(),
-                                            VkDepthAttachment, VkStencilAttachment);
+            vk::RenderingInfo RenderingInfo(
+                vk::RenderingFlags(),
+                vk::Rect2D(
+                    vk::Offset2D(Cmd.RenderArea.X, Cmd.RenderArea.Y),
+                    vk::Extent2D(Cmd.RenderArea.Width, Cmd.RenderArea.Height)),
+                Cmd.LayerCount, 
+                0, 
+                static_cast<UInt32>(VkColorAttachments.Size()), 
+                VkColorAttachments.Data(),
+                VkDepthAttachment, 
+                VkStencilAttachment);
 
             VkCmdBuffer.beginRendering(RenderingInfo);
             break;

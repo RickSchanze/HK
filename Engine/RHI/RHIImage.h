@@ -7,7 +7,7 @@
 #include "Math/Vector.h"
 #include "RHIHandle.h"
 
-
+// ReSharper disable once CppUnusedIncludeDirective
 #include "RHIImage.generated.h"
 
 HENUM()
@@ -142,6 +142,41 @@ enum class ERHIImageAspect : UInt32
     Stencil = 1 << 2, // 模板方面
 };
 HK_ENABLE_BITMASK_OPERATORS(ERHIImageAspect)
+
+// 比较操作枚举（用于深度测试和采样器比较）
+HENUM()
+enum class ERHICompareOp : UInt32
+{
+    Never          = 0,
+    Less           = 1,
+    Equal          = 2,
+    LessOrEqual    = 3,
+    Greater        = 4,
+    NotEqual       = 5,
+    GreaterOrEqual = 6,
+    Always         = 7,
+};
+
+// 着色器阶段枚举（用于描述符绑定和管线）
+enum class ERHIShaderStage : UInt32
+{
+    None                   = 0,
+    Vertex                 = 1 << 0,  // 顶点着色器
+    TessellationControl    = 1 << 1,  // 曲面细分控制着色器
+    TessellationEvaluation = 1 << 2,  // 曲面细分计算着色器
+    Geometry               = 1 << 3,  // 几何着色器
+    Fragment               = 1 << 4,  // 片段着色器
+    Compute                = 1 << 5,  // 计算着色器
+    Task                   = 1 << 6,  // 任务着色器（网格着色器）
+    Mesh                   = 1 << 7,  // 网格着色器
+    Raygen                 = 1 << 8,  // 光线生成着色器（光线追踪）
+    AnyHit                 = 1 << 9,  // 任意命中着色器（光线追踪）
+    ClosestHit             = 1 << 10, // 最近命中着色器（光线追踪）
+    Miss                   = 1 << 11, // 未命中着色器（光线追踪）
+    Intersection           = 1 << 12, // 相交着色器（光线追踪）
+    Callable               = 1 << 13, // 可调用着色器（光线追踪）
+};
+HK_ENABLE_BITMASK_OPERATORS(ERHIShaderStage)
 
 enum class ERHIImageType : UInt32
 {

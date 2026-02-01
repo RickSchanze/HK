@@ -8,8 +8,8 @@
 struct FAssetMetadata;
 class HObject;
 
-HCLASS()
-class FAssetLoader
+HCLASS(Abstract)
+class HK_API FAssetLoader
 {
     GENERATED_BODY(FAssetLoader)
 public:

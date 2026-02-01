@@ -16,6 +16,7 @@
     typedef FAssetImportSetting::ThisClass Super;                                                                                        \
     typedef FTextureImportSetting ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FTextureImportSetting>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FTextureImportSetting)                                                                                        \
     static void Register_FTextureImportSetting_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \
@@ -34,6 +35,7 @@
     };                                                                                                                 \
     typedef FTextureIntermediate ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FTextureIntermediate>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

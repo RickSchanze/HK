@@ -16,6 +16,7 @@
     typedef IConfig::ThisClass Super;                                                                                        \
     typedef FRHIConfig ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FRHIConfig>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FRHIConfig)                                                                                        \
     static void Register_FRHIConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

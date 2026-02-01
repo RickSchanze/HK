@@ -16,6 +16,7 @@
     typedef HAsset::ThisClass Super;                                                                                        \
     typedef HMaterial ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<HMaterial>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HMaterial)                                                                                        \
     static void Register_HMaterial_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

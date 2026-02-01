@@ -16,6 +16,7 @@
     typedef IConfig::ThisClass Super;                                                                                        \
     typedef FRenderConfig ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FRenderConfig>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FRenderConfig)                                                                                        \
     static void Register_FRenderConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

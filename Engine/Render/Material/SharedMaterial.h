@@ -61,7 +61,7 @@ struct FRHIPipelineResourcePool : TSingleton<FRHIPipelineResourcePool>
     void CreateGlobalDescriptorPools();
     void DestroyGlobalDescriptorPools();
 
-    FRHIDescriptorPool SelectDescriptorPool(ECommonDescriptorSetIndex Index);
+    FRHIDescriptorPool SelectDescriptorPool(ECommonDescriptorSetIndex Index) const;
 };
 
 struct FSharedMaterial

@@ -10,11 +10,13 @@
 #include "RHI/RHIDescriptorSet.h"
 #include "RHI/RHIImage.h"
 #include "RHI/RHIImageView.h"
-#include "RHI/RHISampler.h"
 #include "RHI/RHIPipeline.h"
+#include "RHI/RHISampler.h"
 #include "RHI/RHISync.h"
-#include <vulkan/vulkan.h>
+#include "RHI/RHIWindow.h"
+
 #include "vulkan/vulkan.hpp"
+#include <vulkan/vulkan.h>
 
 class FGfxDeviceVk : public FGfxDevice
 {
@@ -96,6 +98,10 @@ public:
     void DestroyRHIWindow(FRHIWindow& Window) override;
     void OpenWindow(FRHIWindow& Window) override;
     void CloseWindow(FRHIWindow& Window) override;
+    bool AcquireNextImage(FRHIWindow& Window, const FRHISemaphore& ImageAvailableSemaphore,
+                          UInt32& OutImageIndex) override;
+    bool PresentImage(FRHIWindow& Window, UInt32 ImageIndex, const FRHISemaphore& RenderFinishedSemaphore) override;
+    FRHIImageView GetSwapChainImageView(FRHIWindow& Window, UInt32 ImageIndex) override;
 #pragma endregion
 
     VkDevice GetDevice() const
@@ -379,6 +385,18 @@ private:
      * 转换命令缓冲区使用标志到 Vulkan 标志
      */
     static vk::CommandBufferUsageFlags ConvertCommandBufferUsageFlags(ERHICommandBufferUsageFlag Flags);
+
+    // SwapChain数据结构
+    struct FSwapChainData
+    {
+        TArray<vk::Image>     Images;
+        TArray<FRHIImageView> ImageViews;
+        vk::Format            ImageFormat;
+        vk::Extent2D          Extent;
+    };
+
+    // 存储每个窗口的SwapChain数据（索引对应Windows数组）
+    FSwapChainData SwapChainDataArray[MAX_RHI_WINDOW_COUNT] = {};
 
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;

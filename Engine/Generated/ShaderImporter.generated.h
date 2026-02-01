@@ -16,6 +16,7 @@
     typedef FAssetImportSetting::ThisClass Super;                                                                                        \
     typedef FShaderImportSetting ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FShaderImportSetting>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FShaderImportSetting)                                                                                        \
     static inline Z_ShaderImportSetting_Register Z_REGISTERER_SHADERIMPORTSETTING;
 
@@ -30,6 +31,7 @@
     };                                                                                                                 \
     typedef FShaderIntermediate ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FShaderIntermediate>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

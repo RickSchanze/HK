@@ -377,7 +377,65 @@ void FGfxDeviceVk::CreateMainWindowSwapChain(FRHIWindow& OutMainWindow)
     // 更新窗口的SwapChain
     OutMainWindow.GetSwapChain().Handle = SwapChainRHIHandle;
 
-    HK_LOG_INFO(ELogcat::RHI, "主窗口SwapChain创建成功");
+    // 获取SwapChain图像
+    FSwapChainData& SwapChainData = SwapChainDataArray[0]; // 主窗口索引为0
+    SwapChainData.ImageFormat     = SurfaceFormat.format;
+    SwapChainData.Extent          = Capabilities.currentExtent;
+
+    try
+    {
+        std::vector<vk::Image> VkImages = Device.getSwapchainImagesKHR(SwapChain);
+        SwapChainData.Images.Reserve(VkImages.size());
+        for (const auto& Image : VkImages)
+        {
+            SwapChainData.Images.Add(Image);
+        }
+    }
+    catch (const vk::SystemError& e)
+    {
+        HK_LOG_FATAL(ELogcat::RHI, "获取SwapChain图像失败: {}", e.what());
+        throw std::runtime_error((FString("获取SwapChain图像失败: ") + FString(e.what())).CStr());
+    }
+
+    // 为每个SwapChain图像创建ImageView
+    SwapChainData.ImageViews.Reserve(SwapChainData.Images.Size());
+    for (UInt32 i = 0; i < SwapChainData.Images.Size(); ++i)
+    {
+        vk::ImageViewCreateInfo ViewInfo;
+        ViewInfo.image                           = SwapChainData.Images[i];
+        ViewInfo.viewType                        = vk::ImageViewType::e2D;
+        ViewInfo.format                          = SurfaceFormat.format;
+        ViewInfo.components.r                    = vk::ComponentSwizzle::eIdentity;
+        ViewInfo.components.g                    = vk::ComponentSwizzle::eIdentity;
+        ViewInfo.components.b                    = vk::ComponentSwizzle::eIdentity;
+        ViewInfo.components.a                    = vk::ComponentSwizzle::eIdentity;
+        ViewInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
+        ViewInfo.subresourceRange.baseMipLevel   = 0;
+        ViewInfo.subresourceRange.levelCount     = 1;
+        ViewInfo.subresourceRange.baseArrayLayer = 0;
+        ViewInfo.subresourceRange.layerCount     = 1;
+
+        vk::ImageView MyVkImageView;
+        try
+        {
+            MyVkImageView = Device.createImageView(ViewInfo);
+        }
+        catch (const vk::SystemError& e)
+        {
+            HK_LOG_FATAL(ELogcat::RHI, "创建SwapChain ImageView失败: {}", e.what());
+            throw std::runtime_error((FString("创建SwapChain ImageView失败: ") + FString(e.what())).CStr());
+        }
+
+        // 创建RHI ImageView
+        FString    ViewDebugName = std::format("MainWindowSwapChainImageView_{}", i);
+        FRHIHandle ViewHandle    = HandleManager.CreateRHIHandle(ViewDebugName.CStr(), MyVkImageView);
+
+        FRHIImageView RHIImageView;
+        RHIImageView.Handle = ViewHandle;
+        SwapChainData.ImageViews.Add(RHIImageView);
+    }
+
+    HK_LOG_INFO(ELogcat::RHI, "主窗口SwapChain创建成功，图像数量: {}", SwapChainData.Images.Size());
 }
 
 void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIWindow& OutWindow)
@@ -663,7 +721,26 @@ void FGfxDeviceVk::CreateRHIWindow(const FName Name, const FVector2i Size, FRHIW
 
 void FGfxDeviceVk::DestroyMainWindow(FRHIWindow& MainWindow)
 {
-    // 1. 销毁SwapChain
+    // 1. 销毁SwapChain ImageViews
+    FSwapChainData& SwapChainData = SwapChainDataArray[0]; // 主窗口索引为0
+    auto&           HandleManager = FRHIHandleManager::GetRef();
+    for (auto& ImageView : SwapChainData.ImageViews)
+    {
+        if (ImageView.IsValid())
+        {
+            auto VkImageViewHandle = ImageView.Handle.Cast<VkImageView>();
+            auto VkImageView       = vk::ImageView(VkImageViewHandle);
+            if (Device && VkImageView)
+            {
+                Device.destroyImageView(VkImageView);
+            }
+            HandleManager.DestroyRHIHandle(ImageView.Handle);
+        }
+    }
+    SwapChainData.ImageViews.Clear();
+    SwapChainData.Images.Clear();
+
+    // 2. 销毁SwapChain
     if (MainWindow.GetSwapChain().Handle.IsValid())
     {
         const auto SwapChainHandle = MainWindow.GetSwapChain().Handle.Cast<VkSwapchainKHR>();
@@ -671,7 +748,6 @@ void FGfxDeviceVk::DestroyMainWindow(FRHIWindow& MainWindow)
         {
             Device.destroySwapchainKHR(SwapChain);
         }
-        auto& HandleManager = FRHIHandleManager::GetRef();
         HandleManager.DestroyRHIHandle(MainWindow.GetSwapChain().Handle);
         MainWindow.SetSwapChain(FRHISwapChain{FRHIHandle()});
         HK_LOG_INFO(ELogcat::RHI, "主窗口SwapChain已销毁");

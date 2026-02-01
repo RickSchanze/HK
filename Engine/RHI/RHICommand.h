@@ -9,7 +9,6 @@
 #include "RHIImage.h"
 #include "RHIImageView.h"
 #include "RHIPipeline.h"
-#include <cstring>
 #include <utility>
 
 // 前向声明
@@ -512,16 +511,41 @@ struct FRHICommand_PushConstants : FRHICommand
 // Dynamic Rendering 命令
 // ============================================================================
 
+// 加载操作
+enum class ERHIAttachmentLoadOp : UInt32
+{
+    Load     = 0, // 加载现有内容
+    Clear    = 1, // 清除为指定的清除值
+    DontCare = 2, // 不关心现有内容
+};
+
+// 存储操作
+enum class ERHIAttachmentStoreOp : UInt32
+{
+    Store    = 0, // 存储渲染结果
+    DontCare = 1, // 不关心渲染结果
+};
+
+// 渲染附件信息
+struct FRHIRenderingAttachmentInfo
+{
+    FRHIImageView          ImageView;
+    ERHIImageLayout        ImageLayout  = ERHIImageLayout::ColorAttachmentOptimal;
+    ERHIAttachmentLoadOp   LoadOp       = ERHIAttachmentLoadOp::Clear;
+    ERHIAttachmentStoreOp  StoreOp      = ERHIAttachmentStoreOp::Store;
+    FVector4f              ClearValue   = FVector4f(0.0f, 0.0f, 0.0f, 1.0f);
+};
+
 struct FRHICommand_BeginRendering : FRHICommand
 {
     // Dynamic Rendering 相关信息
-    TArray<FRHIImageView> ColorAttachments;  // 颜色附件
-    FRHIImageView         DepthAttachment;   // 深度附件（可选）
-    FRHIImageView         StencilAttachment; // 模板附件（可选）
-    FRHIRect2D            RenderArea;        // 渲染区域
-    ERHIImageLayout       DepthAttachmentLayout   = ERHIImageLayout::Undefined;
-    ERHIImageLayout       StencilAttachmentLayout = ERHIImageLayout::Undefined;
-    bool                  bResolveAttachments     = false; // 是否使用解析附件
+    TArray<FRHIRenderingAttachmentInfo> ColorAttachments;     // 颜色附件数组
+    FRHIRenderingAttachmentInfo         DepthAttachment;      // 深度附件（可选）
+    FRHIRenderingAttachmentInfo         StencilAttachment;    // 模板附件（可选）
+    bool                                bHasDepthAttachment   = false;
+    bool                                bHasStencilAttachment = false;
+    FRHIRect2D                          RenderArea;           // 渲染区域
+    UInt32                              LayerCount            = 1;
 
     FRHICommand_BeginRendering() : FRHICommand()
     {

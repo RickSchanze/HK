@@ -15,5 +15,6 @@
     };                                                                                                                 \
     typedef IConfig ThisClass;                                                                                        \
     virtual FType GetType() const { return TypeOf<IConfig>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return true; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(IConfig)                                                                                        \
     static inline Z_IConfig_Register Z_REGISTERER_ICONFIG;

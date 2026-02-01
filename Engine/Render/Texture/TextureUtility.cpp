@@ -24,7 +24,7 @@ FRHIImage FTextureUtility::CreateRHIImage(const FImageData& ImageData, ERHIImage
     ImageDesc.Samples       = ERHISampleCount::Sample1;
     ImageDesc.Usage         = ERHIImageUsage::TransferDst | ERHIImageUsage::Sampled;
     ImageDesc.InitialLayout = ERHIImageLayout::Undefined;
-    ImageDesc.DebugName     = "TextureImage";
+    ImageDesc.DebugName     = FString("TextureImage");
 
     return GfxDevice.CreateImage(ImageDesc);
 }
@@ -41,7 +41,7 @@ FRHIImageView FTextureUtility::CreateRHIImageView(const FRHIImage& Image, ERHIIm
     ViewDesc.LevelCount     = 1;
     ViewDesc.BaseArrayLayer = 0;
     ViewDesc.LayerCount     = 1;
-    ViewDesc.DebugName      = "TextureImageView";
+    ViewDesc.DebugName      = FString("TextureImageView");
 
     return GfxDevice.CreateImageView(Image, ViewDesc);
 }
@@ -60,7 +60,7 @@ bool FTextureUtility::UploadTextureToGPU(const FImageData& ImageData, const FRHI
     StagingBufferDesc.Size           = ImageSize;
     StagingBufferDesc.Usage          = ERHIBufferUsage::TransferSrc;
     StagingBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-    StagingBufferDesc.DebugName      = "TextureStagingBuffer";
+    StagingBufferDesc.DebugName      = FString("TextureStagingBuffer");
 
     OutStagingBuffer = GfxDevice.CreateBuffer(StagingBufferDesc);
     if (!OutStagingBuffer.IsValid())
@@ -93,7 +93,7 @@ bool FTextureUtility::UploadTextureToGPU(const FImageData& ImageData, const FRHI
     FRHICommandBufferDesc CmdBufferDesc;
     CmdBufferDesc.Level      = ERHICommandBufferLevel::Primary;
     CmdBufferDesc.UsageFlags = ERHICommandBufferUsageFlag::OneTimeSubmit;
-    CmdBufferDesc.DebugName  = "TextureUploadCommandBuffer";
+    CmdBufferDesc.DebugName  = FString("TextureUploadCommandBuffer");
 
     OutCommandBuffer = GfxDevice.CreateCommandBuffer(CommandPool, CmdBufferDesc);
     if (!OutCommandBuffer.IsValid())

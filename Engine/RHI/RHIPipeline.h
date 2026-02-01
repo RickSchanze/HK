@@ -9,26 +9,6 @@
 #include "RHIHandle.h"
 #include "RHIImage.h"
 
-enum class ERHIShaderStage : UInt32
-{
-    None                   = 0,
-    Vertex                 = 1 << 0,  // 顶点着色器
-    TessellationControl    = 1 << 1,  // 曲面细分控制着色器
-    TessellationEvaluation = 1 << 2,  // 曲面细分计算着色器
-    Geometry               = 1 << 3,  // 几何着色器
-    Fragment               = 1 << 4,  // 片段着色器
-    Compute                = 1 << 5,  // 计算着色器
-    Task                   = 1 << 6,  // 任务着色器（网格着色器）
-    Mesh                   = 1 << 7,  // 网格着色器
-    Raygen                 = 1 << 8,  // 光线生成着色器（光线追踪）
-    AnyHit                 = 1 << 9,  // 任意命中着色器（光线追踪）
-    ClosestHit             = 1 << 10, // 最近命中着色器（光线追踪）
-    Miss                   = 1 << 11, // 未命中着色器（光线追踪）
-    Intersection           = 1 << 12, // 相交着色器（光线追踪）
-    Callable               = 1 << 13, // 可调用着色器（光线追踪）
-};
-HK_ENABLE_BITMASK_OPERATORS(ERHIShaderStage)
-
 struct FRHIShaderModuleDesc
 {
     TArray<UInt32> Code;      // SPIR-V 代码（UInt32 数组）
@@ -239,18 +219,6 @@ enum class ERHIFrontFace : UInt32
 {
     CounterClockwise = 0,
     Clockwise        = 1,
-};
-
-enum class ERHICompareOp : UInt32
-{
-    Never          = 0,
-    Less           = 1,
-    Equal          = 2,
-    LessOrEqual    = 3,
-    Greater        = 4,
-    NotEqual       = 5,
-    GreaterOrEqual = 6,
-    Always         = 7,
 };
 
 enum class ERHIStencilOp : UInt32

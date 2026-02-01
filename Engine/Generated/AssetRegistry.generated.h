@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef FAssetImportSetting ThisClass;                                                                                        \
     virtual FType GetType() const { return TypeOf<FAssetImportSetting>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FAssetImportSetting)                                                                                        \
     static inline Z_AssetImportSetting_Register Z_REGISTERER_ASSETIMPORTSETTING;
 
@@ -29,6 +30,7 @@
     };                                                                                                                 \
     typedef FAssetMetadata ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FAssetMetadata>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

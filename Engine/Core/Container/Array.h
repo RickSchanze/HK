@@ -315,7 +315,6 @@ public:
     }
 
     template <typename Archive>
-        requires CHasSerialize<T, Archive>
     void Serialize(Archive& Ar)
     {
         Ar(MyData);

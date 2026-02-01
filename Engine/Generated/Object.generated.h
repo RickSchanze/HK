@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef HObject ThisClass;                                                                                        \
     virtual FType GetType() const { return TypeOf<HObject>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HObject)                                                                                        \
     static void Register_HObject_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

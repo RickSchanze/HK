@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Singleton/Singleton.h"
+#include "RHI/RHICommandBuffer.h"
 #include "RHI/RHICommandPool.h"
 #include "RHI/RHISync.h"
 #include "RenderOptions.h"
@@ -31,5 +32,12 @@ public:
 private:
     FRHICommandPool UploadCommandPool;
 
-    TFixedArray<FRHIFence, HK_RENDER_INIT_FRAME_IN_FLIGHT> InFlightFences;
+    // 帧同步资源
+    TFixedArray<FRHIFence, HK_RENDER_INIT_FRAME_IN_FLIGHT>         InFlightFences;
+    TFixedArray<FRHISemaphore, HK_RENDER_INIT_FRAME_IN_FLIGHT>     ImageAvailableSemaphores;
+    TFixedArray<FRHISemaphore, HK_RENDER_INIT_FRAME_IN_FLIGHT>     RenderFinishedSemaphores;
+    TFixedArray<FRHICommandPool, HK_RENDER_INIT_FRAME_IN_FLIGHT>   FrameCommandPools;
+    TFixedArray<FRHICommandBuffer, HK_RENDER_INIT_FRAME_IN_FLIGHT> FrameCommandBuffers;
+
+    UInt32 CurrentFrameIndex = 0;
 };

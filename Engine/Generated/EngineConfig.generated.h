@@ -16,6 +16,7 @@
     typedef IConfig::ThisClass Super;                                                                                        \
     typedef FEngineConfig ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FEngineConfig>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FEngineConfig)                                                                                        \
     static void Register_FEngineConfig_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

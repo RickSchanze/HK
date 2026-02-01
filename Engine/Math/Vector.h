@@ -376,6 +376,12 @@ struct TVector3
     {
         *this = Normalized();
     }
+    template <typename Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MakeNamedPair("X", X), MakeNamedPair("Y", Y), MakeNamedPair("Z", Z));
+    }
+
 };
 
 // 标量在左侧的乘法
@@ -583,6 +589,12 @@ struct TVector4
         requires std::is_floating_point_v<T>
     {
         *this = Normalized();
+    }
+
+    template <typename Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MakeNamedPair("X", X), MakeNamedPair("Y", Y), MakeNamedPair("Z", Z), MakeNamedPair("W", W));
     }
 };
 

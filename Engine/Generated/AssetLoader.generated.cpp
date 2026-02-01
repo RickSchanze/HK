@@ -11,9 +11,12 @@ static void Register_FAssetLoader_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<FAssetLoader>("AssetLoader");
 
+    // 注册类型属性: Abstract
+    Type->RegisterAttribute(FName("Abstract"), "");
+
 }
 
-void FAssetLoader::Z_AssetLoader_Register::Register_FAssetLoader()
+HK_API void FAssetLoader::Z_AssetLoader_Register::Register_FAssetLoader()
 {
     // 只注册类型注册器函数，不执行注册操作
     FTypeManager::RegisterTypeRegisterer<FAssetLoader>(Register_FAssetLoader_Impl);

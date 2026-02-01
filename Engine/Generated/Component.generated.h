@@ -16,6 +16,7 @@
     typedef HObject::ThisClass Super;                                                                                        \
     typedef CComponent ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<CComponent>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(CComponent)                                                                                        \
     static void Register_CComponent_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

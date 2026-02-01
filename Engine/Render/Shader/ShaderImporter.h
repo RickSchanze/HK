@@ -3,7 +3,7 @@
 
 #include "ShaderImporter.generated.h"
 #include "ShaderParameterSheet.h"
-#include "SlangCompiler.h"
+#include "SlangTranslator.h"
 
 class HShader;
 

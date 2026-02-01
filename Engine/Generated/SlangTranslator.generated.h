@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef FShaderTranslateResult ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FShaderTranslateResult>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

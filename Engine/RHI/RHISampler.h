@@ -4,7 +4,10 @@
 #include "Core/Utility/HashUtility.h"
 #include "Core/Utility/Macros.h"
 #include "RHIHandle.h"
-#include "RHIPipeline.h"
+#include "RHIImage.h"
+
+// ReSharper disable once CppUnusedIncludeDirective
+#include "RHISampler.generated.h"
 
 HENUM()
 enum class ERHIFilter : UInt32

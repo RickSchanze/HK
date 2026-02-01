@@ -60,8 +60,8 @@ FRHIDescriptorSet FRHIPipelineResourcePool::RequestCommonDescriptorSet(ECommonDe
     const FRHIDescriptorSetLayout SetLayout = RequestCommonDescriptorSetLayout(Index);
     FRHIDescriptorSetDesc         DescriptorSetDesc;
     DescriptorSetDesc.Layout    = SetLayout;
-    const char* DebugNameLUT[]  = {"DescSet_Camera", "DescSet_Model", "DescSet_StaticResource"};
-    DescriptorSetDesc.DebugName = DebugNameLUT[static_cast<Int32>(Index)];
+    const char* DebugNameLUT[]   = {"DescSet_Camera", "DescSet_Model", "DescSet_StaticResource"};
+    DescriptorSetDesc.DebugName = FString(DebugNameLUT[static_cast<Int32>(Index)]);
 
     CommonDescriptorSets[static_cast<Int32>(Index)].DescriptorSet =
         GetGfxDeviceRef().AllocateDescriptorSet(SelectDescriptorPool(Index), DescriptorSetDesc);
@@ -80,31 +80,33 @@ FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayo
     {
         case ECommonDescriptorSetIndex::Camera:
         {
-            DescriptorSetDesc.DebugName = "DescSetLayout_Camera";
+            DescriptorSetDesc.DebugName = FString("DescSetLayout_Camera");
             FRHIDescriptorSetLayoutBinding Binding{};
             Binding.Binding         = 0;
             Binding.DescriptorType  = ERHIDescriptorType::UniformBuffer;
             Binding.DescriptorCount = 1;
             Binding.StageFlags      = ERHIShaderStage::Vertex | ERHIShaderStage::Fragment;
             DescriptorSetDesc.Bindings.Add(Binding);
-            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout =
+                Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         break;
         case ECommonDescriptorSetIndex::Model:
         {
-            DescriptorSetDesc.DebugName = "DescSetLayout_Model";
+            DescriptorSetDesc.DebugName = FString("DescSetLayout_Model");
             FRHIDescriptorSetLayoutBinding Binding{};
             Binding.Binding         = 0;
             Binding.DescriptorType  = ERHIDescriptorType::StorageBuffer;
             Binding.DescriptorCount = 1;
             Binding.StageFlags      = ERHIShaderStage::Vertex;
             DescriptorSetDesc.Bindings.Add(Binding);
-            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout =
+                Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         break;
         case ECommonDescriptorSetIndex::StaticResource:
         {
-            DescriptorSetDesc.DebugName = "DescSetLayout_StaticResource";
+            DescriptorSetDesc.DebugName = FString("DescSetLayout_StaticResource");
             FRHIDescriptorSetLayoutBinding Binding{};
             Binding.Binding         = 0;
             Binding.DescriptorType  = ERHIDescriptorType::SampledImage;
@@ -117,7 +119,8 @@ FRHIDescriptorSetLayout FRHIPipelineResourcePool::RequestCommonDescriptorSetLayo
             Binding1.DescriptorCount = HK_RENDER_BINDLESS_MAX_SAMPLERS;
             Binding1.StageFlags      = ERHIShaderStage::Vertex | ERHIShaderStage::Fragment;
             DescriptorSetDesc.Bindings.Add(Binding1);
-            CommonDescriptorSets[static_cast<Int32>(Index)].Layout = Device.CreateDescriptorSetLayout(DescriptorSetDesc);
+            CommonDescriptorSets[static_cast<Int32>(Index)].Layout =
+                Device.CreateDescriptorSetLayout(DescriptorSetDesc);
         }
         default:
             HK_LOG_FATAL(ELogcat::Render, "Invalid CommonDescriptorSetIndex {}", static_cast<Int32>(Index));
@@ -138,7 +141,7 @@ void FRHIPipelineResourcePool::ShutDown()
 
 void FRHIPipelineResourcePool::ClearCommonDescriptorSets()
 {
-    for (Int32 Index = static_cast<Int32>(ECommonDescriptorSetIndex::Camera);
+    for (auto Index = static_cast<Int32>(ECommonDescriptorSetIndex::Camera);
          Index < static_cast<Int32>(ECommonDescriptorSetIndex::Count); ++Index)
     {
         GetGfxDeviceRef().FreeDescriptorSet(StaticResourcesDescriptorPool, CommonDescriptorSets[Index].DescriptorSet);
@@ -150,7 +153,7 @@ void FRHIPipelineResourcePool::ClearCommonDescriptorSets()
 void FRHIPipelineResourcePool::CreateGlobalDescriptorPools()
 {
     FRHIDescriptorPoolDesc DescriptorPoolDesc;
-    DescriptorPoolDesc.DebugName = "StaticResourcesDescriptorPool";
+    DescriptorPoolDesc.DebugName = FString("StaticResourcesDescriptorPool");
     DescriptorPoolDesc.MaxSets   = 1;
     FRHIDescriptorPoolSize PoolSize{};
     PoolSize.Type  = ERHIDescriptorType::SampledImage;
@@ -165,7 +168,7 @@ void FRHIPipelineResourcePool::CreateGlobalDescriptorPools()
 
     // Dynamic
     FRHIDescriptorPoolDesc DynamicDescriptorPoolDesc;
-    DynamicDescriptorPoolDesc.DebugName = "DynamicDescriptorPool";
+    DynamicDescriptorPoolDesc.DebugName = FString("DynamicDescriptorPool");
     DynamicDescriptorPoolDesc.MaxSets   = 2;
     FRHIDescriptorPoolSize DynamicPoolSize{};
     DynamicPoolSize.Type  = ERHIDescriptorType::UniformBuffer;
@@ -185,7 +188,7 @@ void FRHIPipelineResourcePool::DestroyGlobalDescriptorPools()
     GetGfxDeviceRef().DestroyDescriptorPool(DynamicResourcesDescriptorPool);
 }
 
-FRHIDescriptorPool FRHIPipelineResourcePool::SelectDescriptorPool(ECommonDescriptorSetIndex Index)
+FRHIDescriptorPool FRHIPipelineResourcePool::SelectDescriptorPool(const ECommonDescriptorSetIndex Index) const
 {
     switch (Index)
     {
@@ -219,8 +222,8 @@ FSharedMaterial::FSharedMaterial(const HShader* InShader)
     TFixedArray<FRHIShaderModule, 2> ShaderModules;
     // 需要非 const 指针来调用 Compile，但这里只是读取编译结果，所以使用 const_cast
     // 或者更好的方式是修改函数签名，但为了保持兼容性，这里使用 const_cast
-    HShader* NonConstShader = const_cast<HShader*>(InShader);
-    if (!NonConstShader->Compile(ShaderModules, false)) // ClearCode = false，保留代码
+    if (auto NonConstShader = const_cast<HShader*>(InShader);
+        !NonConstShader->Compile(ShaderModules, false)) // ClearCode = false，保留代码
     {
         return;
     }

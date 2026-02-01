@@ -16,7 +16,7 @@ public:
     using ConstReverseIterator = std::string::const_reverse_iterator;
 
     FString() = default;
-    FString(const char* InStr) : MyData(InStr) {}
+    explicit FString(const char* InStr) : MyData(InStr) {}
     FString(const char* InStr, SizeType InSize) : MyData(InStr, InSize) {}
     FString(const std::string& InStr) : MyData(InStr) {}
     FString(std::string&& InStr) : MyData(std::move(InStr)) {}
@@ -258,7 +258,7 @@ public:
     // Cereal 序列化适配 (Primitive 模式)
     // ------------------------------------------------------------------
 
-    std::string SavePrimitive() const
+    std::string WritePrimitive() const
     {
         return MyData;
     }

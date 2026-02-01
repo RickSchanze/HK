@@ -223,6 +223,12 @@ public:
         return nullptr != Rhs.Ptr;
     }
 
+    template <typename Archive>
+    void Serialize(Archive& Ar)
+    {
+        // TODO: ObjectPtr 序列化
+    }
+
 private:
     Pointer Ptr;
 };

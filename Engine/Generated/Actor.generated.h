@@ -16,6 +16,7 @@
     typedef HObject::ThisClass Super;                                                                                        \
     typedef AActor ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<AActor>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(AActor)                                                                                        \
     static void Register_AActor_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

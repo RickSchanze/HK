@@ -52,7 +52,7 @@ struct FUuid
     // ------------------------------------------------------------
 
     // 1. 返回基础类型 (std::string)
-    std::string SavePrimitive() const
+    std::string WritePrimitive() const
     {
         return uuids::to_string(Uuid);
     }

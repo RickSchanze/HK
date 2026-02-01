@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef FColor ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FColor>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

@@ -13,6 +13,7 @@
 #include "slang-com-ptr.h"
 #include "slang/slang.h"
 #include <filesystem>
+#include <format>
 #include <fstream>
 
 using namespace slang;
@@ -20,8 +21,8 @@ using namespace slang;
 class FSlangTranslator::FImpl
 {
 public:
-    Slang::ComPtr<slang::IGlobalSession>                                GlobalSession;
-    Slang::ComPtr<slang::ISession>                                      CompileSession;
+    Slang::ComPtr<slang::IGlobalSession>                                  GlobalSession;
+    Slang::ComPtr<slang::ISession>                                        CompileSession;
     TFixedArray<Int32, static_cast<Int32>(EShaderTranslateTarget::Count)> LanguageIndices;
 
     FImpl()
@@ -41,18 +42,18 @@ public:
         slang::TargetDesc  TargetDesc[static_cast<Int32>(EShaderTranslateTarget::Count)];
 
         // SPIRV target
-        TargetDesc[0].format                                             = SLANG_SPIRV;
-        TargetDesc[0].profile                                            = GlobalSession->findProfile("glsl_460");
+        TargetDesc[0].format                                               = SLANG_SPIRV;
+        TargetDesc[0].profile                                              = GlobalSession->findProfile("glsl_460");
         LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::Spirv)] = 0;
 
         // GLSL target
-        TargetDesc[1].format                                            = SLANG_GLSL;
-        TargetDesc[1].profile                                           = GlobalSession->findProfile("glsl_460");
+        TargetDesc[1].format                                              = SLANG_GLSL;
+        TargetDesc[1].profile                                             = GlobalSession->findProfile("glsl_460");
         LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::GLSL)] = 1;
 
         // HLSL target
-        TargetDesc[2].format                                            = SLANG_HLSL;
-        TargetDesc[2].profile                                           = GlobalSession->findProfile("sm_6_0");
+        TargetDesc[2].format                                              = SLANG_HLSL;
+        TargetDesc[2].profile                                             = GlobalSession->findProfile("sm_6_0");
         LanguageIndices[static_cast<Int32>(EShaderTranslateTarget::HLSL)] = 2;
 
         Desc.searchPaths     = SearchPaths.Data();
@@ -138,7 +139,7 @@ public:
             {
                 if (IsPushConstantProcessed)
                 {
-                    OutErrorMessage = "PushConstant变量一个Shader只能出现一次.";
+                    OutErrorMessage = FString("PushConstant变量一个Shader只能出现一次.");
                     return false;
                 }
 
@@ -148,7 +149,7 @@ public:
 
                 if (PushConstantKind != slang::TypeReflection::Kind::Struct)
                 {
-                    OutErrorMessage = "PushConstant需要是一个结构体";
+                    OutErrorMessage = FString("PushConstant需要是一个结构体");
                     return false;
                 }
 
@@ -199,14 +200,14 @@ public:
         Module->findEntryPointByName("VertexMain", OutVertexEntry.writeRef());
         if (!OutVertexEntry)
         {
-            OutErrorMessage = "找不到 VertexMain 入口点";
+            OutErrorMessage = FString("找不到 VertexMain 入口点");
             return false;
         }
 
         Module->findEntryPointByName("FragmentMain", OutFragmentEntry.writeRef());
         if (!OutFragmentEntry)
         {
-            OutErrorMessage = "找不到 FragmentMain 入口点";
+            OutErrorMessage = FString("找不到 FragmentMain 入口点");
             return false;
         }
 
@@ -222,8 +223,9 @@ public:
                                                      OutProgram.writeRef(), Diagnostics.writeRef());
         if (Diagnostics)
         {
-            OutErrorMessage = Diagnostics->getBufferSize() ? static_cast<const char*>(Diagnostics->getBufferPointer())
-                                                           : "Unknown Error";
+            OutErrorMessage =
+                FString(Diagnostics->getBufferSize() ? static_cast<const char*>(Diagnostics->getBufferPointer())
+                                                     : "Unknown Error");
             return false;
         }
 
@@ -235,7 +237,7 @@ public:
     {
         if (!ProcessReflectFixedParameters(Layout, OutParameterSheet))
         {
-            OutErrorMessage = "反射固定参数失败";
+            OutErrorMessage = FString("反射固定参数失败");
             return false;
         }
 
@@ -274,7 +276,7 @@ public:
 
         if (OutVertexIndex == -1 || OutFragmentIndex == -1)
         {
-            OutErrorMessage = "无法找到顶点或片段着色器入口点";
+            OutErrorMessage = FString("无法找到顶点或片段着色器入口点");
             return false;
         }
 
@@ -289,9 +291,9 @@ public:
             Program->getEntryPointCode(StageIndex, TargetIndex, OutCode.writeRef(), Diagnostics.writeRef());
         if (SLANG_FAILED(Result))
         {
-            OutErrorMessage = Diagnostics && Diagnostics->getBufferSize()
+            OutErrorMessage = FString(Diagnostics && Diagnostics->getBufferSize()
                                   ? static_cast<const char*>(Diagnostics->getBufferPointer())
-                                  : "编译着色器阶段失败";
+                                  : "编译着色器阶段失败");
             return false;
         }
 
@@ -342,15 +344,15 @@ public:
         FString Extension;
         if (Request.DebugOutputTarget == EShaderTranslateTarget::GLSL)
         {
-            Extension = ".glsl";
+            Extension = FString(".glsl");
         }
         else if (Request.DebugOutputTarget == EShaderTranslateTarget::HLSL)
         {
-            Extension = ".hlsl";
+            Extension = FString(".hlsl");
         }
         else
         {
-            Extension = ".txt";
+            Extension = FString(".txt");
         }
 
         // 确保目录存在
@@ -401,9 +403,9 @@ public:
         slang::IModule*             Module = nullptr;
         if (!LoadShaderModule(Request.ShaderPath, Diagnostics, Module))
         {
-            OutResult.ErrorMessage = Diagnostics && Diagnostics->getBufferSize()
+            OutResult.ErrorMessage = FString(Diagnostics && Diagnostics->getBufferSize()
                                          ? static_cast<const char*>(Diagnostics->getBufferPointer())
-                                         : "Unknown Error";
+                                         : "Unknown Error");
             return false;
         }
 
@@ -426,7 +428,7 @@ public:
         slang::ProgramLayout* ProgLayout = Program->getLayout();
         if (!ProgLayout)
         {
-            OutResult.ErrorMessage = "无法获取 ProgramLayout";
+            OutResult.ErrorMessage = FString("无法获取 ProgramLayout");
             return false;
         }
 
@@ -450,7 +452,7 @@ public:
         const Int32 TargetIndex = GetCompileTargetIndex(Request.Target);
         if (TargetIndex == -1)
         {
-            OutResult.ErrorMessage = "无效的编译目标";
+            OutResult.ErrorMessage = FString("无效的编译目标");
             return false;
         }
 
@@ -459,7 +461,7 @@ public:
         FString                     VertexErrorMessage;
         if (!CompileShaderStage(Program, VertexStageIndex, TargetIndex, VertexCode, VertexErrorMessage))
         {
-            OutResult.ErrorMessage = FString("编译顶点着色器失败: ") + VertexErrorMessage;
+            OutResult.ErrorMessage = std::format("编译顶点着色器失败: {}", VertexErrorMessage.CStr());
             return false;
         }
 
@@ -468,7 +470,7 @@ public:
         FString                     FragmentErrorMessage;
         if (!CompileShaderStage(Program, FragmentStageIndex, TargetIndex, FragmentCode, FragmentErrorMessage))
         {
-            OutResult.ErrorMessage = FString("编译片段着色器失败: ") + FragmentErrorMessage;
+            OutResult.ErrorMessage = std::format("编译片段着色器失败: {}", FragmentErrorMessage.CStr());
             return false;
         }
 
@@ -498,7 +500,7 @@ bool FSlangTranslator::RequestCompileGraphicsShader(const FShaderTranslatorReque
 {
     if (!Impl)
     {
-        OutResult.ErrorMessage = "FSlangCompiler 未初始化";
+        OutResult.ErrorMessage = FString("FSlangCompiler 未初始化");
         return false;
     }
 

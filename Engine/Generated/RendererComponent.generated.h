@@ -13,6 +13,9 @@
         }                                                                                                              \
         static void Register_CRendererComponent();                                                                                 \
     };                                                                                                                 \
-    virtual FType GetType() const { return TypeOf<CRendererComponent>(); }                                                                                        \
+    typedef CSceneComponent::ThisClass Super;                                                                                        \
+    typedef CRendererComponent ThisClass;                                                                                        \
+    virtual FType GetType() const override { return TypeOf<CRendererComponent>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(CRendererComponent)                                                                                        \
     static inline Z_RendererComponent_Register Z_REGISTERER_RENDERERCOMPONENT;

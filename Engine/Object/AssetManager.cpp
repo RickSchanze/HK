@@ -15,7 +15,7 @@ void FAssetManager::RegisterAsset(FUuid Uuid, const FString& AssetPath, const HO
     }
     if (Asset == nullptr)
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Asset {} is null, with UUID={}, AssetPath={}", Uuid, AssetPath);
+        HK_LOG_ERROR(ELogcat::Asset, "Asset is null, with UUID={}, AssetPath={}", Uuid.ToString(), AssetPath);
         return;
     }
     AutoLock Lock(AssetMapMutex);

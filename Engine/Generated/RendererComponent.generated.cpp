@@ -11,6 +11,9 @@ static void Register_CRendererComponent_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<CRendererComponent>("RendererComponent");
 
+    // 注册父类: CSceneComponent
+    Type->RegisterParent(FTypeManager::TypeOf<CSceneComponent>());
+
 }
 
 void CRendererComponent::Z_RendererComponent_Register::Register_CRendererComponent()
@@ -20,6 +23,7 @@ void CRendererComponent::Z_RendererComponent_Register::Register_CRendererCompone
 }
 
 #define CRendererComponent_SERIALIZATION_CODE \
+        Super::Serialize(Ar); \
         // No serializable properties \
 
 

@@ -11,9 +11,10 @@
         {                                                                                                              \
             Register_FAssetLoader();                                                                                         \
         }                                                                                                              \
-        static void Register_FAssetLoader();                                                                                 \
+        static HK_API void Register_FAssetLoader();                                                                                 \
     };                                                                                                                 \
     typedef FAssetLoader ThisClass;                                                                                        \
     virtual FType GetType() const { return TypeOf<FAssetLoader>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return true; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FAssetLoader)                                                                                        \
     static inline Z_AssetLoader_Register Z_REGISTERER_ASSETLOADER;

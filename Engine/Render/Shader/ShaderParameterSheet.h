@@ -53,6 +53,8 @@ public:
 HSTRUCT()
 struct FShaderBinaryData
 {
+    GENERATED_BODY(FShaderBinaryData)
+public:
     HPROPERTY()
     FShaderParameterSheet ParameterSheet;
 

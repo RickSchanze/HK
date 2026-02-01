@@ -202,7 +202,7 @@ bool FAssetRegistry::SaveAssetMetadata(TSharedPtr<FAssetMetadata>& Metadata)
     FString MetaPath = NormalizedPath + ".meta";
 
     // 创建文件流
-    const auto File = FFileUtility::CreateFileStream(MetaPath, true, true);
+    auto File = FFileUtility::CreateFileStream(MetaPath, true, true);
     if (!File)
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to create metadata file stream: {}", MetaPath);

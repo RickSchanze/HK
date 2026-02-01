@@ -81,18 +81,14 @@ public:
     static size_t                                      GetNameTableSize();
     static const std::unordered_map<FIDType, FString>& GetNameTable();
 
-    template <typename Archive>
-    void Write(Archive& Ar)
+    std::string WritePrimitive() const
     {
-        Ar(GetStdString());
+        return GetStdString();
     }
 
-    template <typename Archive>
-    void Read(Archive& Ar)
+    void ReadPrimitive(const std::string& InStr)
     {
-        std::string NameStr;
-        Ar(NameStr);
-        ID = GetOrCreateID(FString(std::move(NameStr)));
+        ID = GetOrCreateID(FString(InStr));
     }
 
 private:

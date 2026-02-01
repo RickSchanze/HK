@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef FShaderPushConstantItem ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FShaderPushConstantItem>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -43,6 +44,7 @@
     };                                                                                                                 \
     typedef FShaderParameterSheet ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FShaderParameterSheet>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -73,6 +75,7 @@
     };                                                                                                                 \
     typedef FShaderBinaryData ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FShaderBinaryData>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \

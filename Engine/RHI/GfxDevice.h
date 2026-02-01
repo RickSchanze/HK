@@ -9,6 +9,11 @@
 
 #include "GfxDevice.generated.h"
 
+// 取消Windows宏定义，避免与我们的函数名冲突
+#ifdef CreateSemaphore
+#undef CreateSemaphore
+#endif
+
 class FRHIWindow;
 struct FRHIBufferDesc;
 class FRHIBuffer;
@@ -330,6 +335,33 @@ public:
      * @param Window
      */
     virtual void CloseWindow(FRHIWindow& Window) = 0;
+
+    /**
+     * 获取SwapChain的下一个图像
+     * @param Window 窗口
+     * @param ImageAvailableSemaphore 图像可用信号量（用于同步）
+     * @param OutImageIndex 输出图像索引
+     * @return 是否成功获取图像
+     */
+    virtual bool AcquireNextImage(FRHIWindow& Window, const FRHISemaphore& ImageAvailableSemaphore,
+                                  UInt32& OutImageIndex) = 0;
+
+    /**
+     * 呈现SwapChain图像
+     * @param Window 窗口
+     * @param ImageIndex 要呈现的图像索引
+     * @param RenderFinishedSemaphore 渲染完成信号量（用于同步）
+     * @return 是否成功呈现图像
+     */
+    virtual bool PresentImage(FRHIWindow& Window, UInt32 ImageIndex, const FRHISemaphore& RenderFinishedSemaphore) = 0;
+
+    /**
+     * 获取SwapChain图像的ImageView
+     * @param Window 窗口
+     * @param ImageIndex 图像索引
+     * @return 图像视图
+     */
+    virtual FRHIImageView GetSwapChainImageView(FRHIWindow& Window, UInt32 ImageIndex) = 0;
 #pragma endregion
 };
 

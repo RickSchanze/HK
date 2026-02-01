@@ -11,6 +11,9 @@ static void Register_CSceneComponent_Impl()
     // 注册类型
     FTypeMutable Type = FTypeManager::Register<CSceneComponent>("SceneComponent");
 
+    // 注册父类: CComponent
+    Type->RegisterParent(FTypeManager::TypeOf<CComponent>());
+
     // 注册属性
     CSceneComponent::Register_CSceneComponent_Properties(Type);
 
@@ -23,6 +26,7 @@ void CSceneComponent::Z_SceneComponent_Register::Register_CSceneComponent()
 }
 
 #define CSceneComponent_SERIALIZATION_CODE \
+        Super::Serialize(Ar); \
         Ar( \
         MakeNamedPair("LocalTransform", LocalTransform) \
         ); \

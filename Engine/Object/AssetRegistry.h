@@ -70,7 +70,43 @@ public:
 HSTRUCT()
 struct HK_API FAssetMetadata
 {
-    GENERATED_BODY(FAssetMetadata)
+public:
+    struct Z_AssetMetadata_Register
+    {
+        Z_AssetMetadata_Register()
+        {
+            Register_FAssetMetadata();
+        }
+        static HK_API void Register_FAssetMetadata();
+    };
+    typedef FAssetMetadata ThisStruct;
+    static FType           GetType()
+    {
+        return TypeOf<FAssetMetadata>();
+    }
+    static constexpr bool IsAbstract()
+    {
+        return false;
+    }
+    template <typename Archive>
+    void Serialize(Archive& Ar)
+    {
+        Ar(MakeNamedPair("Uuid", Uuid), MakeNamedPair("Path", Path), MakeNamedPair("AssetType", AssetType),
+           MakeNamedPair("FileType", FileType), MakeNamedPair("ImportSetting", ImportSetting),
+           MakeNamedPair("IntermediateHash", IntermediateHash));
+    }
+    static void Register_FAssetMetadata_Properties(FTypeMutable Type)
+    {
+        Type->RegisterProperty(&FAssetMetadata::Uuid, "Uuid");
+        Type->RegisterProperty(&FAssetMetadata::Path, "Path");
+        Type->RegisterProperty(&FAssetMetadata::AssetType, "AssetType");
+        Type->RegisterProperty(&FAssetMetadata::FileType, "FileType");
+        Type->RegisterProperty(&FAssetMetadata::ImportSetting, "ImportSetting");
+        Type->RegisterProperty(&FAssetMetadata::IntermediateHash, "IntermediateHash");
+    }
+    static inline Z_AssetMetadata_Register Z_REGISTERER_ASSETMETADATA;
+
+private:
 public:
     HPROPERTY()
     FUuid Uuid;
@@ -167,7 +203,7 @@ public:
     static EAssetFileType InferFileTypeFromExtension(const FStringView& Extension);
 
 private:
-    TMap<FUuid, FString>                        UuidToPath;
-    TMap<FString, FUuid>                        PathToUuid;
+    TMap<FUuid, FString>                         UuidToPath;
+    TMap<FString, FUuid>                         PathToUuid;
     TLruCache<FUuid, TSharedPtr<FAssetMetadata>> CachedMetadata;
 };

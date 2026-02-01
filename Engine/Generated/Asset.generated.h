@@ -16,6 +16,7 @@
     typedef HObject::ThisClass Super;                                                                                        \
     typedef HAsset ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<HAsset>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HAsset)                                                                                        \
     static void Register_HAsset_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

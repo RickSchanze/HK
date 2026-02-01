@@ -116,9 +116,9 @@ public:
     // 析构函数：不自动销毁资源，必须通过 FGfxDevice::DestroyCommandBuffer 销毁
     ~FRHICommandBuffer() = default;
 
-    // 允许拷贝和移动
-    FRHICommandBuffer(const FRHICommandBuffer& Other)                = default;
-    FRHICommandBuffer& operator=(const FRHICommandBuffer& Other)     = default;
+    // [Fix] 禁用拷贝（因为包含 UniquePtr），允许移动
+    FRHICommandBuffer(const FRHICommandBuffer& Other)                = delete;
+    FRHICommandBuffer& operator=(const FRHICommandBuffer& Other)     = delete;
     FRHICommandBuffer(FRHICommandBuffer&& Other) noexcept            = default;
     FRHICommandBuffer& operator=(FRHICommandBuffer&& Other) noexcept = default;
 
@@ -394,14 +394,23 @@ public:
 #pragma endregion
 
 #pragma region 渲染通道（如果支持）
-    // 开始渲染通道
+    // 开始渲染通道（已弃用，使用 BeginRendering 代替）
     // @param RenderPassBeginInfo 渲染通道开始信息
     // @param Contents 辅助命令缓冲区内容类型
     void BeginRenderPass(const FRHIRenderPassBeginInfo& RenderPassBeginInfo,
                          ERHICommandBufferLevel         Contents = ERHICommandBufferLevel::Primary);
 
-    // 结束渲染通道
+    // 结束渲染通道（已弃用，使用 EndRendering 代替）
     void EndRenderPass();
+#pragma endregion
+
+#pragma region Dynamic Rendering
+    // 开始动态渲染（推荐使用）
+    // @param RenderTarget 渲染目标
+    void BeginRendering(const class FRenderTarget& RenderTarget);
+
+    // 结束动态渲染
+    void EndRendering();
 #pragma endregion
 
 private:

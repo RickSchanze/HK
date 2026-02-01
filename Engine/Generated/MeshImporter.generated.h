@@ -15,6 +15,7 @@
     };                                                                                                                 \
     typedef FVertexPNU ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FVertexPNU>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -43,6 +44,7 @@
     };                                                                                                                 \
     typedef FSubMeshIntermediate ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FSubMeshIntermediate>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -69,6 +71,7 @@
     };                                                                                                                 \
     typedef FMeshIntermediate ThisStruct;                                                                                        \
     static FType GetType() { return TypeOf<FMeshIntermediate>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     template <typename Archive>                                                                                        \
     void Serialize(Archive& Ar)                                                                                        \
     {                                                                                                                  \
@@ -96,6 +99,7 @@
     typedef FAssetImportSetting::ThisClass Super;                                                                                        \
     typedef FMeshImportSetting ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<FMeshImportSetting>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(FMeshImportSetting)                                                                                        \
     static void Register_FMeshImportSetting_Properties(FTypeMutable Type)                                                                                        \
     {                                                                                        \

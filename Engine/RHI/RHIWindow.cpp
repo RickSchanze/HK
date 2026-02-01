@@ -143,7 +143,7 @@ void FRHIWindowManager::PollAllWindowInput()
     // 处理所有 SDL 事件
     SDL_Event Event;
     SDL_PollEvent(&Event);
-    HandleSDLEvent(Event, GetRef().Windows);
+    HandleSDLEvent(Event, GetRef().Windows.Data());
 }
 
 void FRHIWindow::Open()

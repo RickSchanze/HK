@@ -16,5 +16,6 @@
     typedef HAsset::ThisClass Super;                                                                                        \
     typedef HMesh ThisClass;                                                                                        \
     virtual FType GetType() const override { return TypeOf<HMesh>(); }                                                                                        \
+    static constexpr bool IsAbstract() { return false; }                                                                                        \
     HK_DECL_CLASS_SERIALIZATION(HMesh)                                                                                        \
     static inline Z_HMesh_Register Z_REGISTERER_HMESH;

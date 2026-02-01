@@ -73,7 +73,7 @@ HObject* FMeshLoader::Load(const FAssetMetadata& Metadata, FType AssetType, bool
     // 校验类型
     if (AssetType != TypeOf<HMesh>())
     {
-        HK_LOG_ERROR(ELogcat::Asset, "Invalid asset type for MeshLoader: {}", AssetType->GetName());
+        HK_LOG_ERROR(ELogcat::Asset, "Invalid asset type for MeshLoader: {}", AssetType->Name);
         return nullptr;
     }
 

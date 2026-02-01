@@ -10,6 +10,7 @@
 #include "Render/Mesh/MeshImporter.h"
 #include "Render/RenderContext.h"
 #include <cstring>
+#include <utility> // for std::move
 
 bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate&   Intermediate,
                                                        TArray<FSubMesh>&          OutSubMeshes,
@@ -41,7 +42,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         StagingVertexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
         StagingVertexBufferDesc.MemoryProperty =
             ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingVertexBufferDesc.DebugName = "MeshVertexStagingBuffer";
+        StagingVertexBufferDesc.DebugName = FString("MeshVertexStagingBuffer");
 
         FRHIBuffer StagingVertexBuffer = GfxDevice.CreateBuffer(StagingVertexBufferDesc);
         if (!StagingVertexBuffer.IsValid())
@@ -67,7 +68,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         VertexBufferDesc.Size           = VertexBufferSize;
         VertexBufferDesc.Usage          = ERHIBufferUsage::VertexBuffer | ERHIBufferUsage::TransferDst;
         VertexBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal;
-        VertexBufferDesc.DebugName      = "MeshVertexBuffer";
+        VertexBufferDesc.DebugName      = FString("MeshVertexBuffer");
 
         SubMesh.VertexBuffer = GfxDevice.CreateBuffer(VertexBufferDesc);
         if (!SubMesh.VertexBuffer.IsValid())
@@ -86,7 +87,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         StagingIndexBufferDesc.Usage = ERHIBufferUsage::TransferSrc;
         StagingIndexBufferDesc.MemoryProperty =
             ERHIBufferMemoryProperty::HostVisible | ERHIBufferMemoryProperty::HostCoherent;
-        StagingIndexBufferDesc.DebugName = "MeshIndexStagingBuffer";
+        StagingIndexBufferDesc.DebugName = FString("MeshIndexStagingBuffer");
 
         FRHIBuffer StagingIndexBuffer = GfxDevice.CreateBuffer(StagingIndexBufferDesc);
         if (!StagingIndexBuffer.IsValid())
@@ -116,7 +117,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         IndexBufferDesc.Size           = IndexBufferSize;
         IndexBufferDesc.Usage          = ERHIBufferUsage::IndexBuffer | ERHIBufferUsage::TransferDst;
         IndexBufferDesc.MemoryProperty = ERHIBufferMemoryProperty::DeviceLocal;
-        IndexBufferDesc.DebugName      = "MeshIndexBuffer";
+        IndexBufferDesc.DebugName      = FString("MeshIndexBuffer");
 
         SubMesh.IndexBuffer = GfxDevice.CreateBuffer(IndexBufferDesc);
         if (!SubMesh.IndexBuffer.IsValid())
@@ -133,7 +134,7 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         FRHICommandBufferDesc CmdBufferDesc;
         CmdBufferDesc.Level      = ERHICommandBufferLevel::Primary;
         CmdBufferDesc.UsageFlags = ERHICommandBufferUsageFlag::OneTimeSubmit;
-        CmdBufferDesc.DebugName  = "MeshUploadCommandBuffer";
+        CmdBufferDesc.DebugName  = FString("MeshUploadCommandBuffer");
 
         FRHICommandBuffer CommandBuffer = GfxDevice.CreateCommandBuffer(CommandPool, CmdBufferDesc);
         if (!CommandBuffer.IsValid())
@@ -176,7 +177,9 @@ bool FMeshUtility::CreateAndUploadMeshFromIntermediate(const FMeshIntermediate& 
         // 保存 staging buffer 和 command buffer 以便后续清理
         OutStagingBuffers.Add(StagingVertexBuffer);
         OutStagingBuffers.Add(StagingIndexBuffer);
-        OutCommandBuffers.Add(CommandBuffer);
+
+        // [Fix] FRHICommandBuffer 包含 UniquePtr，必须使用 Move 语义，不能拷贝
+        OutCommandBuffers.Add(std::move(CommandBuffer));
 
         SubMesh.VertexCount = static_cast<UInt32>(SubMeshIntermediate.Vertices.Size());
         SubMesh.IndexCount  = static_cast<UInt32>(SubMeshIntermediate.Indices.Size());

@@ -21,7 +21,7 @@
 #include "Object/AssetUtility.h"
 #include "Object/Object.h"
 #include "Render/Shader/Shader.h"
-#include "Render/Shader/SlangCompiler.h"
+#include "Render/Shader/SlangTranslator.h"
 
 void FShaderImporter::BeginImport()
 {
@@ -51,14 +51,14 @@ bool FShaderImporter::ProcessImport()
     }
 
     // 编译 Shader
-    FShaderCompileRequest Request;
+    FShaderTranslatorRequest Request;
     Request.ShaderPath = Metadata->Path;
     Request.Target     = EShaderTranslateTarget::Spirv;
 
-    if (!FSlangCompiler::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
+    if (!FSlangTranslator::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to compile shader: {} - {}", Metadata->Path,
-                    ImportData->CompileResult.ErrorMessage);
+                     ImportData->CompileResult.ErrorMessage);
         return false;
     }
 
@@ -66,12 +66,12 @@ bool FShaderImporter::ProcessImport()
     if (!ImportData->CompileResult.ErrorMessage.IsEmpty())
     {
         HK_LOG_WARN(ELogcat::Asset, "Shader compilation warnings: {} - {}", Metadata->Path,
-                   ImportData->CompileResult.ErrorMessage);
+                    ImportData->CompileResult.ErrorMessage);
     }
 
     // 创建 HShader 对象
     FObjectArray& ObjectArray = FObjectArray::GetRef();
-    ImportData->Shader         = ObjectArray.CreateObject<HShader>(FName(Metadata->Path));
+    ImportData->Shader        = ObjectArray.CreateObject<HShader>(FName(Metadata->Path));
     if (!ImportData->Shader)
     {
         HK_LOG_ERROR(ELogcat::Asset, "Failed to create HShader object");
@@ -100,14 +100,14 @@ bool FShaderImporter::ProcessAssetIntermediate()
     // 如果还没有编译结果，先编译
     if (ImportData->CompileResult.VS.IsEmpty() && ImportData->CompileResult.FS.IsEmpty())
     {
-        FShaderCompileRequest Request;
+        FShaderTranslatorRequest Request;
         Request.ShaderPath = Metadata->Path;
         Request.Target     = EShaderTranslateTarget::Spirv;
 
-        if (!FSlangCompiler::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
+        if (!FSlangTranslator::GetRef().RequestCompileGraphicsShader(Request, ImportData->CompileResult))
         {
             HK_LOG_ERROR(ELogcat::Asset, "Failed to compile shader for intermediate: {} - {}", Metadata->Path,
-                        ImportData->CompileResult.ErrorMessage);
+                         ImportData->CompileResult.ErrorMessage);
             return false;
         }
     }
@@ -118,8 +118,8 @@ bool FShaderImporter::ProcessAssetIntermediate()
     // 构建中间数据结构（先不设置 Hash）
     FShaderIntermediate Intermediate;
     Intermediate.BinaryData.ParameterSheet = ImportData->CompileResult.ParameterSheet;
-    Intermediate.BinaryData.VS              = ImportData->CompileResult.VS;
-    Intermediate.BinaryData.FS              = ImportData->CompileResult.FS;
+    Intermediate.BinaryData.VS             = ImportData->CompileResult.VS;
+    Intermediate.BinaryData.FS             = ImportData->CompileResult.FS;
 
     // 先序列化以计算 Hash（此时 Hash 字段为 0），直接计算不存储
     FHashOutputStream HashStream;

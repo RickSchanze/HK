@@ -6,6 +6,8 @@
 #include "Core/Logging/Logger.h"
 #include "Core/Utility/UniquePtr.h"
 #include "GfxDevice.h"
+#include "Render/RenderTarget.h"
+#include "Render/Texture/RenderTexture.h"
 
 // 所有命令接口的实现都通过 AddOrExecuteCommand 来统一处理
 // 实际的执行逻辑在 Vulkan 实现中
@@ -196,6 +198,76 @@ void FRHICommandBuffer::EndRenderPass()
     // 注意：这里暂时保留 EndRenderPass，但实际应该使用 EndRendering（Dynamic Rendering）
     // TODO: 后续移除 EndRenderPass，改用 EndRendering
     HK_ASSERT_MSG(false, "EndRenderPass is deprecated, use EndRendering instead");
+}
+
+void FRHICommandBuffer::BeginRendering(const FRenderTarget& RenderTarget)
+{
+    auto Cmd = MakeUnique<FRHICommand_BeginRendering>();
+
+    // 设置渲染区域
+    const FRect2Di& RenderArea = RenderTarget.GetRenderArea();
+    Cmd->RenderArea.X          = RenderArea.X;
+    Cmd->RenderArea.Y          = RenderArea.Y;
+    Cmd->RenderArea.Width      = RenderArea.Width;
+    Cmd->RenderArea.Height     = RenderArea.Height;
+
+    // 设置颜色附件
+    const auto& ColorAttachments = RenderTarget.GetColorAttachments();
+    Cmd->ColorAttachments.Reserve(ColorAttachments.Size());
+    for (const auto& ColorAttachment : ColorAttachments)
+    {
+        if (!ColorAttachment.RenderTexture || !ColorAttachment.RenderTexture->IsValid())
+        {
+            continue;
+        }
+
+        FRHIRenderingAttachmentInfo AttachmentInfo;
+        AttachmentInfo.ImageView   = ColorAttachment.RenderTexture->GetRHIImageView();
+        AttachmentInfo.ImageLayout = ColorAttachment.FinalLayout;
+        AttachmentInfo.LoadOp      = static_cast<ERHIAttachmentLoadOp>(ColorAttachment.LoadOp);
+        AttachmentInfo.StoreOp     = static_cast<ERHIAttachmentStoreOp>(ColorAttachment.StoreOp);
+        AttachmentInfo.ClearValue  = ColorAttachment.ClearColor;
+
+        Cmd->ColorAttachments.Add(AttachmentInfo);
+    }
+
+    // 设置深度/模板附件
+    if (RenderTarget.HasDepthStencil())
+    {
+        const auto& DepthStencilAttachment = RenderTarget.GetDepthStencilAttachment();
+        if (DepthStencilAttachment.RenderTexture && DepthStencilAttachment.RenderTexture->IsValid())
+        {
+            // 深度附件
+            if (DepthStencilAttachment.RenderTexture->IsDepthFormat())
+            {
+                Cmd->bHasDepthAttachment           = true;
+                Cmd->DepthAttachment.ImageView     = DepthStencilAttachment.RenderTexture->GetRHIImageView();
+                Cmd->DepthAttachment.ImageLayout   = DepthStencilAttachment.FinalLayout;
+                Cmd->DepthAttachment.LoadOp        = static_cast<ERHIAttachmentLoadOp>(DepthStencilAttachment.DepthLoadOp);
+                Cmd->DepthAttachment.StoreOp       = static_cast<ERHIAttachmentStoreOp>(DepthStencilAttachment.DepthStoreOp);
+                Cmd->DepthAttachment.ClearValue    = FVector4f(DepthStencilAttachment.ClearDepth, 0.0f, 0.0f, 0.0f);
+            }
+
+            // 模板附件
+            if (DepthStencilAttachment.RenderTexture->IsStencilFormat())
+            {
+                Cmd->bHasStencilAttachment         = true;
+                Cmd->StencilAttachment.ImageView   = DepthStencilAttachment.RenderTexture->GetRHIImageView();
+                Cmd->StencilAttachment.ImageLayout = DepthStencilAttachment.FinalLayout;
+                Cmd->StencilAttachment.LoadOp      = static_cast<ERHIAttachmentLoadOp>(DepthStencilAttachment.StencilLoadOp);
+                Cmd->StencilAttachment.StoreOp     = static_cast<ERHIAttachmentStoreOp>(DepthStencilAttachment.StencilStoreOp);
+                Cmd->StencilAttachment.ClearValue  = FVector4f(0.0f, static_cast<float>(DepthStencilAttachment.ClearStencil), 0.0f, 0.0f);
+            }
+        }
+    }
+
+    AddOrExecuteCommand(std::move(Cmd));
+}
+
+void FRHICommandBuffer::EndRendering()
+{
+    auto Cmd = MakeUnique<FRHICommand_EndRendering>();
+    AddOrExecuteCommand(std::move(Cmd));
 }
 
 // 执行所有排队的命令

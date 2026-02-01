@@ -802,6 +802,10 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
     elif struct_info.type == "struct":
         # struct: 静态函数
         gettype_code = f"    static FType GetType() {{ return TypeOf<{struct_name}>(); }}                                                                                        \\\n"
+    
+    # 生成 IsAbstract 函数（检查是否有 Abstract 或 Interface 属性）
+    is_abstract = "Abstract" in struct_info.attributes or "Interface" in struct_info.attributes
+    isabstract_code = f"    static constexpr bool IsAbstract() {{ return {'true' if is_abstract else 'false'}; }}                                                                                        \\\n"
 
     header_content = f"""#pragma once
 
@@ -814,7 +818,7 @@ def generate_header_file(struct_info: StructInfo, output_dir: str, struct_cache:
         }}                                                                                                              \\
         {register_func_decl}                                                                                 \\
     }};                                                                                                                 \\
-{typedef_code}{gettype_code}{serialize_code}{property_registration_code}{getter_setter_decls}    static inline {registerer_struct_name} {registerer_var_name};
+{typedef_code}{gettype_code}{isabstract_code}{serialize_code}{property_registration_code}{getter_setter_decls}    static inline {registerer_struct_name} {registerer_var_name};
 """
 
     return header_content

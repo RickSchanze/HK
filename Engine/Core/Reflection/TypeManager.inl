@@ -83,7 +83,20 @@ FTypeMutable FTypeManager::RegisterType(const char* InName)
     }
 
     // 如果不是Abstract或Interface，注册创建和销毁函数
-    if (!TypeImpl->IsAbstract() && !TypeImpl->IsInterface())
+    // 使用 if constexpr 检查类型是否有 IsAbstract() 方法
+    // 如果类型没有IsAbstract()方法，则默认为false（可实例化）
+    constexpr bool bIsAbstract = []() constexpr {
+        if constexpr (requires { { T::IsAbstract() } -> std::same_as<bool>; })
+        {
+            return T::IsAbstract();
+        }
+        else
+        {
+            return false;
+        }
+    }();
+    
+    if constexpr (!bIsAbstract)
     {
         // 注册创建函数
         TypeCreateMap[TypeName] = []() -> void* { return New<T>(); };

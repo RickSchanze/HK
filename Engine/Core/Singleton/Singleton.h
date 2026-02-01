@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Utility/Macros.h"
+
 #if HK_DEBUG
 struct FSingletonCounter
 {

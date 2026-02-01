@@ -3,7 +3,7 @@
 //
 
 #include "Material.h"
-#include "Render/GlobalStaticResourcesPool.h"
+#include "Render/GlobalRenderResources.h"
 #include "Render/Shader/Shader.h"
 #include "SharedMaterial.h"
 
@@ -39,7 +39,7 @@ void HMaterial::BindTexture(const FName& InName, HTexture* InTexture)
     }
 
     // 使用 FGlobalStaticResourcePool 获取或添加纹理索引
-    auto& ResourcePool = FGlobalStaticResourcePool::GetRef();
+    auto& ResourcePool = FGlobalStaticRenderResourcePool::GetRef();
     Int16 TextureIndex = ResourcePool.GetOrAddTextureIndex(InTexture);
 
     if (TextureIndex < 0)

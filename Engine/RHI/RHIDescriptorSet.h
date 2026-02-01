@@ -9,7 +9,6 @@
 #include "RHIImageView.h"
 #include "RHISampler.h"
 #include "RHIBuffer.h"
-#include "RHIPipeline.h"
 
 enum class ERHIDescriptorType : UInt32
 {

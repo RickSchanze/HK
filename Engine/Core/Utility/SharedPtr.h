@@ -2,6 +2,7 @@
 
 #include "Core/Logging/Logger.h"
 #include "Core/Reflection/TypeManager.h"
+#include "Core/String/Name.h"
 #include "Core/Utility/Profiler.h"
 
 #include <memory>
@@ -198,33 +199,42 @@ public:
     template <typename Archive>
     void Read(Archive& Ar)
     {
-        if (MyPtr)
+        FName TypeName;
+        Ar(MakeNamedPair("TypeName", TypeName));
+
+        if (TypeName != Names::None)
         {
-            Ar(MakeNamedPair("TypeName", MyPtr->GetType()->Name));
-            Ar(MakeNamedPair("Data", *MyPtr));
+            FType Type = FTypeManager::Get().FindTypeByName(TypeName);
+            if (!Type)
+            {
+                HK_LOG_ERROR(ELogcat::Serialize, "Can't find type {}", TypeName);
+                MyPtr.reset();
+            }
+            else
+            {
+                T* Ptr = static_cast<T*>(Type->CreateInstance());
+                MyPtr.reset(Ptr);
+                Ar(MakeNamedPair("Data", *MyPtr));
+            }
         }
         else
         {
-            Ar(MakeNamedPair("TypeName", Names::None));
+            MyPtr.reset();
         }
     }
 
     template <typename Archive>
     void Write(Archive& Ar)
     {
-        FName TypeName;
-        Ar(MakeNamedPair("TypeName", TypeName));
-        if (TypeName != Names::None)
+        if (MyPtr)
         {
-            if (const FType Type = FTypeManager::FindTypeByName(TypeName); !Type)
-            {
-                HK_LOG_ERROR(ELogcat::Serialize, "Can't find type {}", TypeName);
-            }
-            else
-            {
-                T* Ptr = static_cast<T*>(Type->CreateInstance());
-                MyPtr.reset(Ptr);
-            }
+            // 获取对象的实际类型名称
+            Ar(MakeNamedPair("TypeName", MyPtr->GetType()->Name));
+            Ar(MakeNamedPair("Data", *MyPtr));
+        }
+        else
+        {
+            Ar(MakeNamedPair("TypeName", Names::None));
         }
     }
 
@@ -254,7 +264,7 @@ struct TProfilerAllocator
         return static_cast<T*>(Malloc(n * sizeof(T)));
     }
 
-    void deallocate(T* p, std::size_t n)
+    void deallocate(T* p, [[maybe_unused]] std::size_t n)
     {
         Free(p);
     }

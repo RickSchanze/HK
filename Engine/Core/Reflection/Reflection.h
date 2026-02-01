@@ -21,8 +21,8 @@ GENERATED_HEADER_##ClassName private:
 
 // 用于在.generated.h中声明六个Serialize函数
 #define HK_DECL_CLASS_SERIALIZATION(ClassName)                                                                         \
-    virtual void Serialize(FJsonOutputArchive& Ar);                                                                    \
-    virtual void Serialize(FJsonInputArchive& Ar);                                                                     \
+    virtual void Serialize(cereal::JSONOutputArchive& Ar);                                                             \
+    virtual void Serialize(cereal::JSONInputArchive& Ar);                                                              \
     virtual void Serialize(FXMLInputArchive& Ar);                                                                      \
     virtual void Serialize(FXMLOutputArchive& Ar);                                                                     \
     virtual void Serialize(FBinaryInputArchive& Ar);                                                                   \
@@ -31,11 +31,11 @@ GENERATED_HEADER_##ClassName private:
 // 用于在.generated.cpp中定义六个Serialize函数
 // 需要先定义 {ClassName}_SERIALIZATION_CODE 宏，包含实际的序列化代码
 #define HK_DEFINE_CLASS_SERIALIZATION(ClassName)                                                                       \
-    void ClassName::Serialize(FJsonOutputArchive& Ar)                                                                  \
+    void ClassName::Serialize(cereal::JSONOutputArchive& Ar)                                                           \
     {                                                                                                                  \
         ClassName##_SERIALIZATION_CODE                                                                                 \
     }                                                                                                                  \
-    void ClassName::Serialize(FJsonInputArchive& Ar)                                                                   \
+    void ClassName::Serialize(cereal::JSONInputArchive& Ar)                                                            \
     {                                                                                                                  \
         ClassName##_SERIALIZATION_CODE                                                                                 \
     }                                                                                                                  \

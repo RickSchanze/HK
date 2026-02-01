@@ -125,6 +125,8 @@ class FRHIWindowManager : public TSingleton<FRHIWindowManager>
     friend class FGfxDevice;
     friend class FGfxDeviceVk;
 
+    typedef TFixedArray<TUniquePtr<FRHIWindow>, MAX_RHI_WINDOW_COUNT> FRHIWindowArray;
+
 public:
     /**
      * 创建窗口
@@ -153,7 +155,25 @@ public:
      */
     static void PollAllWindowInput();
 
+    /**
+     * 获取所有创建的Window
+     */
+    const FRHIWindowArray& GetAllWindows() const
+    {
+        return Windows;
+    }
+
+    const FRHIWindow* GetMainWindow() const
+    {
+        return Windows[0].Get();
+    }
+
+    FRHIWindow* GetMainWindow()
+    {
+        return Windows[0].Get();
+    }
+
 private:
     // Index = 0 代表MainWindow, 为Nullptr时代表未被占用
-    TUniquePtr<FRHIWindow> Windows[MAX_RHI_WINDOW_COUNT];
+    FRHIWindowArray Windows;
 };

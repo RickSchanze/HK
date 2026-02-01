@@ -45,6 +45,10 @@ void DestroyGfxDevice()
 
 FGfxDevice* GetGfxDevice()
 {
+    if (!GGfxDevice)
+    {
+        CreateGfxDevice();
+    }
     return GGfxDevice;
 }
 
